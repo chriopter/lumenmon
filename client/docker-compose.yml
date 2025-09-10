@@ -1,0 +1,5 @@
+services:
+  lumenmon-client:
+    build: .
+    container_name: lumenmon-client
+    pid: host
