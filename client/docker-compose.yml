@@ -3,3 +3,14 @@ services:
     build: .
     container_name: lumenmon-client
     pid: host
+    network_mode: host
+    environment:
+      - SERVER_URL=http://localhost:8080
+      - INTERVAL=5               # Collection interval in seconds (use 60 for production)
+      - DEBUG=1                  # Debug mode enabled to see what's happening
+    ports:
+      - "9090:9090"             # Webhook forwarder
+      - "2525:2525"             # SMTP forwarder
+    volumes:
+      - ./collectors:/collectors:ro  # Mount collectors as read-only for easy development
+      - ./forwarders:/forwarders:ro  # Mount forwarders as read-only
