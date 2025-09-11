@@ -7,8 +7,8 @@ services:
       - "8501:8501"    # Streamlit Dashboard
     volumes:
       - ./data:/app/data  # Persist database in data directory
-      - ./app/sink.py:/app/sink.py:ro  # Mount for live development
-      - ./app/dashboard.py:/app/dashboard.py:ro  # Mount for live development
+      - ./sink:/app/sink:ro  # Mount sink service for live development
+      - ./dashboard:/app/dashboard:ro  # Mount dashboard service for live development
     environment:
       - PYTHONUNBUFFERED=1
     restart: unless-stopped

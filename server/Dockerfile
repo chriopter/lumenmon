@@ -3,27 +3,27 @@ FROM python:3.13-slim
 # Set working directory
 WORKDIR /app
 
-# Install dependencies
-COPY app/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Copy and install dashboard dependencies (sink has none)
+COPY dashboard/requirements.txt ./dashboard/
+RUN pip install --no-cache-dir -r dashboard/requirements.txt
 
-# Copy application files
-COPY app/sink.py .
-COPY app/dashboard.py .
+# Copy service folders
+COPY sink/ ./sink/
+COPY dashboard/ ./dashboard/
 
-# Create startup script that runs both services
+# Create startup script that runs both services independently
 RUN echo '#!/bin/bash' > /start.sh && \
     echo 'echo "Starting Lumenmon Server Components..."' >> /start.sh && \
     echo '' >> /start.sh && \
-    echo '# Start sink in background' >> /start.sh && \
-    echo 'python3 sink.py &' >> /start.sh && \
+    echo '# Start sink service in background' >> /start.sh && \
+    echo 'python3 /app/sink/sink.py &' >> /start.sh && \
     echo 'SINK_PID=$!' >> /start.sh && \
     echo '' >> /start.sh && \
-    echo '# Wait a bit for sink to initialize database' >> /start.sh && \
+    echo '# Wait for sink to initialize database' >> /start.sh && \
     echo 'sleep 2' >> /start.sh && \
     echo '' >> /start.sh && \
-    echo '# Start Streamlit dashboard' >> /start.sh && \
-    echo 'streamlit run dashboard.py --server.port=8501 --server.address=0.0.0.0' >> /start.sh && \
+    echo '# Start dashboard service' >> /start.sh && \
+    echo 'streamlit run /app/dashboard/dashboard.py --server.port=8501 --server.address=0.0.0.0' >> /start.sh && \
     chmod +x /start.sh
 
 # Expose ports

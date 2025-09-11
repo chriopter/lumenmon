@@ -11,6 +11,43 @@ log() {
     [ "$DEBUG" = "1" ] && echo "[collect] $1" >&2
 }
 
+# OS Detection Function
+detect_os() {
+    OS_TYPE="unknown"
+    
+    # Check /proc/version for kernel hints (works with pid: host)
+    if [ -f /proc/version ]; then
+        KERNEL_INFO=$(cat /proc/version)
+        
+        # Detect specific distributions
+        if echo "$KERNEL_INFO" | grep -q "pve"; then
+            OS_TYPE="proxmox"
+        elif echo "$KERNEL_INFO" | grep -qi "debian"; then
+            OS_TYPE="debian"
+        elif echo "$KERNEL_INFO" | grep -qi "ubuntu"; then
+            OS_TYPE="ubuntu"
+        elif echo "$KERNEL_INFO" | grep -qi "red hat\|centos\|rhel"; then
+            OS_TYPE="redhat"
+        elif echo "$KERNEL_INFO" | grep -qi "alpine"; then
+            OS_TYPE="alpine"
+        elif echo "$KERNEL_INFO" | grep -qi "arch"; then
+            OS_TYPE="arch"
+        elif echo "$KERNEL_INFO" | grep -qi "suse"; then
+            OS_TYPE="suse"
+        fi
+    fi
+    
+    # Fallback: Check for OS-specific processes (via pid: host)
+    if [ "$OS_TYPE" = "unknown" ]; then
+        # Check for systemd
+        if ps aux 2>/dev/null | grep -q "[s]ystemd"; then
+            OS_TYPE="systemd-linux"
+        fi
+    fi
+    
+    echo "$OS_TYPE"
+}
+
 run_folder_collectors() {
     local folder=$1
     local output=""
@@ -33,8 +70,8 @@ run_folder_collectors() {
 run_collectors() {
     local output=""
     
-    # Source OS detection
-    . ./detect_os.sh
+    # Detect OS type
+    OS_TYPE=$(detect_os)
     log "Detected OS: $OS_TYPE"
     
     # ALWAYS run generic collectors
