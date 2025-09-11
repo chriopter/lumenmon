@@ -1,0 +1,35 @@
+[theme]
+# Cyberpunk Terminal Theme
+base = "dark"
+
+# Terminal phosphor green colors
+primaryColor = "#00ff00"              # Bright terminal green for interactive elements
+textColor = "#00ff00"                 # Terminal green text  
+backgroundColor = "#000000"           # Pure black background
+secondaryBackgroundColor = "#0a0a0a"  # Slightly lighter for containers
+
+# Font configuration
+font = "monospace"                    # Terminal font style
+
+[server]
+# Performance and behavior settings
+headless = true                       # Run without opening browser
+enableCORS = false                    # Security setting
+enableXsrfProtection = false          # Security setting  
+maxUploadSize = 10                    # Max upload in MB
+enableWebsocketCompression = true     # Better performance
+
+[browser]
+# Disable telemetry
+gatherUsageStats = false             # Privacy setting
+
+[runner]
+# Magic commands and error handling
+magicEnabled = false                  # Disable magic commands
+installTracer = false                 # Disable debugging tracer
+fixMatplotlib = false                 # We don't use matplotlib
+
+[client]
+# Client-side behavior
+showErrorDetails = true               # Show full errors
+toolbarMode = "minimal"               # Minimal toolbar

@@ -7,9 +7,10 @@ WORKDIR /app
 COPY dashboard/requirements.txt ./dashboard/
 RUN pip install --no-cache-dir -r dashboard/requirements.txt
 
-# Copy service folders
+# Copy service folders and configuration
 COPY sink/ ./sink/
 COPY dashboard/ ./dashboard/
+COPY .streamlit/ ./.streamlit/
 
 # Create startup script that runs both services independently
 RUN echo '#!/bin/bash' > /start.sh && \

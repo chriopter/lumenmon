@@ -16,42 +16,17 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Pure terminal green styling
+# Minimal CSS for phosphor glow effect only (theme handles colors)
 st.markdown("""
 <style>
-    /* Pure black background */
-    .stApp {
-        background-color: #000000;
-    }
-    
-    /* Terminal green for all text */
-    * {
-        color: #00ff00 !important;
-        font-family: 'Courier New', monospace !important;
-    }
-    
-    /* Code blocks with phosphor glow */
+    /* Phosphor glow effect for that CRT monitor feel */
     pre, code {
-        background-color: #000000 !important;
-        color: #00ff00 !important;
-        text-shadow: 0 0 10px #00ff00;
-        border: 1px solid #00ff00 !important;
-    }
-    
-    /* Tables */
-    .dataframe {
-        background-color: #000000 !important;
-        color: #00ff00 !important;
+        text-shadow: 0 0 10px #00ff00, 0 0 20px #00ff00;
     }
     
     /* Hide Streamlit branding */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
-    
-    /* Charts in green */
-    .js-plotly-plot .plotly {
-        filter: hue-rotate(90deg) saturate(2);
-    }
 </style>
 """, unsafe_allow_html=True)
 
