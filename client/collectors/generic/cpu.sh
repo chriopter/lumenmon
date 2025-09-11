@@ -1,6 +1,9 @@
 #!/bin/sh
 # CPU metrics collector
 
+# === TEMPO ===
+TEMPO="allegro"
+
 # === IDENTITY ===
 GROUP="generic"
 COLLECTOR="cpu"

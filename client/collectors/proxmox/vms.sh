@@ -1,6 +1,9 @@
 #!/bin/sh
 # Proxmox VE metrics collector
 
+# === TEMPO ===
+TEMPO="adagio"
+
 # === IDENTITY ===
 GROUP="proxmox"
 COLLECTOR="vms"

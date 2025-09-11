@@ -1,6 +1,9 @@
 #!/bin/sh
 # Network and internet connectivity collector
 
+# === TEMPO ===
+TEMPO="andante"
+
 # === IDENTITY ===
 GROUP="generic"
 COLLECTOR="network"

@@ -24,15 +24,9 @@ COPY collectors /collectors
 COPY forwarders /forwarders
 RUN chmod +x /collectors/*.sh /collectors/*/*.sh /forwarders/*.sh
 
-# Create startup script
-RUN echo '#!/bin/sh' > /start.sh && \
-    echo '# Start forwarders in background' >> /start.sh && \
-    echo '/forwarders/webhook.sh &' >> /start.sh && \
-    echo '/forwarders/smtp.sh &' >> /start.sh && \
-    echo '# Start collector loop' >> /start.sh && \
-    echo 'cd /collectors' >> /start.sh && \
-    echo 'while true; do ./collect.sh; sleep ${INTERVAL:-5}; done' >> /start.sh && \
-    chmod +x /start.sh
+# Copy startup script
+COPY start.sh /start.sh
+RUN chmod +x /start.sh
 
 # Set working directory
 WORKDIR /

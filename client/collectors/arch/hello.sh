@@ -1,6 +1,9 @@
 #!/bin/sh
 # Arch Linux hello world collector
 
+# === TEMPO ===
+TEMPO="adagio"
+
 # === IDENTITY ===
 GROUP="arch"
 COLLECTOR="hello"
