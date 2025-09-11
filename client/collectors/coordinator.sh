@@ -3,7 +3,7 @@
 # Supports interval-based collection: allegro (fast), andante (medium), adagio (slow)
 
 # === CONFIGURATION ===
-SERVER="${SERVER_URL:-http://localhost:8080}/metrics"
+# Note: SERVER_URL can be updated at runtime by tunnel setup
 DEBUG="${DEBUG:-0}"
 REQUESTED_INTERVAL="$1"  # allegro, andante, adagio, or empty for all
 
@@ -141,7 +141,8 @@ OUTPUT=$(run_collectors)
 if [ -n "$OUTPUT" ]; then
     # Pipe through shipper for JSON conversion and sending
     # Pass interval as first argument so shipper can set numeric interval
-    if echo "$OUTPUT" | ./shipper.sh "${REQUESTED_INTERVAL:-unknown}" "$SERVER"; then
+    # Use current SERVER_URL (may be updated by tunnel setup)
+    if echo "$OUTPUT" | ./shipper.sh "${REQUESTED_INTERVAL:-unknown}" "${SERVER_URL:-http://localhost:8080}/metrics"; then
         echo "$(date '+%H:%M:%S') - Metrics [${REQUESTED_INTERVAL:-all}] shipped"
     else
         echo "$(date '+%H:%M:%S') - Failed to ship metrics"

@@ -41,21 +41,49 @@ RUN pip install --no-cache-dir -r dashboard/requirements.txt && \
 COPY sink/ ./sink/
 COPY dashboard/ ./dashboard/
 COPY .streamlit/ ./.streamlit/
+COPY db_service.py ./
+COPY db_client.py ./
 
 # Create startup script that runs all services
 RUN echo '#!/bin/bash' > /start.sh && \
     echo 'echo "Starting Lumenmon Server Components..."' >> /start.sh && \
     echo '' >> /start.sh && \
-    echo '# Start sink service first to ensure database exists' >> /start.sh && \
+    echo '# Start database service first' >> /start.sh && \
+    echo 'python3 /app/db_service.py &' >> /start.sh && \
+    echo 'DB_PID=$!' >> /start.sh && \
+    echo '' >> /start.sh && \
+    echo '# Wait for database service to initialize' >> /start.sh && \
+    echo 'sleep 3' >> /start.sh && \
+    echo '' >> /start.sh && \
+    echo '# Start sink service' >> /start.sh && \
     echo 'python3 /app/sink/sink.py &' >> /start.sh && \
     echo 'SINK_PID=$!' >> /start.sh && \
     echo '' >> /start.sh && \
-    echo '# Wait for sink to initialize database' >> /start.sh && \
-    echo 'sleep 2' >> /start.sh && \
+    echo '# Sync SSH keys via database service' >> /start.sh && \
+    echo 'echo "Syncing SSH keys via database service..."' >> /start.sh && \
+    echo 'python3 << EOF' >> /start.sh && \
+    echo 'import sys' >> /start.sh && \
+    echo 'sys.path.append("/app")' >> /start.sh && \
+    echo 'from db_client import db' >> /start.sh && \
+    echo 'import time' >> /start.sh && \
+    echo 'time.sleep(1)  # Wait for db service' >> /start.sh && \
+    echo 'print("[STARTUP] Calling db.sync_ssh_keys()...")' >> /start.sh && \
+    echo 'result = db.sync_ssh_keys()' >> /start.sh && \
+    echo 'print(f"[STARTUP] Sync result: {result}")' >> /start.sh && \
+    echo 'if result.get("success"):' >> /start.sh && \
+    echo '    print("[STARTUP] ✅ SSH keys synced successfully")' >> /start.sh && \
+    echo 'else:' >> /start.sh && \
+    echo '    print(f"[STARTUP] ❌ Failed to sync SSH keys: {result}")' >> /start.sh && \
+    echo 'EOF' >> /start.sh && \
     echo '' >> /start.sh && \
-    echo '# Sync authorized_keys from database' >> /start.sh && \
-    echo 'echo "Syncing SSH authorized_keys from database..."' >> /start.sh && \
-    echo 'python3 -c "import sys; sys.path.insert(0, \"/app/sink\"); from sink import sync_authorized_keys; sync_authorized_keys()"' >> /start.sh && \
+    echo '# Debug SSH setup before starting' >> /start.sh && \
+    echo 'echo "[STARTUP] === SSH SETUP DEBUG ===" ' >> /start.sh && \
+    echo 'ls -la /home/metrics/.ssh/' >> /start.sh && \
+    echo 'echo "[STARTUP] authorized_keys contents:"' >> /start.sh && \
+    echo 'cat /home/metrics/.ssh/authorized_keys 2>/dev/null || echo "No authorized_keys file"' >> /start.sh && \
+    echo 'echo "[STARTUP] metrics user info:"' >> /start.sh && \
+    echo 'id metrics' >> /start.sh && \
+    echo 'echo "[STARTUP] === END DEBUG ===" ' >> /start.sh && \
     echo '' >> /start.sh && \
     echo '# Start SSH server for client tunnels' >> /start.sh && \
     echo 'echo "Starting SSH server on port 2222 for client tunnels..."' >> /start.sh && \
@@ -75,7 +103,7 @@ RUN echo '#!/bin/bash' > /start.sh && \
     chmod +x /start.sh
 
 # Expose ports
-EXPOSE 8080 8501 8090 2222
+EXPOSE 8080 8501 8090 2222 8082
 
 # Disable Streamlit telemetry
 ENV STREAMLIT_BROWSER_GATHER_USAGE_STATS=false

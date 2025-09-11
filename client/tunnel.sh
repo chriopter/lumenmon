@@ -6,7 +6,7 @@ KEY_FILE="/etc/lumenmon/id_rsa"
 SSH_HOST="${SSH_SERVER:-localhost}"
 SSH_PORT="${SSH_PORT:-2222}"
 SSH_USER="metrics"
-LOCAL_PORT="8080"
+LOCAL_PORT="8081"  # Use different port to avoid conflict with server
 REMOTE_PORT="8080"
 
 echo "[TUNNEL] SSH Tunnel Manager starting..."
@@ -69,6 +69,6 @@ while true; do
         echo "[TUNNEL] Server not reachable at $SSH_HOST:$SSH_PORT"
     fi
     
-    echo "[TUNNEL] Retrying in 30 seconds..."
-    sleep 30
+    echo "[TUNNEL] Retrying in 5 seconds..."
+    sleep 5
 done
