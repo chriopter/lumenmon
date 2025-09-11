@@ -1,0 +1,20 @@
+services:
+  lumenmon-server:
+    build: .
+    container_name: lumenmon-server
+    ports:
+      - "8080:8080"    # Sink API (receives metrics)
+      - "8501:8501"    # Streamlit Dashboard
+    volumes:
+      - ./data:/app/data  # Persist database in data directory
+      - ./app/sink.py:/app/sink.py:ro  # Mount for live development
+      - ./app/dashboard.py:/app/dashboard.py:ro  # Mount for live development
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s

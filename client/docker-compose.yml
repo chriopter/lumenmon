@@ -4,10 +4,12 @@ services:
     container_name: lumenmon-client
     pid: host
     network_mode: host
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
-      - SERVER_URL=http://localhost:8080
-      - INTERVAL=5               # Collection interval in seconds (use 60 for production)
-      - DEBUG=1                  # Debug mode enabled to see what's happening
+      - SERVER_URL=${SERVER_URL:-http://localhost:8080}  # Override with SERVER_URL env variable
+      - INTERVAL=${INTERVAL:-5}                          # Collection interval in seconds
+      - DEBUG=${DEBUG:-1}                                # Debug mode
     ports:
       - "9090:9090"             # Webhook forwarder
       - "2525:2525"             # SMTP forwarder

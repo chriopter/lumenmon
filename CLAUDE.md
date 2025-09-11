@@ -1,86 +1,187 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Development guide for Lumenmon monitoring system.
 
-## Commands
+## Current Architecture
 
-### Server Operations
-```bash
-# Start the monitoring server (runs on port 8080)
-cd server && python3 server.py
+### Server Components (`/server`)
 
-# Server endpoints:
-# GET  /         - Web dashboard with metrics visualization
-# POST /metrics  - Receives metrics data from clients
-# GET  /api/feed - Returns webhook/email feed data as JSON
+**Structure:**
+```
+server/
+├── docker-compose.yml     # Container orchestration
+├── Dockerfile            # Python 3.11 slim base
+├── .gitignore           # Excludes data/ folder
+├── data/                # SQLite database storage
+│   └── lumenmon.db
+└── app/                 # Application code
+    ├── sink.py          # Metrics sink API (port 8080)
+    ├── dashboard.py     # Streamlit dashboard (port 8501)
+    └── requirements.txt # Python dependencies
 ```
 
-### Client Operations
+**Stack:**
+- Python 3.11 with Streamlit
+- SQLite for persistence (auto-initialized)
+- Plotly for data visualization
+- Cyber-retro 80s TUI theme (terminal green phosphor)
+- Auto-refresh every 5 seconds
+
+### Client Components (`/client`)
+
+**Structure:**
+```
+client/
+├── docker-compose.yml
+├── Dockerfile           # Alpine Linux base
+├── .env                # Configuration
+├── collectors/         # Metric collection scripts
+│   ├── collect.sh     # Main orchestrator
+│   ├── detect_os.sh   # OS detection
+│   └── generic/       # Universal collectors
+│       ├── cpu.sh
+│       ├── memory.sh
+│       ├── disk.sh
+│       └── network.sh
+└── forwarders/        # External data ingestion
+    ├── webhook.sh     # HTTP webhook receiver
+    └── smtp.sh        # SMTP email receiver
+```
+
+**Features:**
+- POSIX shell compliant
+- OS detection (Debian, Arch, Alpine, Proxmox)
+- Modular collector system
+- Network mode: host for accurate metrics
+
+## Running the System
+
+### Development (Same Machine, Separate Containers)
+
 ```bash
-# Build and run client with Docker Compose
+# Terminal 1 - Server
+cd server && docker-compose up --build
+
+# Terminal 2 - Client  
+cd client && docker-compose up --build
+
+# Access dashboard
+open http://localhost:8501
+```
+
+### Production (Different Machines)
+
+```bash
+# On server machine
+cd server && docker-compose up -d
+
+# On client machine
+export SERVER_URL=http://server-ip:8080
 cd client && docker-compose up -d
-
-# Run collectors manually (from client directory)
-cd client/collectors && ./collect.sh
-
-# Environment variables for client:
-# SERVER_URL - Server endpoint (default: http://localhost:8080)
-# INTERVAL   - Collection interval in seconds (default: 5)
-# DEBUG      - Enable debug output (0/1, default: 0)
 ```
 
 ### Testing
+
 ```bash
-# Test webhook forwarder (port 9090)
+# Test webhook forwarding
 ./test_webhook.sh
 
-# Test SMTP forwarder (port 2525)
+# Test SMTP forwarding
 ./test_smtp.sh
+
+# Manual metric test
+curl -X POST localhost:8080/metrics -d "test_metric:42"
+
+# Check sink is receiving
+curl -X POST localhost:8080/metrics -d "test:123" -v
 ```
 
-## Architecture
+## Key Design Principles
 
-Lumenmon is a lightweight monitoring system with two main components:
+1. **KISS**: Keep components simple and focused
+2. **Separation**: Sink writes, dashboard reads, no cross-dependencies
+3. **Minimal Dependencies**: Only Streamlit/Pandas/Plotly for dashboard
+4. **Container Isolation**: Separate containers for production deployment
+5. **Retro Aesthetic**: Terminal green with ASCII art and box drawing
 
-### Server (`server/server.py`)
-- Single-file Python HTTP server using only standard library
-- Stores metrics in memory with rolling history (last 60 values per metric)
-- Provides real-time web dashboard with Chart.js visualizations
-- Maintains webhook/email feed (last 50 messages)
-- No external dependencies, runs standalone
+## Data Flow
 
-### Client (`client/`)
-- Shell-based collectors organized by OS type
-- Docker container with Alpine Linux base
-- Runs two parallel services:
-  1. **Collectors**: Gather system metrics and send to server
-  2. **Forwarders**: Listen for webhooks (9090) and SMTP (2525), forward to server
+```
+Collectors → POST /metrics → Sink → SQLite ← Dashboard (read-only)
+Webhooks  → POST /api/feed → Sink → SQLite ← Dashboard (read-only)
+SMTP      → POST /api/feed → Sink → SQLite ← Dashboard (read-only)
+```
 
-## Key Implementation Details
+## Database Schema
 
-### Collector System (`client/collectors/`)
-- **OS Detection**: `detect_os.sh` identifies the system type (debian, proxmox, arch, alpine, etc.)
-- **Modular Structure**: Collectors organized in folders by OS type
-  - `generic/` - Universal collectors (CPU, memory, disk, network)
-  - OS-specific folders for specialized metrics
-- **Main Orchestrator**: `collect.sh` runs appropriate collectors based on detected OS
-- All collectors output simple key-value pairs for the server to parse
+```sql
+-- Metrics table
+CREATE TABLE metrics (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+    metric_name TEXT NOT NULL,
+    metric_value REAL,
+    metric_text TEXT,
+    host TEXT DEFAULT 'localhost'
+);
 
-### Forwarders (`client/forwarders/`)
-- **Webhook Forwarder**: `webhook.sh` - Accepts HTTP POST on port 9090, forwards to server feed
-- **SMTP Forwarder**: `smtp.sh` - Simple SMTP server on port 2525, forwards emails to server feed
+-- Messages table  
+CREATE TABLE messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+    source TEXT,
+    message TEXT
+);
+```
 
-### Data Flow
-1. Collectors gather metrics → Send to `/metrics` endpoint
-2. Server stores in memory → Updates rolling history
-3. Dashboard polls `/` → Displays real-time charts
-4. Forwarders receive external data → Send to server feed
-5. Feed accessible via dashboard or `/api/feed` endpoint
+## Environment Variables
 
-## Development Notes
+### Server
+- `STREAMLIT_BROWSER_GATHER_USAGE_STATS=false` - Disable telemetry
+- `STREAMLIT_SERVER_HEADLESS=true` - Headless mode for containers
 
-- The client uses POSIX shell (`/bin/sh`) for maximum compatibility, with bash only where needed
-- Server intentionally has no dependencies beyond Python standard library
-- Client Docker image based on Alpine Linux for minimal footprint
-- All scripts follow similar structure: configuration section, functions, main execution
-- Collectors can be added by creating new `.sh` files in appropriate OS folder
+### Client
+- `SERVER_URL` - Sink endpoint (default: http://localhost:8080)
+- `INTERVAL` - Collection interval in seconds (default: 5)
+- `DEBUG` - Debug output (0/1, default: 1)
+
+## Adding New Collectors
+
+1. Create script in `client/collectors/generic/` or OS-specific folder
+2. Output format: `metric_name:value` (one per line)
+3. Make executable: `chmod +x collector.sh`
+4. Collector will be auto-discovered by `collect.sh`
+
+## Dashboard Features
+
+- **ASCII Art Header**: Retro terminal branding
+- **Status Bar**: Live connection status with data freshness
+- **Metrics Cards**: CPU, Memory, Disk, Load with progress bars
+- **Charts Tab**: Time series visualization with Plotly
+- **Metrics Tab**: Current values in terminal table format
+- **Messages Tab**: Webhook/email feed display
+- **Control Tab**: Database statistics and maintenance
+
+## Troubleshooting
+
+### Client Can't Connect
+```bash
+# Check sink is accessible
+curl -X POST http://localhost:8080/metrics -d "test:1"
+
+# For containers on same host
+SERVER_URL=http://localhost:8080  # with network_mode: host
+
+# For different machines
+SERVER_URL=http://actual-server-ip:8080
+```
+
+### Database Issues
+- Database auto-creates on first run
+- Located at `server/data/lumenmon.db`
+- Delete file to reset completely
+
+### Dashboard Not Updating
+- Check sink is receiving data
+- Verify database has recent timestamps
+- Auto-refresh is 5 seconds, manual refresh button available
