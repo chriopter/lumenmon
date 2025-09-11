@@ -34,13 +34,16 @@ def init_database():
     conn.execute("PRAGMA busy_timeout=30000")
     c = conn.cursor()
     
-    # Metrics table
+    # Metrics table with type field
     c.execute('''CREATE TABLE IF NOT EXISTS metrics (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
         metric_name TEXT NOT NULL,
         metric_value REAL,
         metric_text TEXT,
+        type TEXT DEFAULT 'float',
+        tempo TEXT,
+        interval INTEGER,
         host TEXT DEFAULT 'localhost'
     )''')
     
@@ -55,6 +58,7 @@ def init_database():
     # Create indexes
     c.execute('CREATE INDEX IF NOT EXISTS idx_metrics_time ON metrics(timestamp)')
     c.execute('CREATE INDEX IF NOT EXISTS idx_metrics_name ON metrics(metric_name)')
+    c.execute('CREATE INDEX IF NOT EXISTS idx_metrics_type ON metrics(type)')
     
     conn.commit()
     conn.close()
@@ -71,26 +75,72 @@ class MetricsSink(BaseHTTPRequestHandler):
             c = conn.cursor()
             
             try:
-                # Parse key:value format
-                for line in content.decode().split('\n'):
+                # Parse metrics - supports both old and new format
+                lines = content.decode().split('\n')
+                i = 0
+                while i < len(lines):
+                    line = lines[i]
                     if ':' in line and not line.startswith('#'):
-                        name, value = line.split(':', 1)
-                        name = name.strip()
-                        value = value.strip()
+                        parts = line.strip().split(':', 3)
                         
-                        try:
-                            # Try to store as numeric
-                            numeric_value = float(value.replace('%', ''))
-                            c.execute(
-                                "INSERT INTO metrics (metric_name, metric_value) VALUES (?, ?)",
-                                (name, numeric_value)
-                            )
-                        except ValueError:
-                            # Store as text
-                            c.execute(
-                                "INSERT INTO metrics (metric_name, metric_text) VALUES (?, ?)",
-                                (name, value)
-                            )
+                        if len(parts) == 4:
+                            # New format: name:value:type:interval
+                            name, value, type_, interval = parts
+                            name = name.strip()
+                            value = value.strip()
+                            type_ = type_.strip()
+                            interval = interval.strip()
+                            
+                            # Handle multi-line blob data
+                            if type_ == 'blob':
+                                # Collect all lines until we hit the next metric or end
+                                blob_lines = [value]
+                                i += 1
+                                while i < len(lines) and ':' not in lines[i]:
+                                    blob_lines.append(lines[i])
+                                    i += 1
+                                i -= 1  # Back up one since we'll increment at the end
+                                value = '\n'.join(blob_lines)
+                            
+                            # Store based on type - very readable!
+                            if type_ in ['float', 'int']:
+                                # Numeric types go to metric_value
+                                numeric_value = float(value)
+                                c.execute("""
+                                    INSERT INTO metrics 
+                                    (metric_name, metric_value, type, interval) 
+                                    VALUES (?, ?, ?, ?)
+                                """, (name, numeric_value, type_, int(interval)))
+                            else:
+                                # Text types (string, blob) go to metric_text
+                                c.execute("""
+                                    INSERT INTO metrics 
+                                    (metric_name, metric_text, type, interval) 
+                                    VALUES (?, ?, ?, ?)
+                                """, (name, value, type_, int(interval)))
+                        
+                        elif len(parts) == 2:
+                            # Old format backward compatibility: name:value
+                            name, value = parts
+                            name = name.strip()
+                            value = value.strip()
+                            
+                            try:
+                                # Try to store as numeric
+                                numeric_value = float(value.replace('%', ''))
+                                c.execute("""
+                                    INSERT INTO metrics 
+                                    (metric_name, metric_value, type) 
+                                    VALUES (?, ?, 'float')
+                                """, (name, numeric_value))
+                            except ValueError:
+                                # Store as text
+                                c.execute("""
+                                    INSERT INTO metrics 
+                                    (metric_name, metric_text, type) 
+                                    VALUES (?, ?, 'string')
+                                """, (name, value))
+                    i += 1
                 
                 conn.commit()
                 

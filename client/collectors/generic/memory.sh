@@ -1,13 +1,10 @@
 #!/bin/sh
 # Memory metrics collector
 
-# === TEMPO ===
+# === CONFIG ===
 TEMPO="allegro"
-
-# === IDENTITY ===
-GROUP="generic"
-COLLECTOR="memory"
-PREFIX="${GROUP}_${COLLECTOR}"
+INTERVAL=${ALLEGRO_INTERVAL:-5}
+PREFIX="lumenmon_memory"
 
 # === COLLECT ===
 # Parse /proc/meminfo for memory metrics
@@ -37,10 +34,10 @@ if [ -n "$MEM_TOTAL" ] && [ "$MEM_TOTAL" -gt 0 ]; then
     MEM_PERCENT=$((MEM_USED * 100 / MEM_TOTAL))
 fi
 
-# === OUTPUT ===
-echo "${PREFIX}_total:${MEM_TOTAL:-0}"
-echo "${PREFIX}_available:${MEM_AVAILABLE:-0}"
-echo "${PREFIX}_free:${MEM_FREE:-0}"
-echo "${PREFIX}_percent:${MEM_PERCENT:-0}"
-echo "${PREFIX}_swap_total:${SWAP_TOTAL:-0}"
-echo "${PREFIX}_swap_free:${SWAP_FREE:-0}"
+# === OUTPUT with type and interval ===
+echo "${PREFIX}_total_kb:${MEM_TOTAL:-0}:int:${INTERVAL}"
+echo "${PREFIX}_available_kb:${MEM_AVAILABLE:-0}:int:${INTERVAL}"
+echo "${PREFIX}_free_kb:${MEM_FREE:-0}:int:${INTERVAL}"
+echo "${PREFIX}_percent:${MEM_PERCENT:-0}:float:${INTERVAL}"
+echo "${PREFIX}_swap_total_kb:${SWAP_TOTAL:-0}:int:${INTERVAL}"
+echo "${PREFIX}_swap_free_kb:${SWAP_FREE:-0}:int:${INTERVAL}"

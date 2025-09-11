@@ -1,13 +1,10 @@
 #!/bin/sh
 # System information collector
 
-# === TEMPO ===
+# === CONFIG ===
 TEMPO="adagio"
-
-# === IDENTITY ===
-GROUP="generic"
-COLLECTOR="system"
-PREFIX="${GROUP}_${COLLECTOR}"
+INTERVAL=${ADAGIO_INTERVAL:-3600}
+PREFIX="lumenmon_system"
 
 # === COLLECT ===
 # Hostname
@@ -59,10 +56,10 @@ elif grep -q lxc /proc/1/cgroup 2>/dev/null; then
     CONTAINER="lxc"
 fi
 
-# === OUTPUT ===
-echo "${PREFIX}_hostname:${HOSTNAME}"
-echo "${PREFIX}_os:${OS_TYPE}"
-echo "${PREFIX}_kernel:${KERNEL_VERSION}"
-echo "${PREFIX}_arch:${ARCH}"
-echo "${PREFIX}_uptime:${UPTIME}"
-echo "${PREFIX}_container:${CONTAINER}"
+# === OUTPUT with type and interval ===
+echo "${PREFIX}_hostname:${HOSTNAME}:string:${INTERVAL}"
+echo "${PREFIX}_os:${OS_TYPE}:string:${INTERVAL}"
+echo "${PREFIX}_kernel:${KERNEL_VERSION}:string:${INTERVAL}"
+echo "${PREFIX}_arch:${ARCH}:string:${INTERVAL}"
+echo "${PREFIX}_uptime_seconds:${UPTIME}:int:${INTERVAL}"
+echo "${PREFIX}_container:${CONTAINER}:string:${INTERVAL}"
