@@ -8,8 +8,8 @@ import os
 import threading
 import time
 
-# Get database path - use data directory for persistence
-DB_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
+# Get database path - use shared data directory
+DB_DIR = '/app/data'
 DB_PATH = os.path.join(DB_DIR, 'lumenmon.db')
 
 # Create data directory if it doesn't exist
