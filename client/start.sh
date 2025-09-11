@@ -7,30 +7,43 @@ echo "[START] Lumenmon Client starting..."
 # Initialize client (generate SSH key if needed)
 /init.sh
 
-# Determine transport mode
-TRANSPORT_MODE="${TRANSPORT:-tunnel}"
-echo "[START] Transport mode: $TRANSPORT_MODE"
+# TUNNEL-ONLY MODE - No fallback allowed
+echo "[START] Transport mode: tunnel-only (no fallback)"
 
-if [ "$TRANSPORT_MODE" = "tunnel" ]; then
-    # Start SSH tunnel for secure transport
-    echo "[START] Starting SSH tunnel manager..."
-    /tunnel.sh &
-    TUNNEL_PID=$!
-    
-    # Wait for tunnel to establish
-    echo "[START] Waiting for tunnel to establish..."
-    sleep 10
-    
-    # Override server URL to use tunnel
-    export SERVER_URL="http://localhost:8080"
-    echo "[START] Metrics will be sent through SSH tunnel to localhost:8080"
-elif [ "$TRANSPORT_MODE" = "direct" ]; then
-    # Direct HTTP mode (for local networks)
-    echo "[START] Using direct HTTP to ${SERVER_URL}"
-else
-    echo "[START] Unknown transport mode: $TRANSPORT_MODE"
+# Set tunnel URL immediately - before any processes start
+export SERVER_URL="http://localhost:8081"
+echo "[START] SERVER_URL set to: $SERVER_URL"
+
+# Start SSH tunnel for secure transport
+echo "[START] Starting SSH tunnel manager..."
+/tunnel.sh &
+TUNNEL_PID=$!
+
+# Wait for tunnel to establish (with retries for approval workflow)
+echo "[START] Waiting for tunnel to establish (checking every 5s, max 60s)..."
+TUNNEL_WAIT=0
+TUNNEL_MAX_WAIT=60
+TUNNEL_CHECK_INTERVAL=5
+
+while [ $TUNNEL_WAIT -lt $TUNNEL_MAX_WAIT ]; do
+    if nc -z localhost 8081 2>/dev/null; then
+        echo "[START] ✅ SSH tunnel established after ${TUNNEL_WAIT}s"
+        break
+    fi
+    echo "[START] Tunnel not ready yet (${TUNNEL_WAIT}s elapsed). Waiting for approval or retry..."
+    sleep $TUNNEL_CHECK_INTERVAL
+    TUNNEL_WAIT=$((TUNNEL_WAIT + TUNNEL_CHECK_INTERVAL))
+done
+
+# Final check
+if ! nc -z localhost 8081 2>/dev/null; then
+    echo "[START] ❌ SSH tunnel failed after ${TUNNEL_MAX_WAIT}s timeout"
+    echo "[START] ❌ TUNNEL-ONLY MODE: No fallback allowed - exiting"
+    kill $TUNNEL_PID 2>/dev/null
     exit 1
 fi
+
+echo "[START] ✅ SSH tunnel established - all metrics will use tunnel"
 
 # Start forwarders in background
 echo "[START] Starting webhook forwarder..."

@@ -19,7 +19,8 @@ RUN apk add --no-cache \
     busybox-extras \
     bash \
     openssh-client \
-    netcat-openbsd
+    netcat-openbsd \
+    jq
 
 # Copy initialization and tunnel scripts
 COPY init.sh /init.sh

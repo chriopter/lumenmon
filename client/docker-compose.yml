@@ -18,3 +18,4 @@ services:
     volumes:
       - ./collectors:/collectors:ro  # Mount collectors as read-only for easy development
       - ./forwarders:/forwarders:ro  # Mount forwarders as read-only
+      - ./lumenmon-keys:/etc/lumenmon  # Persist SSH keys across restarts
