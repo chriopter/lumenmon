@@ -17,7 +17,14 @@ RUN apk add --no-cache \
     iproute2 \
     socat \
     busybox-extras \
-    bash
+    bash \
+    openssh-client \
+    netcat-openbsd
+
+# Copy initialization and tunnel scripts
+COPY init.sh /init.sh
+COPY tunnel.sh /tunnel.sh
+RUN chmod +x /init.sh /tunnel.sh
 
 # Copy collectors and forwarders
 COPY collectors /collectors

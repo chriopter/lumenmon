@@ -6,6 +6,7 @@ services:
       - "8080:8080"    # Sink API (receives metrics)
       - "8501:8501"    # Streamlit Dashboard
       - "8090:8090"    # SQLite Web Interface (when SQL_DEBUG=1)
+      - "2222:2222"    # SSH server for client tunnels
     volumes:
       - ./data:/app/data  # Persist database in data directory
       - ./sink:/app/sink:ro  # Mount sink service for live development
