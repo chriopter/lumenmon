@@ -267,63 +267,74 @@ def show_client_overview():
         st.warning("⚠️ No approved clients found. Clients need to register and be approved.")
         return
     
-    # Create grid layout for clients
+    # Compact list view with btop-style bars
     st.markdown("## 🖥️ Connected Clients")
     
-    # Use columns for grid layout (3 clients per row)
-    cols_per_row = 3
-    for i in range(0, len(clients_df), cols_per_row):
-        cols = st.columns(cols_per_row)
+    # Create compact list
+    for _, client in clients_df.iterrows():
+        # Get metrics
+        is_online = get_client_status(conn, client['id'])
+        cpu_usage = get_client_metrics(conn, client['id'], 'generic_cpu_usage')
+        memory_pct = get_client_metrics(conn, client['id'], 'generic_memory_percent')
+        load = get_client_metrics(conn, client['id'], 'generic_cpu_load')
         
-        for j, col in enumerate(cols):
-            if i + j < len(clients_df):
-                client = clients_df.iloc[i + j]
-                
-                with col:
-                    # Create clickable client card
-                    if st.button(f"📊 {client['hostname']}", key=f"client_{client['id']}", use_container_width=True):
-                        st.session_state.selected_client = client['id']
-                        st.session_state.selected_hostname = client['hostname']
-                        st.rerun()
-                    
-                    # Check if online
-                    is_online = get_client_status(conn, client['id'])
-                    status_icon = "🟢" if is_online else "🔴"
-                    
-                    # Get CPU usage
-                    cpu_usage = get_client_metrics(conn, client['id'], 'generic_cpu_usage')
-                    
-                    # Display metrics
-                    st.markdown(f"**Status:** {status_icon} {'Online' if is_online else 'Offline'}")
-                    
-                    # CPU Usage bar
-                    st.markdown("**CPU Usage:**")
-                    cpu_pct = min(cpu_usage / 100, 1.0)  # Cap at 100%
-                    st.progress(cpu_pct)
-                    st.caption(f"{cpu_usage:.1f}%")
-                    
-                    # Get additional quick stats
-                    memory_pct = get_client_metrics(conn, client['id'], 'generic_memory_percent')
-                    load = get_client_metrics(conn, client['id'], 'generic_cpu_load')
-                    
-                    # Quick stats
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        st.metric("Memory", f"{memory_pct:.1f}%")
-                    with col2:
-                        st.metric("Load", f"{load:.2f}")
-                    
-                    # Last seen
-                    if client['last_seen']:
-                        last_seen = datetime.fromisoformat(client['last_seen'])
-                        time_ago = datetime.now() - last_seen
-                        if time_ago.total_seconds() < 60:
-                            ago_str = f"{int(time_ago.total_seconds())}s ago"
-                        elif time_ago.total_seconds() < 3600:
-                            ago_str = f"{int(time_ago.total_seconds()/60)}m ago"
-                        else:
-                            ago_str = f"{int(time_ago.total_seconds()/3600)}h ago"
-                        st.caption(f"Last seen: {ago_str}")
+        # Calculate heartbeat symbol
+        if client['last_seen']:
+            last_seen = datetime.fromisoformat(client['last_seen'])
+            time_ago = (datetime.now() - last_seen).total_seconds()
+            if time_ago < 10:
+                beat = "💚"  # Fresh heartbeat
+            elif time_ago < 30:
+                beat = "💛"  # Recent
+            elif time_ago < 60:
+                beat = "🧡"  # Aging
+            else:
+                beat = "❤️"  # Old
+        else:
+            beat = "🖤"  # No heartbeat
+        
+        # Create CPU bar (btop style)
+        cpu_blocks = int(cpu_usage / 5)  # 20 blocks total
+        cpu_bar = "█" * cpu_blocks + "▁" * (20 - cpu_blocks)
+        
+        # Color code CPU bar
+        if cpu_usage < 50:
+            cpu_color = "🟢"
+        elif cpu_usage < 80:
+            cpu_color = "🟡"
+        else:
+            cpu_color = "🔴"
+        
+        # Single line per client with clickable name
+        col1, col2, col3, col4, col5 = st.columns([2, 1, 3, 2, 2])
+        
+        with col1:
+            if st.button(f"{client['hostname'][:15]}", key=f"client_{client['id']}", use_container_width=True):
+                st.session_state.selected_client = client['id']
+                st.session_state.selected_hostname = client['hostname']
+                st.rerun()
+        
+        with col2:
+            st.text(f"{beat} {cpu_color}")
+        
+        with col3:
+            st.text(f"CPU [{cpu_bar}] {cpu_usage:3.0f}%")
+        
+        with col4:
+            st.text(f"MEM {memory_pct:3.0f}% | LD {load:.1f}")
+        
+        with col5:
+            if is_online:
+                uptime_seconds = time_ago if client['last_seen'] else 0
+                if uptime_seconds < 60:
+                    uptime_str = f"{int(uptime_seconds)}s"
+                elif uptime_seconds < 3600:
+                    uptime_str = f"{int(uptime_seconds/60)}m"
+                else:
+                    uptime_str = f"{int(uptime_seconds/3600)}h"
+                st.text(f"UP {uptime_str}")
+            else:
+                st.text("OFFLINE")
     
     # Summary statistics
     st.markdown("---")
