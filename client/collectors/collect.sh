@@ -1,10 +1,11 @@
 #!/bin/sh
 # Lumenmon Collector - Main collection orchestrator
-# Detects OS and runs appropriate collectors
+# Supports tempo-based collection: allegro (fast), andante (medium), adagio (slow)
 
 # === CONFIGURATION ===
 SERVER="${SERVER_URL:-http://localhost:8080}/metrics"
 DEBUG="${DEBUG:-0}"
+REQUESTED_TEMPO="$1"  # allegro, andante, adagio, or empty for all
 
 # === FUNCTIONS ===
 log() {
@@ -48,17 +49,35 @@ detect_os() {
     echo "$OS_TYPE"
 }
 
+check_tempo() {
+    local script=$1
+    local requested=$2
+    
+    # If no tempo requested, run everything
+    [ -z "$requested" ] && return 0
+    
+    # Extract TEMPO from script
+    local script_tempo=$(grep "^TEMPO=" "$script" 2>/dev/null | cut -d'"' -f2)
+    
+    # Check if tempo matches
+    [ "$script_tempo" = "$requested" ] && return 0
+    return 1
+}
+
 run_folder_collectors() {
     local folder=$1
     local output=""
     
     if [ -d "$folder" ]; then
-        log "Running $folder collectors..."
+        log "Running $folder collectors (tempo: ${REQUESTED_TEMPO:-all})..."
         for script in $folder/*.sh; do
             if [ -f "$script" ] && [ -x "$script" ]; then
-                log "  - $(basename $script)"
-                result=$($script 2>/dev/null)
-                [ -n "$result" ] && output="${output}${result}\n"
+                # Check if tempo matches
+                if check_tempo "$script" "$REQUESTED_TEMPO"; then
+                    log "  - $(basename $script)"
+                    result=$($script 2>/dev/null)
+                    [ -n "$result" ] && output="${output}${result}\n"
+                fi
             fi
         done
     fi
@@ -113,7 +132,7 @@ run_collectors() {
 }
 
 # === MAIN EXECUTION ===
-echo "$(date '+%H:%M:%S') - Starting collection cycle"
+echo "$(date '+%H:%M:%S') - Collection cycle [${REQUESTED_TEMPO:-all}]"
 
 # Collect metrics
 OUTPUT=$(run_collectors)
@@ -122,7 +141,7 @@ OUTPUT=$(run_collectors)
 if [ -n "$OUTPUT" ]; then
     # Send to server
     if echo "$OUTPUT" | curl -X POST --data-binary @- "$SERVER" -s; then
-        echo "$(date '+%H:%M:%S') - Metrics sent successfully"
+        echo "$(date '+%H:%M:%S') - Metrics [${REQUESTED_TEMPO:-all}] sent"
     else
         echo "$(date '+%H:%M:%S') - Failed to send metrics"
     fi

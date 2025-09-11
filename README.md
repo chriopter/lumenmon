@@ -32,9 +32,10 @@ Access the Streamlit dashboard at http://localhost:8501 featuring real-time metr
 - **Database**: SQLite with automatic initialization and data retention management
 
 ### Client
-- **Collectors**: OS-aware metric gathering (CPU, memory, disk, network)
+- **Collectors**: OS-aware metric gathering (CPU, memory, disk, network) with musical tempo-based collection intervals
 - **Forwarders**: Webhook (9090) and SMTP (2525) message ingestion
 - **Docker**: Alpine-based container with minimal footprint
+- **Tempo System**: Collectors run at three speeds - Allegro (5s) for fast-changing metrics, Andante (60s) for moderate updates, and Adagio (3600s) for slow-changing system information
 
 ## Configuration
 

@@ -1,6 +1,9 @@
 #!/bin/sh
 # Debian/Ubuntu APT package metrics
 
+# === TEMPO ===
+TEMPO="adagio"
+
 # === IDENTITY ===
 GROUP="debian"
 COLLECTOR="apt"

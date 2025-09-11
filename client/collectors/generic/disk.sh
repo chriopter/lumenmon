@@ -1,6 +1,9 @@
 #!/bin/sh
 # Disk usage collector
 
+# === TEMPO ===
+TEMPO="andante"
+
 # === IDENTITY ===
 GROUP="generic"
 COLLECTOR="disk"

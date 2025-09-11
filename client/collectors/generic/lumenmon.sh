@@ -2,6 +2,9 @@
 # Lumenmon self-reporting collector
 # Reports Lumenmon's own configuration and status
 
+# === TEMPO ===
+TEMPO="adagio"
+
 # === IDENTITY ===
 GROUP="generic"
 COLLECTOR="lumenmon"

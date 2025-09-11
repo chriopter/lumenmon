@@ -1,6 +1,9 @@
 #!/bin/sh
 # System information collector
 
+# === TEMPO ===
+TEMPO="adagio"
+
 # === IDENTITY ===
 GROUP="generic"
 COLLECTOR="system"

@@ -1,6 +1,9 @@
 #!/bin/sh
 # Memory metrics collector
 
+# === TEMPO ===
+TEMPO="allegro"
+
 # === IDENTITY ===
 GROUP="generic"
 COLLECTOR="memory"
