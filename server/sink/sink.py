@@ -58,7 +58,13 @@ def init_database():
     # Create indexes
     c.execute('CREATE INDEX IF NOT EXISTS idx_metrics_time ON metrics(timestamp)')
     c.execute('CREATE INDEX IF NOT EXISTS idx_metrics_name ON metrics(metric_name)')
-    c.execute('CREATE INDEX IF NOT EXISTS idx_metrics_type ON metrics(type)')
+    
+    # Try to create type index - may fail on old databases
+    try:
+        c.execute('CREATE INDEX IF NOT EXISTS idx_metrics_type ON metrics(type)')
+    except sqlite3.OperationalError:
+        # Old database without type column - that's ok
+        pass
     
     conn.commit()
     conn.close()
@@ -75,52 +81,53 @@ class MetricsSink(BaseHTTPRequestHandler):
             c = conn.cursor()
             
             try:
-                # Parse metrics - supports both old and new format
-                lines = content.decode().split('\n')
-                i = 0
-                while i < len(lines):
-                    line = lines[i]
-                    if ':' in line and not line.startswith('#'):
-                        parts = line.strip().split(':', 3)
-                        
-                        if len(parts) == 4:
-                            # New format: name:value:type:interval
-                            name, value, type_, interval = parts
-                            name = name.strip()
-                            value = value.strip()
-                            type_ = type_.strip()
-                            interval = interval.strip()
+                # Parse metrics - supports JSON and old format
+                for line in content.decode().split('\n'):
+                    line = line.strip()
+                    if not line or line.startswith('#'):
+                        continue
+                    
+                    # Try JSON format first
+                    if line.startswith('{'):
+                        try:
+                            data = json.loads(line)
+                            name = data.get('name', '')
+                            value = data.get('value', '')
+                            type_ = data.get('type', 'string')
+                            interval = data.get('interval', 0)
                             
-                            # Handle multi-line blob data
+                            # Decode base64 for blob types
                             if type_ == 'blob':
-                                # Collect all lines until we hit the next metric or end
-                                blob_lines = [value]
-                                i += 1
-                                while i < len(lines) and ':' not in lines[i]:
-                                    blob_lines.append(lines[i])
-                                    i += 1
-                                i -= 1  # Back up one since we'll increment at the end
-                                value = '\n'.join(blob_lines)
+                                try:
+                                    import base64
+                                    value = base64.b64decode(value).decode('utf-8')
+                                except Exception:
+                                    # If decode fails, keep as is
+                                    pass
                             
-                            # Store based on type - very readable!
+                            # Store based on type
                             if type_ in ['float', 'int']:
-                                # Numeric types go to metric_value
                                 numeric_value = float(value)
                                 c.execute("""
                                     INSERT INTO metrics 
                                     (metric_name, metric_value, type, interval) 
                                     VALUES (?, ?, ?, ?)
-                                """, (name, numeric_value, type_, int(interval)))
+                                """, (name, numeric_value, type_, interval))
                             else:
                                 # Text types (string, blob) go to metric_text
                                 c.execute("""
                                     INSERT INTO metrics 
                                     (metric_name, metric_text, type, interval) 
                                     VALUES (?, ?, ?, ?)
-                                """, (name, value, type_, int(interval)))
-                        
-                        elif len(parts) == 2:
-                            # Old format backward compatibility: name:value
+                                """, (name, str(value), type_, interval))
+                            continue
+                        except (json.JSONDecodeError, ValueError) as e:
+                            print(f"[{datetime.now().strftime('%H:%M:%S')}] JSON parse error: {e}")
+                    
+                    # Fallback to old colon format for backward compatibility
+                    if ':' in line:
+                        parts = line.split(':', 1)
+                        if len(parts) == 2:
                             name, value = parts
                             name = name.strip()
                             value = value.strip()
@@ -140,7 +147,6 @@ class MetricsSink(BaseHTTPRequestHandler):
                                     (metric_name, metric_text, type) 
                                     VALUES (?, ?, 'string')
                                 """, (name, value))
-                    i += 1
                 
                 conn.commit()
                 

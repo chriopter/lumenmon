@@ -5,12 +5,14 @@ services:
     ports:
       - "8080:8080"    # Sink API (receives metrics)
       - "8501:8501"    # Streamlit Dashboard
+      - "8090:8090"    # SQLite Web Interface (when SQL_DEBUG=1)
     volumes:
       - ./data:/app/data  # Persist database in data directory
       - ./sink:/app/sink:ro  # Mount sink service for live development
       - ./dashboard:/app/dashboard:ro  # Mount dashboard service for live development
     environment:
       - PYTHONUNBUFFERED=1
+      - SQL_DEBUG=${SQL_DEBUG:-0}  # Set to 1 to enable SQLite Web on port 8090
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8501"]
