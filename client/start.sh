@@ -12,19 +12,19 @@ cd /collectors
 # Start tempo-based collectors
 echo "Starting Allegro collector - ${ALLEGRO_INTERVAL:-5}s"
 while true; do
-    ./collect.sh allegro
+    ./coordinator.sh allegro
     sleep ${ALLEGRO_INTERVAL:-5}
 done &
 
 echo "Starting Andante collector - ${ANDANTE_INTERVAL:-60}s"
 while true; do
-    ./collect.sh andante
+    ./coordinator.sh andante
     sleep ${ANDANTE_INTERVAL:-60}
 done &
 
 echo "Starting Adagio collector - ${ADAGIO_INTERVAL:-3600}s"
 while true; do
-    ./collect.sh adagio
+    ./coordinator.sh adagio
     sleep ${ADAGIO_INTERVAL:-3600}
 done &
 

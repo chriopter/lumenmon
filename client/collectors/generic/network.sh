@@ -2,9 +2,8 @@
 # Network and internet connectivity collector
 
 # === CONFIG ===
-TEMPO="andante"
-INTERVAL=${ANDANTE_INTERVAL:-60}
-PREFIX="lumenmon_network"
+INTERVAL="andante"
+PREFIX="generic_network"
 
 # === COLLECT ===
 # Check internet connectivity by pinging Google DNS
@@ -32,9 +31,9 @@ INTERFACES=$((INTERFACES - 1))  # Exclude loopback
 # Get primary IP address
 PRIMARY_IP=$(ip route get 8.8.8.8 2>/dev/null | grep -oP 'src \K[^ ]+' || echo "none")
 
-# === OUTPUT with type and interval ===
-echo "${PREFIX}_internet:${INTERNET}:string:${INTERVAL}"
-echo "${PREFIX}_dns:${DNS}:string:${INTERVAL}"
-echo "${PREFIX}_latency_ms:${LATENCY:-0}:float:${INTERVAL}"
-echo "${PREFIX}_interfaces:${INTERFACES}:int:${INTERVAL}"
-echo "${PREFIX}_primary_ip:${PRIMARY_IP}:string:${INTERVAL}"
+# === OUTPUT ===
+echo "${PREFIX}_internet:${INTERNET}:string"
+echo "${PREFIX}_dns:${DNS}:string"
+echo "${PREFIX}_latency_ms:${LATENCY:-0}:float"
+echo "${PREFIX}_interfaces:${INTERFACES}:int"
+echo "${PREFIX}_primary_ip:${PRIMARY_IP}:string"

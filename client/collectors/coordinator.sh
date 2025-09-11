@@ -1,11 +1,11 @@
 #!/bin/sh
-# Lumenmon Collector - Main collection orchestrator
-# Supports tempo-based collection: allegro (fast), andante (medium), adagio (slow)
+# Lumenmon Coordinator - Orchestrates metric collection and shipping
+# Supports interval-based collection: allegro (fast), andante (medium), adagio (slow)
 
 # === CONFIGURATION ===
 SERVER="${SERVER_URL:-http://localhost:8080}/metrics"
 DEBUG="${DEBUG:-0}"
-REQUESTED_TEMPO="$1"  # allegro, andante, adagio, or empty for all
+REQUESTED_INTERVAL="$1"  # allegro, andante, adagio, or empty for all
 
 # === FUNCTIONS ===
 log() {
@@ -49,18 +49,18 @@ detect_os() {
     echo "$OS_TYPE"
 }
 
-check_tempo() {
+check_interval() {
     local script=$1
     local requested=$2
     
-    # If no tempo requested, run everything
+    # If no interval requested, run everything
     [ -z "$requested" ] && return 0
     
-    # Extract TEMPO from script
-    local script_tempo=$(grep "^TEMPO=" "$script" 2>/dev/null | cut -d'"' -f2)
+    # Extract INTERVAL from script
+    local script_interval=$(grep "^INTERVAL=" "$script" 2>/dev/null | cut -d'"' -f2)
     
-    # Check if tempo matches
-    [ "$script_tempo" = "$requested" ] && return 0
+    # Check if interval matches
+    [ "$script_interval" = "$requested" ] && return 0
     return 1
 }
 
@@ -69,11 +69,11 @@ run_folder_collectors() {
     local output=""
     
     if [ -d "$folder" ]; then
-        log "Running $folder collectors (tempo: ${REQUESTED_TEMPO:-all})..."
+        log "Running $folder collectors (interval: ${REQUESTED_INTERVAL:-all})..."
         for script in $folder/*.sh; do
             if [ -f "$script" ] && [ -x "$script" ]; then
-                # Check if tempo matches
-                if check_tempo "$script" "$REQUESTED_TEMPO"; then
+                # Check if interval matches
+                if check_interval "$script" "$REQUESTED_INTERVAL"; then
                     log "  - $(basename $script)"
                     result=$($script 2>/dev/null)
                     [ -n "$result" ] && output="${output}${result}\n"
@@ -132,18 +132,19 @@ run_collectors() {
 }
 
 # === MAIN EXECUTION ===
-echo "$(date '+%H:%M:%S') - Collection cycle [${REQUESTED_TEMPO:-all}]"
+echo "$(date '+%H:%M:%S') - Collection cycle [${REQUESTED_INTERVAL:-all}]"
 
-# Collect metrics
+# Collect metrics and pipe through shipper
 OUTPUT=$(run_collectors)
 
 # === DATA TRANSMISSION ===
 if [ -n "$OUTPUT" ]; then
-    # Send to server
-    if echo "$OUTPUT" | curl -X POST --data-binary @- "$SERVER" -s; then
-        echo "$(date '+%H:%M:%S') - Metrics [${REQUESTED_TEMPO:-all}] sent"
+    # Pipe through shipper for JSON conversion and sending
+    # Pass interval as first argument so shipper can set numeric interval
+    if echo "$OUTPUT" | ./shipper.sh "${REQUESTED_INTERVAL:-unknown}" "$SERVER"; then
+        echo "$(date '+%H:%M:%S') - Metrics [${REQUESTED_INTERVAL:-all}] shipped"
     else
-        echo "$(date '+%H:%M:%S') - Failed to send metrics"
+        echo "$(date '+%H:%M:%S') - Failed to ship metrics"
     fi
 else
     echo "$(date '+%H:%M:%S') - No metrics collected"

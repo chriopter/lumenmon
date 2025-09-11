@@ -2,9 +2,8 @@
 # System information collector
 
 # === CONFIG ===
-TEMPO="adagio"
-INTERVAL=${ADAGIO_INTERVAL:-3600}
-PREFIX="lumenmon_system"
+INTERVAL="adagio"
+PREFIX="generic_system"
 
 # === COLLECT ===
 # Hostname
@@ -56,10 +55,10 @@ elif grep -q lxc /proc/1/cgroup 2>/dev/null; then
     CONTAINER="lxc"
 fi
 
-# === OUTPUT with type and interval ===
-echo "${PREFIX}_hostname:${HOSTNAME}:string:${INTERVAL}"
-echo "${PREFIX}_os:${OS_TYPE}:string:${INTERVAL}"
-echo "${PREFIX}_kernel:${KERNEL_VERSION}:string:${INTERVAL}"
-echo "${PREFIX}_arch:${ARCH}:string:${INTERVAL}"
-echo "${PREFIX}_uptime_seconds:${UPTIME}:int:${INTERVAL}"
-echo "${PREFIX}_container:${CONTAINER}:string:${INTERVAL}"
+# === OUTPUT ===
+echo "${PREFIX}_hostname:${HOSTNAME}:string"
+echo "${PREFIX}_os:${OS_TYPE}:string"
+echo "${PREFIX}_kernel:${KERNEL_VERSION}:string"
+echo "${PREFIX}_arch:${ARCH}:string"
+echo "${PREFIX}_uptime_seconds:${UPTIME}:int"
+echo "${PREFIX}_container:${CONTAINER}:string"
