@@ -1,0 +1,87 @@
+/* Lumenmon TUI Custom CSS for ttyd */
+
+/* Fullscreen terminal */
+body {
+    margin: 0;
+    padding: 0;
+    background: #000000;
+    overflow: hidden;
+    font-family: 'Fira Code', 'Courier New', monospace;
+}
+
+/* Terminal container */
+#terminal-container {
+    width: 100vw !important;
+    height: 100vh !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+.terminal {
+    width: 100vw !important;
+    height: 100vh !important;
+    padding: 0 !important;
+    background: #000000 !important;
+}
+
+/* XTerm specific */
+.xterm {
+    width: 100% !important;
+    height: 100% !important;
+    padding: 10px !important;
+    background: #000000 !important;
+}
+
+.xterm-viewport {
+    width: 100% !important;
+    background: #000000 !important;
+}
+
+.xterm-screen {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* Green phosphor theme */
+.xterm-cursor-layer {
+    filter: drop-shadow(0 0 3px #00ff00);
+}
+
+/* Remove scrollbars */
+::-webkit-scrollbar {
+    width: 0px;
+    background: transparent;
+}
+
+/* CRT effect */
+.terminal::before {
+    content: " ";
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), 
+                linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+    z-index: 2;
+    background-size: 100% 2px, 3px 100%;
+    pointer-events: none;
+    animation: flicker 0.15s infinite;
+}
+
+@keyframes flicker {
+    0% { opacity: 0.97; }
+    50% { opacity: 1; }
+    100% { opacity: 0.98; }
+}
+
+/* Glow effect */
+.xterm-rows {
+    text-shadow: 0 0 5px #00ff00, 0 0 10px #00ff00;
+}
+
+/* Hide ttyd header if present */
+.window-title, .pane-title {
+    display: none !important;
+}
