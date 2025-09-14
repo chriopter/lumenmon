@@ -30,6 +30,17 @@ if ! supports_utf8; then
   SPARK_CHARS=("." ":" "-" "=" "+" "#" "#" "#")
 fi
 
+# Color helpers
+cset() { tput setaf "$1" 2>/dev/null || printf '\033[3%sm' "$1"; }
+creset() { tput sgr0 2>/dev/null || printf '\033[0m'; }
+
+color_for_pct10() {
+  local x10=$1
+  if (( x10 <= 500 )); then echo 2; return; fi   # green <= 50%
+  if (( x10 <= 800 )); then echo 3; return; fi   # yellow <= 80%
+  echo 1                                           # red > 80%
+}
+
 # Global state
 declare -a PREV_IDLE_ALL PREV_TOTAL_ALL
 declare -a PREV_IDLE CORES_IDLE PREV_TOTAL CORES_TOTAL
@@ -132,7 +143,8 @@ ring_push_all() {
 }
 
 ring_push_core() {
-  local idx=$1 val=$2 key="c$idx"
+  local idx val key
+  idx=$1; val=$2; key="c$idx"
   # initialize if absent
   : "${RING_CORE_IDX[$key]:=0}"
   : "${RING_CORE_LEN[$key]:=0}"
@@ -144,16 +156,36 @@ ring_push_core() {
   if (( l < RING_SIZE )); then RING_CORE_LEN[$key]=$((l + 1)); fi
 }
 
-ring_min_max_avg_all() {
+# Convert a percentage string with one decimal (e.g., 12.3) to int-tenths (123)
+as_int10() {
+  local s="$1"
+  if [[ "$s" == *.* ]]; then
+    local a=${s%.*}
+    local b=${s#*.}
+    b=${b:0:1}
+    printf '%d' "${a}${b}"
+  else
+    printf '%d' "${s}0"
+  fi
+}
+
+# Format int-tenths (e.g., 123) back to 12.3
+fmt_pct10() {
+  local x10=$1
+  printf '%d.%d' $((x10/10)) $((x10%10))
+}
+
+# Compute min/avg/max over overall ring (int-tenths)
+ring_min_max_avg_all10() {
   local len=$RING_ALL_LEN; local start=$(( (RING_ALL_IDX - len + RING_SIZE) % RING_SIZE ))
-  local i=0; local min=1000 max=-1 sum=0
+  local i=0; local min=10000 max=-1 sum=0
   while (( i < len )); do
     local idx=$(( (start + i) % RING_SIZE ))
     local v=${RING_ALL[$idx]:-0}
-    local vi=${v%.*}
-    (( vi < min )) && min=$vi
-    (( vi > max )) && max=$vi
-    sum=$(( sum + vi ))
+    local vi10; vi10=$(as_int10 "$v")
+    (( vi10 < min )) && min=$vi10
+    (( vi10 > max )) && max=$vi10
+    sum=$(( sum + vi10 ))
     i=$((i+1))
   done
   local avg=0; (( len > 0 )) && avg=$(( sum / len ))
@@ -177,12 +209,12 @@ sparkline_all() {
     for ((k=a; k<b; k++)); do
       local idx=$(( (start + k) % RING_SIZE ))
       local v=${RING_ALL[$idx]:-0}
-      local vi=${v%.*}
-      sum=$((sum + vi)); cnt=$((cnt+1))
+      local vi10; vi10=$(as_int10 "$v")
+      sum=$((sum + vi10)); cnt=$((cnt+1))
     done
-    local avg=$(( sum / cnt ))
-    # map 0..100 -> 0..7
-    local lvl=$(( (avg * 7) / 100 ))
+    local avg10=$(( sum / cnt ))
+    # map 0..1000 (x10) -> 0..7
+    local lvl=$(( (avg10 * 7) / 1000 ))
     (( lvl < 0 )) && lvl=0; (( lvl > 7 )) && lvl=7
     out+="${SPARK_CHARS[$lvl]}"
   done
@@ -190,7 +222,8 @@ sparkline_all() {
 }
 
 sparkline_core() {
-  local idx=$1 width=$2 key="c$idx"
+  local idx width key
+  idx=$1; width=$2; key="c$idx"
   local len=${RING_CORE_LEN[$key]:-0}
   if (( len == 0 )); then printf '%*s' "$width" ""; return; fi
   local start=$(( (RING_CORE_IDX[$key] - len + RING_SIZE) % RING_SIZE ))
@@ -215,11 +248,30 @@ sparkline_core() {
   printf '%s' "$out"
 }
 
+# Draw a labeled stat bar at row,col
+draw_stat_bar() {
+  local row=$1 col=$2 label=$3 pct10=$4 width=$5
+  local pct_str; pct_str=$(fmt_pct10 "$pct10")
+  local fill=$(( (pct10 * width) / 1000 ))
+  (( fill < 0 )) && fill=0; (( fill > width )) && fill=$width
+  local color; color=$(color_for_pct10 "$pct10")
+
+  local left="$(printf '%-3s %6s%% ' "$label" "$pct_str")"
+  cup "$row" "$col"; printf '%s' "$left"
+  cset "$color"
+  printf '['
+  printf '%*s' "$fill" '' | tr ' ' '█'
+  printf '%*s' "$((width-fill))" '' | tr ' ' '░'
+  printf ']'
+  creset
+}
+
 draw() {
   local overall=$1; shift
   local -a pcs=("$@")
   local rows cols; rows=$(tput lines 2>/dev/null || echo 24); cols=$(tput cols 2>/dev/null || echo 80)
   local w=$cols
+  local latest10; latest10=$(as_int10 "$overall")
   local title=" LUMENMON CPU TUI (bash, 10 Hz, last 60s)  [q] quit  [e] per-core: $([[ ${EXPANDED:-0} -eq 1 ]] && echo ON || echo OFF) "
   cup 0 0; printf '%-*s' "$w" "$title"
 
@@ -229,17 +281,22 @@ draw() {
   local fill=$(( (pct_int * gauge_w) / 100 ))
   local bar="$(printf '%*s' "$fill" '' | tr ' ' '█')"; bar+="$(printf '%*s' "$((gauge_w-fill))" '' | tr ' ' '░')"
   cup 2 0; printf 'Overall CPU: %5.1f%%' "$overall"
-  cup 3 0; printf '[%s]' "$bar"
+  local gauge_color; gauge_color=$(color_for_pct10 "$latest10")
+  cup 3 0; cset "$gauge_color"; printf '[%s]' "$bar"; creset
 
-  # Stats (min/avg/max)
-  local min avg max; read -r min avg max < <(ring_min_max_avg_all)
-  cup 2 $((gauge_w + 15)); printf 'min %5.1f%%  avg %5.1f%%  max %5.1f%%' "$min" "$avg" "$max"
+  # Stats (min/avg/max) textual summary next to gauge
+  local min10_t avg10_t max10_t; read -r min10_t avg10_t max10_t < <(ring_min_max_avg_all10)
+  local min_t; min_t=$(fmt_pct10 "$min10_t")
+  local avg_t; avg_t=$(fmt_pct10 "$avg10_t")
+  local max_t; max_t=$(fmt_pct10 "$max10_t")
+  cup 2 $((gauge_w + 15)); printf 'min %5s%%  avg %5s%%  max %5s%%' "$min_t" "$avg_t" "$max_t"
 
   # Overall sparkline
   local spark_w=$(( w - 2 )); (( spark_w < 10 )) && spark_w=10
   local spark; spark=$(sparkline_all "$spark_w")
-  local spark; spark=$(sparkline_all "$spark_w")
-  cup 5 0; printf '%.*s' "$((w-1))" "$spark"
+  # Color overall sparkline based on latest pct
+  local color=$(color_for_pct10 "$latest10")
+  cup 5 0; cset "$color"; printf '%.*s' "$((w-1))" "$spark"; creset
 
   local row=7
   if [[ ${EXPANDED:-0} -eq 1 ]]; then
@@ -257,6 +314,19 @@ draw() {
       row=$((row+1))
     done
   fi
+
+  # Statistics bars for last minute (min/avg/max)
+  local min10 avg10 max10
+  read -r min10 avg10 max10 < <(ring_min_max_avg_all10)
+  local stats_w=$(( w - 2 )); (( stats_w < 30 )) && stats_w=30
+  local bar_w=$(( stats_w - 20 ))
+  (( bar_w < 10 )) && bar_w=10
+  row=$((row + 1))
+  draw_stat_bar $row 0 "MIN" "$min10" "$bar_w"
+  row=$((row + 1))
+  draw_stat_bar $row 0 "AVG" "$avg10" "$bar_w"
+  row=$((row + 1))
+  draw_stat_bar $row 0 "MAX" "$max10" "$bar_w"
 }
 
 restore_term() {
@@ -320,4 +390,3 @@ main() {
 }
 
 main "$@"
-

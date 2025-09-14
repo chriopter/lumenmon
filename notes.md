@@ -1,5 +1,15 @@
 # Lumenmon “Simple Mode” Design Notes (SSH + TSV + TUI)
 
+# Lumenmon “Simple Mode” Design Notes (SSH + TSV + TUI)
+
+## Tools For Final Product (planning)
+- OpenSSH (transport, forced-command, identity pinning)
+- flock + cron (safe append + scheduled flush/rotation)
+- awk/coreutils (parsing/processing TSV)
+- ttyplot (live terminal graphs for ad‑hoc/ops views)
+- dialog or gum (optional UI chrome for menus/prompts)
+- tmpfs (RAM tier for hot data)
+
 A minimal, write-light pipeline without HTTP or SQLite. Uses SSH for transport, TSV for data, tmpfs for live state, and cron for periodic flush and retention.
 
 ## Goals
@@ -154,4 +164,3 @@ A minimal, write-light pipeline without HTTP or SQLite. Uses SSH for transport, 
 3. Processor: Cron every minute → derive `/var/lib/lumenmon/latest/<host>.env` for quick reads.
 4. Viewer: TUI reads latest files over SSH; show bars/graphs; 5s refresh.
 5. Maintenance: Nightly gzip → keep 7 days → delete older.
-
