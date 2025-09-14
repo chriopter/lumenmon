@@ -1,0 +1,23 @@
+# Minimal, non-root container for the Bash CPU TUI
+# Base: Alpine (small), install bash + ncurses for tput
+
+FROM alpine:3.20
+
+RUN apk add --no-cache bash ncurses && \
+    adduser -D -u 10001 app
+
+# Copy script
+COPY cpu_tui.sh /usr/local/bin/cpu_tui.sh
+RUN chmod +x /usr/local/bin/cpu_tui.sh
+
+# Environment for better rendering
+ENV TERM=xterm-256color \
+    LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8
+
+# Run as non-root
+USER app
+
+# Default command
+CMD ["/usr/local/bin/cpu_tui.sh"]
+
