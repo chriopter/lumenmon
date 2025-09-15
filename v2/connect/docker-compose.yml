@@ -6,6 +6,8 @@ services:
     container_name: connect-server
     ports:
       - "2222:22"
+    stdin_open: true
+    tty: true
   client:
     build:
       context: .
