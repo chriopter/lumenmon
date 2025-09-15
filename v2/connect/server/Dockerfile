@@ -1,4 +1,12 @@
-FROM rastasheep/ubuntu-sshd:20.04
+FROM python:3.13-slim
+
+RUN apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+       openssh-server \
+       bash \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN mkdir -p /var/run/sshd
 
 COPY server/start.sh /usr/local/bin/start.sh
 COPY keys/id_demo.pub /opt/keys/id_demo.pub
