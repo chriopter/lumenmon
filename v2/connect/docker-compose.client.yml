@@ -1,0 +1,14 @@
+services:
+  client:
+    build:
+      context: .
+      dockerfile: client/Dockerfile
+    container_name: connect-client
+    environment:
+      SERVER_HOST: connect-server
+      SERVER_PORT: "22"
+      SSH_USER: demo
+networks:
+  default:
+    name: connect-net
+    external: true

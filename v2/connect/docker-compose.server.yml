@@ -1,0 +1,11 @@
+services:
+  server:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    container_name: connect-server
+    ports:
+      - "2222:22"
+networks:
+  default:
+    name: connect-net
