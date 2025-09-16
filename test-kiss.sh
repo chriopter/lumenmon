@@ -56,13 +56,13 @@ echo "================================================"
 echo -e "${GREEN}✨ Everything is running!${NC}"
 echo "================================================"
 echo
-echo "📊 View the console (choose one):"
+echo "📊 View the console:"
 echo
-echo "  Simple TUI (CPU-focused):"
-echo -e "  ${BLUE}docker exec -it lumenmon-console python3 /usr/local/bin/tui.py${NC}"
+echo "  With animation:"
+echo -e "  ${BLUE}docker exec -it lumenmon-console python3 tui/tui.py${NC}"
 echo
-echo "  Enhanced TUI (all metrics):"
-echo -e "  ${BLUE}docker exec -it lumenmon-console python3 /usr/local/bin/tui_enhanced.py${NC}"
+echo "  Skip animation:"
+echo -e "  ${BLUE}docker exec -it lumenmon-console sh -c 'SKIP_ANIMATION=1 python3 tui/tui.py'${NC}"
 echo
 echo "📝 Check agent logs:"
 echo -e "  ${BLUE}docker logs lumenmon-agent-01${NC}"
