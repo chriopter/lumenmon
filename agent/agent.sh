@@ -1,45 +1,46 @@
 #!/bin/bash
 # Lumenmon Agent - Ultra KISS Edition
-# Opens ONE SSH connection, starts collectors, done!
+# One SSH tunnel, natural rhythms, simple collectors
 
 set -euo pipefail
 
-# Configuration
+# Connection
 CONSOLE_HOST="${CONSOLE_HOST:-console}"
 CONSOLE_PORT="${CONSOLE_PORT:-22}"
 CONSOLE_USER="${CONSOLE_USER:-collector}"
 AGENT_ID="${HOSTNAME:-$(hostname -s)}"
 SSH_SOCKET="/tmp/lumenmon.sock"
 
-# Natural Rhythms (centralized!)
-PULSE="0.1"      # 10Hz - Rapid heartbeat
-BREATHE="1"      # 1Hz - Steady breathing
-CYCLE="60"       # 1/min - Full cycle
-REPORT="3600"    # 1/hr - Status report
+# Natural Rhythms
+PULSE="0.1"      # 10Hz   - CPU monitoring
+BREATHE="1"      # 1Hz    - Memory tracking
+CYCLE="60"       # 1/min  - Disk usage
+REPORT="3600"    # 1/hr   - System info
 
-# Export everything for collectors to use
+# Export for collectors
 export CONSOLE_HOST CONSOLE_PORT CONSOLE_USER AGENT_ID SSH_SOCKET
 export PULSE BREATHE CYCLE REPORT
 
+# Startup
 echo "[agent] Starting Lumenmon Agent: $AGENT_ID"
 
-# Clean up on exit
+# Cleanup handler
 cleanup() {
     echo "[agent] Shutting down..."
     jobs -p | xargs -r kill 2>/dev/null || true
-    [ -S "$SSH_SOCKET" ] && ssh -S "$SSH_SOCKET" -O exit "$CONSOLE_USER@$CONSOLE_HOST" 2>/dev/null
+    [ -S "$SSH_SOCKET" ] && ssh -S "$SSH_SOCKET" -O exit "$CONSOLE_USER@$CONSOLE_HOST" 2>/dev/null || true
     exit 0
 }
 trap cleanup SIGTERM SIGINT EXIT
 
-# Wait for console to be reachable
-echo "[agent] Waiting for console at $CONSOLE_HOST:$CONSOLE_PORT..."
+# Wait for console
+echo "[agent] Connecting to $CONSOLE_HOST:$CONSOLE_PORT..."
 while ! nc -z "$CONSOLE_HOST" "$CONSOLE_PORT" 2>/dev/null; do
     sleep 2
 done
 
-# Open SSH ControlMaster connection (the highway!)
-echo "[agent] Opening SSH multiplex connection..."
+# Open SSH tunnel (single multiplexed connection)
+echo "[agent] Opening SSH tunnel..."
 ssh -M -N -f \
     -S "$SSH_SOCKET" \
     -o ControlPersist=yes \
@@ -51,22 +52,29 @@ ssh -M -N -f \
 
 # Verify connection
 if ! ssh -S "$SSH_SOCKET" -O check "$CONSOLE_USER@$CONSOLE_HOST" 2>/dev/null; then
-    echo "[agent] ERROR: Failed to establish SSH connection"
+    echo "[agent] ERROR: SSH connection failed"
     exit 1
 fi
 
-echo "[agent] SSH multiplex established!"
+echo "[agent] SSH tunnel established"
 
-# Start all collectors (they run their own loops)
+# Start collectors
+echo "[agent] Starting collectors:"
 for collector in collectors/*/*.sh; do
     if [ -f "$collector" ]; then
         name=$(basename "$collector" .sh)
-        echo "[agent] Starting $name collector..."
+        case "$name" in
+            cpu)      echo "  - $name (PULSE: ${PULSE}s)" ;;
+            memory)   echo "  - $name (BREATHE: ${BREATHE}s)" ;;
+            disk)     echo "  - $name (CYCLE: ${CYCLE}s)" ;;
+            lumenmon) echo "  - $name (REPORT: ${REPORT}s)" ;;
+            *)        echo "  - $name" ;;
+        esac
         "$collector" &
     fi
 done
 
 echo "[agent] All collectors running. Press Ctrl+C to stop."
 
-# Wait forever (collectors run in background)
+# Run forever
 wait

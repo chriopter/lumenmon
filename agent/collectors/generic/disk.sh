@@ -1,11 +1,24 @@
 #!/bin/bash
-# Disk - CYCLE rhythm
+# Disk collector - Sends root filesystem usage at CYCLE rhythm (1/min)
+
+# Config
+RHYTHM="CYCLE"    # Uses CYCLE timing from agent.sh
+PREFIX="disk"     # Metric prefix: disk_root_usage
+
 set -euo pipefail
 
+# Main loop - check disk and send
 while true; do
-    read -r fs size used avail pct mount <<< $(df -P / | tail -1)
-    usage=${pct%\%}
-    echo -e "$(date +%s)\t$AGENT_ID\tdisk_root_usage\tfloat\t$usage\t$CYCLE" | \
+    # Get disk usage for root filesystem
+    # df output: filesystem size used available percentage mountpoint
+    read -r filesystem size used available percentage mountpoint <<< $(df -P / | tail -1)
+
+    # Remove the % sign from percentage
+    usage=${percentage%\%}
+
+    # Send metric through SSH tunnel
+    echo -e "$(date +%s)\t$AGENT_ID\t${PREFIX}_root_usage\tfloat\t$usage\t${!RHYTHM}" | \
         ssh -S $SSH_SOCKET $CONSOLE_USER@$CONSOLE_HOST "/usr/local/bin/lumenmon-append --host '$AGENT_ID'" 2>/dev/null
-    sleep ${CYCLE:-60}
+
+    sleep ${!RHYTHM}
 done

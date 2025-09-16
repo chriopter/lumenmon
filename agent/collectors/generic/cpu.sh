@@ -1,19 +1,47 @@
 #!/bin/bash
-# CPU - PULSE rhythm
+# CPU collector - Sends usage percentage at PULSE rhythm (10Hz)
+
+# Config
+RHYTHM="PULSE"   # Uses PULSE timing from agent.sh
+PREFIX="cpu"      # Metric prefix: cpu_usage
+
 set -euo pipefail
 
-# Init tracking
-read line < /proc/stat; cpu=($line)
-prev_idle=$((${cpu[4]}+${cpu[5]})); prev_total=0
-for v in "${cpu[@]:1}"; do prev_total=$((prev_total+v)); done
+# Initialize CPU tracking from /proc/stat
+# Format: cpu user nice system idle iowait irq softirq steal guest guest_nice
+read line < /proc/stat
+cpu=($line)
+prev_idle=$((${cpu[4]} + ${cpu[5]}))  # idle + iowait
+prev_total=0
+for value in "${cpu[@]:1}"; do
+    prev_total=$((prev_total + value))
+done
 
+# Main loop - calculate CPU usage and send
 while true; do
-    read line < /proc/stat; cpu=($line)
-    idle=$((${cpu[4]}+${cpu[5]})); total=0
-    for v in "${cpu[@]:1}"; do total=$((total+v)); done
-    [ $((total-prev_total)) -gt 0 ] && usage=$(((total-prev_total-idle+prev_idle)*100/(total-prev_total))) || usage=0
-    echo -e "$(date +%s)\t$AGENT_ID\tcpu_usage\tfloat\t$usage\t$PULSE" | \
+    # Read current CPU state
+    read line < /proc/stat
+    cpu=($line)
+
+    # Calculate idle and total
+    idle=$((${cpu[4]} + ${cpu[5]}))
+    total=0
+    for value in "${cpu[@]:1}"; do
+        total=$((total + value))
+    done
+
+    # Calculate usage percentage (non-idle time / total time * 100)
+    diff_idle=$((idle - prev_idle))
+    diff_total=$((total - prev_total))
+    [ $diff_total -gt 0 ] && usage=$(((diff_total - diff_idle) * 100 / diff_total)) || usage=0
+
+    # Send metric through SSH tunnel
+    echo -e "$(date +%s)\t$AGENT_ID\t${PREFIX}_usage\tfloat\t$usage\t${!RHYTHM}" | \
         ssh -S $SSH_SOCKET $CONSOLE_USER@$CONSOLE_HOST "/usr/local/bin/lumenmon-append --host '$AGENT_ID'" 2>/dev/null
-    prev_idle=$idle; prev_total=$total
-    sleep ${PULSE:-0.1}
+
+    # Update previous values for next iteration
+    prev_idle=$idle
+    prev_total=$total
+
+    sleep ${!RHYTHM}
 done
