@@ -1,43 +1,41 @@
 FROM python:3.13-slim
 
-# Install SSH server and dependencies
+# Install minimal dependencies
 RUN apt-get update && apt-get install -y \
     openssh-server \
+    netcat-traditional \
     && rm -rf /var/lib/apt/lists/*
+
+# Install Python packages for TUI
+RUN pip install --no-cache-dir rich
 
 # Create collector user for SSH
 RUN useradd -m -s /bin/bash collector && \
     mkdir -p /home/collector/.ssh && \
-    chmod 700 /home/collector/.ssh && \
-    mkdir -p /var/lib/lumenmon/hot/latest /var/lib/lumenmon/hot/ring && \
-    chmod -R 777 /var/lib/lumenmon
+    chmod 700 /home/collector/.ssh
 
-# Set up SSH
+# Setup SSH config
 RUN mkdir -p /var/run/sshd && \
     echo "PasswordAuthentication no" >> /etc/ssh/sshd_config && \
     echo "PubkeyAuthentication yes" >> /etc/ssh/sshd_config && \
     echo "PermitRootLogin no" >> /etc/ssh/sshd_config
 
-# Install Python packages for TUI
-RUN pip install --no-cache-dir rich textual pandas
+# Setup directory structure
+RUN mkdir -p /var/lib/lumenmon/hot/{latest,ring} && \
+    chmod -R 777 /var/lib/lumenmon
 
-# Copy console scripts
-COPY lumenmon-append /usr/local/bin/
-COPY tui.py /usr/local/bin/
-COPY tui_enhanced.py /usr/local/bin/
-COPY boot_animation.py /usr/local/bin/
-COPY start.sh /usr/local/bin/
+# Copy ultra-KISS console files
+WORKDIR /app
+COPY console.sh .
+COPY ssh/ ./ssh/
+COPY tui/ ./tui/
 
-RUN chmod +x /usr/local/bin/lumenmon-append \
-    /usr/local/bin/tui.py \
-    /usr/local/bin/tui_enhanced.py \
-    /usr/local/bin/boot_animation.py \
-    /usr/local/bin/start.sh && \
-    chmod 755 /usr/local/bin/lumenmon-append
+# Make scripts executable
+RUN chmod +x console.sh ssh/*.sh tui/*.py
 
 # Mount point for tmpfs
 VOLUME /var/lib/lumenmon/hot
 
 EXPOSE 22
 
-CMD ["/usr/local/bin/start.sh"]
+CMD ["./console.sh"]
