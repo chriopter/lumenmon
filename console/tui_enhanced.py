@@ -5,6 +5,7 @@ Displays all metrics from agents in a comprehensive dashboard
 """
 
 import os
+import sys
 import time
 import glob
 from datetime import datetime
@@ -21,6 +22,12 @@ from rich.text import Text
 from rich import box
 from rich.columns import Columns
 from rich.progress import Progress, BarColumn, TextColumn
+
+# Import boot animation
+try:
+    from boot_animation import show_boot_animation
+except ImportError:
+    show_boot_animation = None
 
 # Configuration
 HOT_DIR = "/var/lib/lumenmon/hot"
@@ -384,6 +391,14 @@ class LumenmonConsole:
 
 def main():
     """Main TUI loop"""
+    # Show boot animation if available and not disabled
+    if show_boot_animation and os.environ.get('SKIP_BOOT_ANIMATION') != '1':
+        try:
+            show_boot_animation()
+            console.clear()
+        except Exception:
+            pass  # Continue without animation if it fails
+
     tui = LumenmonConsole()
 
     # Check if running in Docker or with proper paths
