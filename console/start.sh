@@ -41,6 +41,8 @@ sleep 2
 # Keep container running
 echo "[console] SSH server ready on port 22"
 echo "[console] To view TUI, run: docker exec -it lumenmon-console python3 /usr/local/bin/tui.py"
+echo "[console] To view Enhanced TUI: docker exec -it lumenmon-console python3 /usr/local/bin/tui_enhanced.py"
+echo "[console] To skip boot animation: SKIP_BOOT_ANIMATION=1 docker exec -it lumenmon-console python3 /usr/local/bin/tui.py"
 echo "[console] Container running... Press Ctrl+C to stop"
 
 # Wait forever
