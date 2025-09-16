@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  server:
+    build: .
+    container_name: lumenmon-server
+    hostname: lumenmon-server
+    volumes:
+      - type: tmpfs
+        target: /var/lib/lumenmon/hot
+        tmpfs:
+          size: 100M
+      - ssh-keys:/shared
+    ports:
+      - "2222:22"
+    networks:
+      - lumenmon
+    environment:
+      - PYTHONUNBUFFERED=1
+    stdin_open: true
+    tty: true
+
+networks:
+  lumenmon:
+    name: lumenmon-net
+    driver: bridge
+
+volumes:
+  ssh-keys:
+    name: lumenmon-ssh-keys

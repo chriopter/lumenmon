@@ -1,0 +1,77 @@
+#!/bin/bash
+# SSH forced-command TSV appender - writes to tmpfs
+set -euo pipefail
+
+# Parse arguments or use SSH connection info
+HOST=""
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --host)
+            HOST="$2"
+            shift 2
+            ;;
+        *)
+            shift
+            ;;
+    esac
+done
+
+# If no host specified, try to get from SSH environment
+if [ -z "$HOST" ]; then
+    # Use SSH_CLIENT IP as fallback
+    if [ -n "${SSH_CLIENT:-}" ]; then
+        HOST="${SSH_CLIENT%% *}"
+    else
+        HOST="unknown"
+    fi
+fi
+
+# Directories
+HOT_DIR="/var/lib/lumenmon/hot"
+LATEST_DIR="$HOT_DIR/latest"
+RING_DIR="$HOT_DIR/ring/$HOST"
+
+# Create directories if needed
+mkdir -p "$LATEST_DIR" "$RING_DIR"
+
+# Ring buffer settings
+RING_SIZE=600  # 10Hz * 60 seconds
+
+# Process stdin (TSV lines)
+while IFS=$'\t' read -r timestamp host metric type value interval; do
+    # Validate input
+    if [ -z "$timestamp" ] || [ -z "$metric" ] || [ -z "$value" ]; then
+        continue
+    fi
+
+    # Use forced host from SSH command, not TSV
+    host="$HOST"
+
+    # Write to latest file (overwrite for latest values)
+    echo -e "$timestamp\t$host\t$metric\t$type\t$value\t$interval" > "$LATEST_DIR/${host}.tsv"
+
+    # Append to ring buffer for the specific metric
+    metric_file="$RING_DIR/${metric}.tsv"
+
+    # Create ring file if it doesn't exist
+    if [ ! -f "$metric_file" ]; then
+        touch "$metric_file"
+    fi
+
+    # Append new line
+    echo -e "$timestamp\t$host\t$metric\t$type\t$value\t$interval" >> "$metric_file"
+
+    # Trim ring buffer to last N lines
+    if [ $(wc -l < "$metric_file") -gt $RING_SIZE ]; then
+        tail -n $RING_SIZE "$metric_file" > "$metric_file.tmp"
+        mv "$metric_file.tmp" "$metric_file"
+    fi
+
+    # Also update a combined latest state file for the TUI
+    {
+        echo "HOST=$host"
+        echo "LAST_SEEN=$timestamp"
+        echo "METRIC_${metric^^}=$value"
+    } > "$LATEST_DIR/${host}.env"
+
+done
