@@ -1,5 +1,5 @@
 #!/bin/bash
-# Server startup script
+# Console startup script
 set -euo pipefail
 
 # Generate SSH host keys if needed
@@ -13,7 +13,7 @@ if [ ! -f /home/collector/.ssh/id_rsa ]; then
     cp /home/collector/.ssh/id_rsa.pub /home/collector/.ssh/authorized_keys
 
     # Set up forced command in authorized_keys
-    # Note: We'll extract hostname from the SSH key comment or use client IP
+    # Note: We'll extract hostname from the SSH key comment or use agent IP
     cat /home/collector/.ssh/id_rsa.pub > /home/collector/.ssh/authorized_keys
 
     chown -R collector:collector /home/collector/.ssh
@@ -24,14 +24,14 @@ fi
 mkdir -p /shared
 chmod 755 /shared
 
-# Copy keys to shared volume for client with proper permissions
-cp /home/collector/.ssh/id_rsa /shared/client_key
-cp /home/collector/.ssh/id_rsa.pub /shared/client_key.pub
-chmod 644 /shared/client_key
-chmod 644 /shared/client_key.pub
+# Copy keys to shared volume for agents with proper permissions
+cp /home/collector/.ssh/id_rsa /shared/agent_key
+cp /home/collector/.ssh/id_rsa.pub /shared/agent_key.pub
+chmod 644 /shared/agent_key
+chmod 644 /shared/agent_key.pub
 
 # Start SSH daemon
-echo "[server] Starting SSH daemon..."
+echo "[console] Starting SSH daemon..."
 /usr/sbin/sshd -D &
 SSHD_PID=$!
 
@@ -39,9 +39,9 @@ SSHD_PID=$!
 sleep 2
 
 # Keep container running
-echo "[server] SSH server ready on port 22"
-echo "[server] To view TUI, run: docker exec -it lumenmon-server python3 /usr/local/bin/tui.py"
-echo "[server] Container running... Press Ctrl+C to stop"
+echo "[console] SSH server ready on port 22"
+echo "[console] To view TUI, run: docker exec -it lumenmon-console python3 /usr/local/bin/tui.py"
+echo "[console] Container running... Press Ctrl+C to stop"
 
 # Wait forever
 tail -f /dev/null
