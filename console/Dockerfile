@@ -21,13 +21,15 @@ RUN mkdir -p /var/run/sshd && \
 # Install Python packages for TUI
 RUN pip install --no-cache-dir rich textual pandas
 
-# Copy server scripts
+# Copy console scripts
 COPY lumenmon-append /usr/local/bin/
 COPY tui.py /usr/local/bin/
+COPY tui_enhanced.py /usr/local/bin/
 COPY start.sh /usr/local/bin/
 
 RUN chmod +x /usr/local/bin/lumenmon-append \
     /usr/local/bin/tui.py \
+    /usr/local/bin/tui_enhanced.py \
     /usr/local/bin/start.sh && \
     chmod 755 /usr/local/bin/lumenmon-append
 

@@ -1,10 +1,10 @@
 version: '3.8'
 
 services:
-  server:
+  console:
     build: .
-    container_name: lumenmon-server
-    hostname: lumenmon-server
+    container_name: lumenmon-console
+    hostname: lumenmon-console
     volumes:
       - type: tmpfs
         target: /var/lib/lumenmon/hot
