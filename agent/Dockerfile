@@ -1,15 +1,12 @@
 FROM alpine:3.20
 
-# Install dependencies
+# Install minimal dependencies
 RUN apk add --no-cache \
     bash \
     openssh-client \
     procps \
     coreutils \
-    iproute2 \
-    iputils \
-    bc \
-    util-linux
+    iproute2
 
 # Create metrics user
 RUN adduser -D -s /bin/bash metrics
@@ -19,15 +16,18 @@ USER metrics
 WORKDIR /home/metrics
 RUN mkdir -p .ssh && chmod 700 .ssh
 
-# Copy coordinator and collector scripts
-COPY --chown=metrics:metrics coordinator.sh /usr/local/bin/
-COPY --chown=metrics:metrics collectors/*.sh /usr/local/bin/collectors/
-RUN chmod +x /usr/local/bin/coordinator.sh && \
-    chmod +x /usr/local/bin/collectors/*.sh
+# Copy ultra-simple agent and collectors
+COPY --chown=metrics:metrics agent.sh /app/
+COPY --chown=metrics:metrics collectors /app/collectors/
+
+# Make everything executable
+RUN chmod +x /app/agent.sh /app/collectors/*/*.sh
+
+WORKDIR /app
 
 # Default environment
 ENV CONSOLE_HOST=console \
     CONSOLE_PORT=22 \
     CONSOLE_USER=collector
 
-CMD ["/usr/local/bin/coordinator.sh"]
+CMD ["./agent.sh"]
