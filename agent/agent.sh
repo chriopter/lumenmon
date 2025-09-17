@@ -80,8 +80,10 @@ for collector in collectors/*/*.sh; do
 done
 
 echo "[agent] All collectors running. Press Ctrl+C to stop."
+echo "[agent] Starting heartbeat loop..."
 
 # Run forever with heartbeat
-while sleep 30; do
+while true; do
+    sleep 30
     echo "[agent] ✓ Active - metrics flowing to $CONSOLE_HOST"
 done
