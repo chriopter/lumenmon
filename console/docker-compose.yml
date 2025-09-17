@@ -12,7 +12,7 @@ services:
           size: 100M
       - ssh-keys:/shared
     ports:
-      - "2222:22"
+      - "2345:22"
     networks:
       - lumenmon
     environment:

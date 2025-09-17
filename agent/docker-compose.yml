@@ -6,14 +6,12 @@ services:
     container_name: lumenmon-agent
     hostname: agent-${AGENT_ID:-default}
     volumes:
-      - ssh-keys:/shared:ro
-    networks:
-      - lumenmon
+      - ./data/ssh:/home/metrics/.ssh:ro
     env_file:
       - ./data/.env
     environment:
       - CONSOLE_HOST=${CONSOLE_HOST:-lumenmon-console}
-      - CONSOLE_PORT=22
+      - CONSOLE_PORT=${CONSOLE_PORT:-2345}
       - CONSOLE_USER=collector
       - AGENT_ID=${AGENT_ID:-${HOSTNAME:-agent}}
       # Sampling rates for different collectors
@@ -25,20 +23,6 @@ services:
       - SYSTEM_SAMPLE_HZ=0.017  # Every minute for system info
     command: |
       sh -c "
-        echo '[agent] Waiting for SSH keys...'
-        while [ ! -f /shared/agent_key ]; do sleep 1; done
-        cp /shared/agent_key /home/metrics/.ssh/id_rsa
-        chmod 600 /home/metrics/.ssh/id_rsa
-        echo '[agent] SSH key installed'
-        exec /usr/local/bin/coordinator.sh
+        echo '[agent] Starting...'
+        exec /usr/local/bin/agent.sh
       "
-
-networks:
-  lumenmon:
-    name: lumenmon-net
-    external: true
-
-volumes:
-  ssh-keys:
-    name: lumenmon-ssh-keys
-    external: true
