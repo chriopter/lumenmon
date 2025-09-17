@@ -46,7 +46,7 @@ start_env() {
             sh -c "while [ ! -f /shared/agent_key ]; do sleep 1; done;
                    cp /shared/agent_key /home/metrics/.ssh/id_rsa;
                    chmod 600 /home/metrics/.ssh/id_rsa;
-                   exec /usr/local/bin/agent.sh" \
+                   exec /app/agent.sh" \
             > /dev/null 2>&1
 
         echo -e "${GREEN}  ✓ ${AGENT_NAME} started${NC}"
