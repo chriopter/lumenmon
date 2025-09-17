@@ -39,14 +39,16 @@ while ! nc -z "$CONSOLE_HOST" "$CONSOLE_PORT" 2>/dev/null; do
     sleep 2
 done
 
-# Open SSH tunnel (single multiplexed connection)
+# Open SSH tunnel (single multiplexed connection) - NO AUTH REQUIRED
 echo "[agent] Opening SSH tunnel..."
-ssh -M -N -f \
+sshpass -p "" ssh -M -N -f \
     -S "$SSH_SOCKET" \
     -o ControlPersist=yes \
     -o ServerAliveInterval=30 \
     -o StrictHostKeyChecking=no \
     -o UserKnownHostsFile=/dev/null \
+    -o PreferredAuthentications=password \
+    -o PubkeyAuthentication=no \
     -p "$CONSOLE_PORT" \
     "$CONSOLE_USER@$CONSOLE_HOST"
 
