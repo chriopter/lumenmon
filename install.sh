@@ -26,11 +26,13 @@ if ! command -v docker >/dev/null 2>&1; then
 fi
 
 # Check for Docker Compose
-if ! docker compose version >/dev/null 2>&1 && ! docker-compose version >/dev/null 2>&1; then
+if ! docker compose version >/dev/null 2>&1; then
     echo -e "${RED}❌ Docker Compose is not installed${NC}"
     echo "Please install Docker Compose first"
     exit 1
 fi
+
+COMPOSE_CMD="docker compose"
 
 # Smart clone/update
 if [ -d "$INSTALL_DIR/.git" ]; then
@@ -66,7 +68,7 @@ case $choice in
         # Install Console
         echo -e "${BLUE}Starting Console...${NC}"
         cd "$INSTALL_DIR/console"
-        docker-compose up -d
+        $COMPOSE_CMD up -d
 
         # Get console IP
         CONSOLE_IP=$(hostname -I 2>/dev/null | awk '{print $1}' || echo "localhost")
@@ -102,7 +104,7 @@ case $choice in
 
         echo -e "${BLUE}Starting Agent...${NC}"
         cd "$INSTALL_DIR/agent"
-        docker-compose up -d
+        $COMPOSE_CMD up -d
 
         echo ""
         echo -e "${GREEN}✅ Agent is running!${NC}"
@@ -114,7 +116,7 @@ case $choice in
         echo -e "${BLUE}Starting Console and Agent...${NC}"
 
         cd "$INSTALL_DIR/console"
-        docker-compose up -d
+        $COMPOSE_CMD up -d
 
         # Ask if agent should use local or remote console
         echo ""
@@ -132,7 +134,7 @@ case $choice in
         fi
 
         cd "$INSTALL_DIR/agent"
-        docker-compose up -d
+        $COMPOSE_CMD up -d
 
         echo ""
         echo -e "${GREEN}✅ Console and Agent are running!${NC}"
@@ -147,14 +149,14 @@ case $choice in
 
         if [ -d "$INSTALL_DIR/console" ]; then
             cd "$INSTALL_DIR/console"
-            docker-compose pull
-            docker-compose up -d
+            $COMPOSE_CMD pull
+            $COMPOSE_CMD up -d
         fi
 
         if [ -d "$INSTALL_DIR/agent" ]; then
             cd "$INSTALL_DIR/agent"
-            docker-compose pull
-            docker-compose up -d
+            $COMPOSE_CMD pull
+            $COMPOSE_CMD up -d
         fi
 
         echo -e "${GREEN}✅ Containers updated${NC}"
@@ -165,8 +167,8 @@ case $choice in
         echo -e "${BLUE}Stopping all containers...${NC}"
 
         cd "$INSTALL_DIR"
-        [ -d console ] && (cd console && docker-compose down)
-        [ -d agent ] && (cd agent && docker-compose down)
+        [ -d console ] && (cd console && $COMPOSE_CMD down)
+        [ -d agent ] && (cd agent && $COMPOSE_CMD down)
 
         echo -e "${GREEN}✅ All containers stopped${NC}"
         ;;
