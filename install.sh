@@ -98,9 +98,25 @@ case $choice in
         read -p "Enter Console hostname/IP [${CURRENT_HOST}]: " NEW_HOST </dev/tty
         CONSOLE_HOST=${NEW_HOST:-$CURRENT_HOST}
 
-        # Save configuration
+        # Save configuration (always use port 2345)
         echo "CONSOLE_HOST=$CONSOLE_HOST" > "$INSTALL_DIR/agent/data/.env"
         echo -e "${GREEN}✓ Configuration saved${NC}"
+
+        # Generate SSH key for this agent if it doesn't exist
+        if [ ! -f "$INSTALL_DIR/agent/data/ssh/id_rsa" ]; then
+            mkdir -p "$INSTALL_DIR/agent/data/ssh"
+            ssh-keygen -t rsa -N "" -f "$INSTALL_DIR/agent/data/ssh/id_rsa" >/dev/null 2>&1
+            echo ""
+            echo -e "${YELLOW}⚠️  Generated SSH key. Add this to your console:${NC}"
+            echo ""
+            cat "$INSTALL_DIR/agent/data/ssh/id_rsa.pub"
+            echo ""
+            echo -e "${YELLOW}On the console machine, run:${NC}"
+            echo "  docker exec -it lumenmon-console bash"
+            echo "  echo 'PASTE_KEY_HERE' >> /home/collector/.ssh/authorized_keys"
+            echo ""
+            read -p "Press Enter after adding the key to continue..." </dev/tty
+        fi
 
         echo -e "${BLUE}Starting Agent...${NC}"
         cd "$INSTALL_DIR/agent"
