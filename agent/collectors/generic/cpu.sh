@@ -7,42 +7,37 @@ PREFIX="cpu"      # Metric prefix: cpu_usage
 
 set -euo pipefail
 
-# Initialize CPU tracking from /proc/stat
-# Format: cpu user nice system idle iowait irq softirq steal guest guest_nice
-read line < /proc/stat
-cpu=($line)
-prev_idle=$((${cpu[4]} + ${cpu[5]}))  # idle + iowait
-prev_total=0
-for value in "${cpu[@]:1}"; do
-    prev_total=$((prev_total + value))
-done
+# Read initial CPU state
+read prev_line < /proc/stat
+prev_cpu=($prev_line)
 
 # Main loop - calculate CPU usage and send
 while true; do
-    # Sleep first to ensure we have a time difference
     sleep $PULSE
 
     # Read current CPU state
-    read line < /proc/stat
-    cpu=($line)
+    read curr_line < /proc/stat
+    curr_cpu=($curr_line)
 
-    # Calculate idle and total
-    idle=$((${cpu[4]} + ${cpu[5]}))
-    total=0
-    for value in "${cpu[@]:1}"; do
-        total=$((total + value))
-    done
+    # Calculate deltas for each field (skip "cpu" label at index 0)
+    # Fields: user nice system idle iowait irq softirq steal guest guest_nice
+    user_d=$((${curr_cpu[1]} - ${prev_cpu[1]}))
+    nice_d=$((${curr_cpu[2]} - ${prev_cpu[2]}))
+    system_d=$((${curr_cpu[3]} - ${prev_cpu[3]}))
+    idle_d=$((${curr_cpu[4]} - ${prev_cpu[4]}))
+    iowait_d=$((${curr_cpu[5]:-0} - ${prev_cpu[5]:-0}))
+    irq_d=$((${curr_cpu[6]:-0} - ${prev_cpu[6]:-0}))
+    softirq_d=$((${curr_cpu[7]:-0} - ${prev_cpu[7]:-0}))
+    steal_d=$((${curr_cpu[8]:-0} - ${prev_cpu[8]:-0}))
 
-    # Calculate usage percentage (non-idle time / total time * 100)
-    diff_idle=$((idle - prev_idle))
-    diff_total=$((total - prev_total))
+    # Total CPU time passed
+    total_d=$((user_d + nice_d + system_d + idle_d + iowait_d + irq_d + softirq_d + steal_d))
 
-    # Only calculate if we have a meaningful difference
-    if [ $diff_total -gt 0 ]; then
-        # Use awk for floating-point calculation with 1 decimal place
-        usage=$(awk "BEGIN {printf \"%.1f\", ($diff_total - $diff_idle) * 100.0 / $diff_total}")
-        # Clamp to 0-100 range using awk for float comparison
-        usage=$(awk "BEGIN {if ($usage < 0) print \"0.0\"; else if ($usage > 100) print \"100.0\"; else print \"$usage\"}")
+    # Calculate usage (non-idle time / total time * 100)
+    if [ $total_d -gt 0 ]; then
+        # Active time = total - idle - iowait (iowait is considered idle)
+        active_d=$((total_d - idle_d - iowait_d))
+        usage=$(awk "BEGIN {printf \"%.1f\", $active_d * 100.0 / $total_d}")
     else
         usage="0.0"
     fi
@@ -51,7 +46,6 @@ while true; do
     echo -e "$(date +%s)\t$AGENT_ID\t${PREFIX}_usage\tfloat\t$usage\t$PULSE" | \
         eval "${LUMENMON_TRANSPORT:-cat}"
 
-    # Update previous values for next iteration
-    prev_idle=$idle
-    prev_total=$total
+    # Save current as previous for next iteration
+    prev_cpu=("${curr_cpu[@]}")
 done
