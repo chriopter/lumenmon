@@ -9,8 +9,10 @@ services:
       - ssh-keys:/shared:ro
     networks:
       - lumenmon
+    env_file:
+      - ./data/.env
     environment:
-      - CONSOLE_HOST=lumenmon-console
+      - CONSOLE_HOST=${CONSOLE_HOST:-lumenmon-console}
       - CONSOLE_PORT=22
       - CONSOLE_USER=collector
       - AGENT_ID=${AGENT_ID:-${HOSTNAME:-agent}}
