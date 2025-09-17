@@ -17,8 +17,8 @@ while true; do
     usage=$(((total - available) * 100 / total))
 
     # Send metric through SSH tunnel
-    echo -e "$(date +%s)\t$AGENT_ID\t${PREFIX}_usage\tfloat\t$usage\t${!RHYTHM}" | \
-        ssh -S $SSH_SOCKET $CONSOLE_USER@$CONSOLE_HOST "/usr/local/bin/lumenmon-append --host '$AGENT_ID'" 2>/dev/null
+    echo -e "$(date +%s)\t$AGENT_ID\t${PREFIX}_usage\tfloat\t$usage\t$BREATHE" | \
+        ssh -S $SSH_SOCKET $CONSOLE_USER@$CONSOLE_HOST "lumenmon-append memory"
 
-    sleep ${!RHYTHM}
+    sleep $BREATHE
 done

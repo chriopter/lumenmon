@@ -17,8 +17,8 @@ while true; do
     usage=${percentage%\%}
 
     # Send metric through SSH tunnel
-    echo -e "$(date +%s)\t$AGENT_ID\t${PREFIX}_root_usage\tfloat\t$usage\t${!RHYTHM}" | \
-        ssh -S $SSH_SOCKET $CONSOLE_USER@$CONSOLE_HOST "/usr/local/bin/lumenmon-append --host '$AGENT_ID'" 2>/dev/null
+    echo -e "$(date +%s)\t$AGENT_ID\t${PREFIX}_root_usage\tfloat\t$usage\t$CYCLE" | \
+        ssh -S $SSH_SOCKET $CONSOLE_USER@$CONSOLE_HOST "lumenmon-append disk"
 
-    sleep ${!RHYTHM}
+    sleep $CYCLE
 done
