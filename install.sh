@@ -77,7 +77,7 @@ case $choice in
         echo -e "${GREEN}✅ Console is running!${NC}"
         echo ""
         echo "📊 Access the dashboard:"
-        echo -e "${YELLOW}   docker exec -it lumenmon-console python3 /usr/local/bin/tui.py${NC}"
+        echo -e "${YELLOW}   docker exec -it lumenmon-console python3 /app/tui/tui.py${NC}"
         echo ""
         echo "📝 For remote agents, use this Console IP: ${CONSOLE_IP}"
         ;;
@@ -140,7 +140,7 @@ case $choice in
         echo -e "${GREEN}✅ Console and Agent are running!${NC}"
         echo ""
         echo "📊 Access the dashboard:"
-        echo -e "${YELLOW}   docker exec -it lumenmon-console python3 /usr/local/bin/tui.py${NC}"
+        echo -e "${YELLOW}   docker exec -it lumenmon-console python3 /app/tui/tui.py${NC}"
         ;;
 
     4)

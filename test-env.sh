@@ -56,7 +56,7 @@ start_env() {
     echo -e "${GREEN}✓ Test environment ready!${NC}"
     echo ""
     echo "View dashboard:"
-    echo -e "${YELLOW}  docker exec -it lumenmon-console python3 /usr/local/bin/tui.py${NC}"
+    echo -e "${YELLOW}  docker exec -it lumenmon-console python3 /app/tui/tui.py${NC}"
 }
 
 stop_env() {

@@ -16,7 +16,7 @@ Run installer and choose:
 
 View dashboard:
 ```bash
-docker exec -it lumenmon-console python3 /usr/local/bin/tui.py
+docker exec -it lumenmon-console python3 /app/tui/tui.py
 ```
 
 ## Structure
