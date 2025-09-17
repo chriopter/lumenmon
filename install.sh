@@ -10,7 +10,7 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # Configuration
-REPO_URL="https://github.com/user/lumenmon.git"
+REPO_URL="https://github.com/chriopter/lumenmon.git"
 INSTALL_DIR="$HOME/.lumenmon"
 
 echo "================================"
@@ -179,5 +179,5 @@ esac
 
 echo ""
 echo "To run this installer again:"
-echo -e "${BLUE}curl -sSL https://raw.githubusercontent.com/user/lumenmon/main/install.sh | bash${NC}"
+echo -e "${BLUE}curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/install.sh | bash${NC}"
 echo ""
