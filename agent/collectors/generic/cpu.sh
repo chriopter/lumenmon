@@ -35,9 +35,9 @@ while true; do
     diff_total=$((total - prev_total))
     [ $diff_total -gt 0 ] && usage=$(((diff_total - diff_idle) * 100 / diff_total)) || usage=0
 
-    # Send metric through SSH tunnel
+    # Send metric through transport
     echo -e "$(date +%s)\t$AGENT_ID\t${PREFIX}_usage\tfloat\t$usage\t$PULSE" | \
-        ssh -S $SSH_SOCKET $CONSOLE_USER@$CONSOLE_HOST "/app/ssh/receiver.sh --host $AGENT_ID" 2>/dev/null
+        eval "${LUMENMON_TRANSPORT:-cat}"
 
     # Update previous values for next iteration
     prev_idle=$idle

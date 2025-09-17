@@ -17,9 +17,12 @@ BREATHE="1"      # 1Hz    - Memory tracking
 CYCLE="60"       # 1/min  - Disk usage
 REPORT="3600"    # 1/hr   - System info
 
+# Setup transport for collectors
+LUMENMON_TRANSPORT="ssh -S $SSH_SOCKET $CONSOLE_USER@$CONSOLE_HOST '/app/ssh/receiver.sh --host $AGENT_ID' 2>/dev/null"
+
 # Export for collectors
 export CONSOLE_HOST CONSOLE_PORT CONSOLE_USER AGENT_ID SSH_SOCKET
-export PULSE BREATHE CYCLE REPORT
+export PULSE BREATHE CYCLE REPORT LUMENMON_TRANSPORT
 
 # Startup
 echo "[agent] Starting Lumenmon Agent: $AGENT_ID"
