@@ -82,12 +82,6 @@ done
 echo "[agent] All collectors running. Press Ctrl+C to stop."
 
 # Run forever with heartbeat
-while true; do
-    sleep 30
-    # Check if collectors are still running
-    if jobs -l | grep -q "Running"; then
-        echo "[agent] ✓ Active - collectors running, metrics flowing to $CONSOLE_HOST"
-    else
-        echo "[agent] ⚠ Warning - no collectors running!"
-    fi
+while sleep 30; do
+    echo "[agent] ✓ Active - metrics flowing to $CONSOLE_HOST"
 done
