@@ -37,7 +37,7 @@ while true; do
 
     # Send metric through SSH tunnel
     echo -e "$(date +%s)\t$AGENT_ID\t${PREFIX}_usage\tfloat\t$usage\t$PULSE" | \
-        ssh -S $SSH_SOCKET $CONSOLE_USER@$CONSOLE_HOST "lumenmon-append cpu" 2>/dev/null
+        ssh -S $SSH_SOCKET $CONSOLE_USER@$CONSOLE_HOST 2>/dev/null
 
     # Update previous values for next iteration
     prev_idle=$idle

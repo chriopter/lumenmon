@@ -18,7 +18,7 @@ while true; do
 
     # Send metric through SSH tunnel
     echo -e "$(date +%s)\t$AGENT_ID\t${PREFIX}_root_usage\tfloat\t$usage\t$CYCLE" | \
-        ssh -S $SSH_SOCKET $CONSOLE_USER@$CONSOLE_HOST "lumenmon-append disk"
+        ssh -S $SSH_SOCKET $CONSOLE_USER@$CONSOLE_HOST
 
     sleep $CYCLE
 done
