@@ -18,7 +18,7 @@ while true; do
 
     # Send metric through SSH tunnel
     echo -e "$(date +%s)\t$AGENT_ID\t${PREFIX}_root_usage\tfloat\t$usage\t$CYCLE" | \
-        ssh -S $SSH_SOCKET $CONSOLE_USER@$CONSOLE_HOST
+        ssh -S $SSH_SOCKET $CONSOLE_USER@$CONSOLE_HOST "/app/ssh/receiver.sh --host $AGENT_ID"
 
     sleep $CYCLE
 done
