@@ -10,7 +10,6 @@ services:
     env_file:
       - ./data/.env
     environment:
-      - CONSOLE_HOST=${CONSOLE_HOST:-lumenmon-console}
       - CONSOLE_PORT=${CONSOLE_PORT:-2345}
       - CONSOLE_USER=collector
       - AGENT_ID=${AGENT_ID:-${HOSTNAME:-agent}}
