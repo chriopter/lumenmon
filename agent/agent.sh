@@ -79,4 +79,6 @@ done
 echo "[agent] All collectors running. Press Ctrl+C to stop."
 
 # Run forever
-wait
+while true; do
+    sleep 60
+done
