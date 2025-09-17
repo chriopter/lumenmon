@@ -16,9 +16,9 @@ while true; do
     # Remove the % sign from percentage
     usage=${percentage%\%}
 
-    # Send metric through SSH tunnel
+    # Send metric through transport
     echo -e "$(date +%s)\t$AGENT_ID\t${PREFIX}_root_usage\tfloat\t$usage\t$CYCLE" | \
-        ssh -S $SSH_SOCKET $CONSOLE_USER@$CONSOLE_HOST "/app/ssh/receiver.sh --host $AGENT_ID"
+        eval "${LUMENMON_TRANSPORT:-cat}"
 
     sleep $CYCLE
 done

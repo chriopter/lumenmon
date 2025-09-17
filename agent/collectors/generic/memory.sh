@@ -16,9 +16,9 @@ while true; do
     # Calculate usage percentage: (total - available) / total * 100
     usage=$(((total - available) * 100 / total))
 
-    # Send metric through SSH tunnel
+    # Send metric through transport
     echo -e "$(date +%s)\t$AGENT_ID\t${PREFIX}_usage\tfloat\t$usage\t$BREATHE" | \
-        ssh -S $SSH_SOCKET $CONSOLE_USER@$CONSOLE_HOST "/app/ssh/receiver.sh --host $AGENT_ID"
+        eval "${LUMENMON_TRANSPORT:-cat}"
 
     sleep $BREATHE
 done
