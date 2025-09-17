@@ -75,15 +75,11 @@ for collector in collectors/*/*.sh; do
             lumenmon) echo "  - $name (REPORT: ${REPORT}s)" ;;
             *)        echo "  - $name" ;;
         esac
-        "$collector" &
+        "$collector" 2>/dev/null &
     fi
 done
 
 echo "[agent] All collectors running. Press Ctrl+C to stop."
-echo "[agent] Starting heartbeat loop..."
 
 # Run forever with heartbeat
-while true; do
-    sleep 30
-    echo "[agent] ✓ Active - metrics flowing to $CONSOLE_HOST"
-done
+exec sh -c 'while true; do sleep 30; echo "[agent] ✓ Active - metrics flowing to '"$CONSOLE_HOST"'"; done'
