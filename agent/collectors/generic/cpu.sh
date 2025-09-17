@@ -19,6 +19,9 @@ done
 
 # Main loop - calculate CPU usage and send
 while true; do
+    # Sleep first to ensure we have a time difference
+    sleep $PULSE
+
     # Read current CPU state
     read line < /proc/stat
     cpu=($line)
@@ -33,7 +36,16 @@ while true; do
     # Calculate usage percentage (non-idle time / total time * 100)
     diff_idle=$((idle - prev_idle))
     diff_total=$((total - prev_total))
-    [ $diff_total -gt 0 ] && usage=$(((diff_total - diff_idle) * 100 / diff_total)) || usage=0
+
+    # Only calculate if we have a meaningful difference
+    if [ $diff_total -gt 0 ]; then
+        # Use awk for floating-point calculation with 1 decimal place
+        usage=$(awk "BEGIN {printf \"%.1f\", ($diff_total - $diff_idle) * 100.0 / $diff_total}")
+        # Clamp to 0-100 range using awk for float comparison
+        usage=$(awk "BEGIN {if ($usage < 0) print \"0.0\"; else if ($usage > 100) print \"100.0\"; else print \"$usage\"}")
+    else
+        usage="0.0"
+    fi
 
     # Send metric through transport
     echo -e "$(date +%s)\t$AGENT_ID\t${PREFIX}_usage\tfloat\t$usage\t$PULSE" | \
@@ -42,6 +54,4 @@ while true; do
     # Update previous values for next iteration
     prev_idle=$idle
     prev_total=$total
-
-    sleep $PULSE
 done
