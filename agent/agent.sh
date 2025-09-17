@@ -24,6 +24,9 @@ export PULSE BREATHE CYCLE REPORT
 # Startup
 echo "[agent] Starting Lumenmon Agent: $AGENT_ID"
 
+# Clean up any existing socket
+[ -S "$SSH_SOCKET" ] && rm -f "$SSH_SOCKET"
+
 # Cleanup handler
 cleanup() {
     echo "[agent] Shutting down..."
