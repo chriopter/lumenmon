@@ -67,3 +67,9 @@ yarn-debug.log*
 /storage/*
 !/storage/.keep
 /public/uploads
+
+# Lumenmon data directories - these contain user configuration and runtime data
+*/data/
+console/data/
+agent/data/
+docker-compose.override.yml
