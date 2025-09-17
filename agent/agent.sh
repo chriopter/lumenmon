@@ -78,7 +78,7 @@ done
 
 echo "[agent] All collectors running. Press Ctrl+C to stop."
 
-# Run forever
+# Run forever with heartbeat
 while true; do
-    sleep 60
+    sleep 10 && echo "[agent] ✓ Alive - sending metrics to $CONSOLE_HOST"
 done
