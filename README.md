@@ -5,7 +5,7 @@ Lightweight system monitoring with SSH transport and TUI dashboard.
 ## Install
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/user/lumenmon/main/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/install.sh | bash
 ```
 
 ## Usage
