@@ -59,7 +59,7 @@ echo "  3) Install/Start Both"
 echo "  4) Update Containers"
 echo "  5) Stop All"
 echo ""
-read -p "Enter choice [1-5]: " choice
+read -p "Enter choice [1-5]: " choice </dev/tty
 
 case $choice in
     1)
@@ -93,7 +93,7 @@ case $choice in
 
         # Always ask for Console host (showing current value)
         echo "Current Console host: ${CURRENT_HOST}"
-        read -p "Enter Console hostname/IP [${CURRENT_HOST}]: " NEW_HOST
+        read -p "Enter Console hostname/IP [${CURRENT_HOST}]: " NEW_HOST </dev/tty
         CONSOLE_HOST=${NEW_HOST:-$CURRENT_HOST}
 
         # Save configuration
@@ -121,10 +121,10 @@ case $choice in
         echo "Agent configuration:"
         echo "  1) Use local console (same machine)"
         echo "  2) Use remote console (different machine)"
-        read -p "Choice [1]: " AGENT_CHOICE
+        read -p "Choice [1]: " AGENT_CHOICE </dev/tty
 
         if [ "${AGENT_CHOICE}" == "2" ]; then
-            read -p "Enter Console hostname/IP: " CONSOLE_HOST
+            read -p "Enter Console hostname/IP: " CONSOLE_HOST </dev/tty
             echo "CONSOLE_HOST=$CONSOLE_HOST" > "$INSTALL_DIR/agent/data/.env"
         else
             # Default to local console
