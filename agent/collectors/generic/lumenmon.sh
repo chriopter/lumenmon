@@ -22,9 +22,9 @@ while true; do
     # Using a loop to keep it DRY for multiple metrics
     for metric in "${PREFIX}_os:string:$os" "${PREFIX}_kernel:string:$kernel" "${PREFIX}_uptime:int:$uptime"; do
         IFS=: read -r name type value <<< "$metric"
-        echo -e "$(date +%s)\t$AGENT_ID\t$name\t$type\t$value\t${!RHYTHM}" | \
-            ssh -S $SSH_SOCKET $CONSOLE_USER@$CONSOLE_HOST "/usr/local/bin/lumenmon-append --host '$AGENT_ID'" 2>/dev/null
+        echo -e "$(date +%s)\t$AGENT_ID\t$name\t$type\t$value\t$REPORT" | \
+            ssh -S $SSH_SOCKET $CONSOLE_USER@$CONSOLE_HOST "lumenmon-append system"
     done
 
-    sleep ${!RHYTHM}
+    sleep $REPORT
 done

@@ -36,12 +36,12 @@ while true; do
     [ $diff_total -gt 0 ] && usage=$(((diff_total - diff_idle) * 100 / diff_total)) || usage=0
 
     # Send metric through SSH tunnel
-    echo -e "$(date +%s)\t$AGENT_ID\t${PREFIX}_usage\tfloat\t$usage\t${!RHYTHM}" | \
-        ssh -S $SSH_SOCKET $CONSOLE_USER@$CONSOLE_HOST "/usr/local/bin/lumenmon-append --host '$AGENT_ID'" 2>/dev/null
+    echo -e "$(date +%s)\t$AGENT_ID\t${PREFIX}_usage\tfloat\t$usage\t$PULSE" | \
+        ssh -S $SSH_SOCKET $CONSOLE_USER@$CONSOLE_HOST "lumenmon-append cpu" 2>/dev/null
 
     # Update previous values for next iteration
     prev_idle=$idle
     prev_total=$total
 
-    sleep ${!RHYTHM}
+    sleep $PULSE
 done
