@@ -6,7 +6,7 @@ services:
     container_name: lumenmon-agent
     hostname: agent-${AGENT_ID:-default}
     volumes:
-      - ./data/ssh:/home/metrics/.ssh:ro
+      - ./data/ssh:/home/metrics/.ssh
     env_file:
       - ./data/.env
     environment:
