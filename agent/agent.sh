@@ -45,16 +45,37 @@ while ! nc -z "$CONSOLE_HOST" "$CONSOLE_PORT" 2>/dev/null; do
     sleep 2
 done
 
-# Open SSH tunnel (single multiplexed connection) - NO AUTH REQUIRED
+# Check for SSH key (using ED25519 for shorter keys)
+SSH_KEY="/home/metrics/.ssh/id_ed25519"
+# Also check for legacy RSA key
+if [ -f "/home/metrics/.ssh/id_rsa" ] && [ ! -f "$SSH_KEY" ]; then
+    SSH_KEY="/home/metrics/.ssh/id_rsa"
+fi
+
+if [ ! -f "$SSH_KEY" ]; then
+    echo "[agent] Generating SSH keypair (ED25519 for shorter keys)..."
+    SSH_KEY="/home/metrics/.ssh/id_ed25519"
+    ssh-keygen -t ed25519 -f "$SSH_KEY" -N ""
+    echo "[agent] ======================================"
+    echo "[agent] Agent public key (add to console):"
+    echo "[agent] ======================================"
+    cat "${SSH_KEY}.pub"
+    echo "[agent] ======================================"
+    echo "[agent] Waiting 10 seconds for you to add key..."
+    sleep 10
+fi
+
+# Open SSH tunnel (single multiplexed connection) - Key-based auth
 echo "[agent] Opening SSH tunnel..."
-sshpass -p "" ssh -M -N -f \
+ssh -M -N -f \
     -S "$SSH_SOCKET" \
+    -i "$SSH_KEY" \
     -o ControlPersist=yes \
     -o ServerAliveInterval=30 \
     -o StrictHostKeyChecking=no \
     -o UserKnownHostsFile=/dev/null \
-    -o PreferredAuthentications=password \
-    -o PubkeyAuthentication=no \
+    -o PreferredAuthentications=publickey \
+    -o PasswordAuthentication=no \
     -p "$CONSOLE_PORT" \
     "$CONSOLE_USER@$CONSOLE_HOST"
 
