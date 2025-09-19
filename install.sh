@@ -47,9 +47,7 @@ else
     echo -e "${GREEN}✓ Installed successfully${NC}"
 fi
 
-# Ensure data directories exist (these are gitignored)
-mkdir -p "$INSTALL_DIR/console/data"
-mkdir -p "$INSTALL_DIR/agent/data"
+# Data directories are now part of the repo, no need to create them
 
 # Menu
 echo ""
@@ -79,7 +77,11 @@ case $choice in
         echo "📊 Access the dashboard:"
         echo -e "${YELLOW}   docker exec -it lumenmon-console python3 /app/tui/tui.py${NC}"
         echo ""
-        echo "📝 For remote agents, use this Console IP: ${CONSOLE_IP}"
+        echo "🔐 Press 'a' in TUI for admin menu to:"
+        echo "   - Get secure install command for agents"
+        echo "   - Add agent keys"
+        echo ""
+        echo "📝 Console IP for agents: ${CONSOLE_IP}"
         ;;
 
     2)
@@ -102,19 +104,19 @@ case $choice in
         echo "CONSOLE_HOST=$CONSOLE_HOST" > "$INSTALL_DIR/agent/data/.env"
         echo -e "${GREEN}✓ Configuration saved${NC}"
 
-        # Generate SSH key for this agent if it doesn't exist
-        if [ ! -f "$INSTALL_DIR/agent/data/ssh/id_rsa" ]; then
+        # Handle host key pinning if provided
+        if [ ! -z "${CONSOLE_HOSTKEY:-}" ]; then
+            echo -e "${BLUE}Pinning console host key...${NC}"
             mkdir -p "$INSTALL_DIR/agent/data/ssh"
-            ssh-keygen -t rsa -N "" -f "$INSTALL_DIR/agent/data/ssh/id_rsa" >/dev/null 2>&1
+            echo "[$CONSOLE_HOST]:2345 $CONSOLE_HOSTKEY" > "$INSTALL_DIR/agent/data/ssh/known_hosts"
+            echo -e "${GREEN}✓ Host key pinned for secure connection${NC}"
+        fi
+
+        # Check for agent key
+        if [ ! -f "$INSTALL_DIR/agent/data/ssh/id_rsa" ]; then
             echo ""
-            echo -e "${YELLOW}⚠️  Generated SSH key. Add this to your console:${NC}"
-            echo ""
-            cat "$INSTALL_DIR/agent/data/ssh/id_rsa.pub"
-            echo ""
-            echo -e "${YELLOW}On the console machine, run:${NC}"
-            echo "  docker exec -it lumenmon-console bash"
-            echo "  echo 'PASTE_KEY_HERE' >> /home/collector/.ssh/authorized_keys"
-            echo ""
+            echo -e "${YELLOW}Note: Agent will generate SSH key on first run${NC}"
+            echo -e "${YELLOW}You'll need to add it to the console${NC}"
             read -p "Press Enter after adding the key to continue..." </dev/tty
         fi
 
@@ -125,6 +127,10 @@ case $choice in
         echo ""
         echo -e "${GREEN}✅ Agent is running!${NC}"
         echo "   Connected to console: $CONSOLE_HOST"
+        echo ""
+        echo "📊 View logs: docker logs -f lumenmon-agent"
+        echo ""
+        echo "🔑 To show agent key: docker exec lumenmon-agent /app/show-key.sh"
         ;;
 
     3)
