@@ -39,13 +39,7 @@ cleanup() {
 }
 trap cleanup SIGTERM SIGINT EXIT
 
-# Wait for console
-echo "[agent] Connecting to $CONSOLE_HOST:$CONSOLE_PORT..."
-while ! nc -z "$CONSOLE_HOST" "$CONSOLE_PORT" 2>/dev/null; do
-    sleep 2
-done
-
-# Check for SSH key (using ED25519 for shorter keys)
+# Check for SSH key (using ED25519 for shorter keys) - generate before connecting
 SSH_KEY="/home/metrics/.ssh/id_ed25519"
 # Also check for legacy RSA key
 if [ -f "/home/metrics/.ssh/id_rsa" ] && [ ! -f "$SSH_KEY" ]; then
@@ -61,9 +55,15 @@ if [ ! -f "$SSH_KEY" ]; then
     echo "[agent] ======================================"
     cat "${SSH_KEY}.pub"
     echo "[agent] ======================================"
-    echo "[agent] Waiting 10 seconds for you to add key..."
-    sleep 10
+    echo "[agent] Key saved to: ${SSH_KEY}.pub"
+    echo "[agent] ======================================"
 fi
+
+# Wait for console
+echo "[agent] Connecting to $CONSOLE_HOST:$CONSOLE_PORT..."
+while ! nc -z "$CONSOLE_HOST" "$CONSOLE_PORT" 2>/dev/null; do
+    sleep 2
+done
 
 # Open SSH tunnel (single multiplexed connection) - Key-based auth
 echo "[agent] Opening SSH tunnel..."
