@@ -198,9 +198,9 @@ def get_install_command():
         host_ip = socket.gethostbyname(hostname)
 
         # Read host public key (prefer ED25519 for shorter keys)
-        hostkey_path = '/data/ssh/ssh_host_ed25519_key.pub'
+        hostkey_path = '/etc/ssh/ssh_host_ed25519_key.pub'
         if not os.path.exists(hostkey_path):
-            hostkey_path = '/data/ssh/ssh_host_rsa_key.pub'
+            hostkey_path = '/etc/ssh/ssh_host_rsa_key.pub'
 
         with open(hostkey_path, 'r') as f:
             hostkey = f.read().strip()
@@ -224,7 +224,7 @@ def add_agent_key():
 
         if key and (key.startswith('ssh-rsa') or key.startswith('ssh-ed25519')):
             # Append to authorized_keys with forced command
-            with open('/data/ssh/authorized_keys', 'a') as f:
+            with open('/home/collector/.ssh/authorized_keys', 'a') as f:
                 f.write(f'command="/app/ssh/receiver.sh" {key}\n')
             console.print("\n[green]✓ Agent key added successfully![/green]")
             console.print("Agent can now connect to this console.")

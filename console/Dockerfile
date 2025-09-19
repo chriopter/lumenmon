@@ -14,14 +14,12 @@ RUN useradd -m -s /bin/bash collector && \
     mkdir -p /home/collector/.ssh && \
     chmod 700 /home/collector/.ssh
 
-# Setup SSH config - INSECURE FOR TESTING
+# Setup SSH config - Key-based auth only, no strict modes
 RUN mkdir -p /var/run/sshd && \
-    echo "PasswordAuthentication yes" >> /etc/ssh/sshd_config && \
+    echo "PasswordAuthentication no" >> /etc/ssh/sshd_config && \
     echo "PubkeyAuthentication yes" >> /etc/ssh/sshd_config && \
     echo "PermitRootLogin no" >> /etc/ssh/sshd_config && \
-    echo "PermitEmptyPasswords yes" >> /etc/ssh/sshd_config && \
-    echo "StrictModes no" >> /etc/ssh/sshd_config && \
-    passwd -d collector
+    echo "StrictModes no" >> /etc/ssh/sshd_config
 
 # Setup directory structure
 RUN mkdir -p /var/lib/lumenmon/hot/{latest,ring} && \
