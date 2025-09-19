@@ -10,7 +10,7 @@ services:
         target: /var/lib/lumenmon/hot
         tmpfs:
           size: 100M
-      - ssh-keys:/shared
+      - ./data/ssh:/home/collector/.ssh
     ports:
       - "2345:22"
     networks:
@@ -24,7 +24,3 @@ networks:
   lumenmon:
     name: lumenmon-net
     driver: bridge
-
-volumes:
-  ssh-keys:
-    name: lumenmon-ssh-keys
