@@ -68,8 +68,11 @@ yarn-debug.log*
 !/storage/.keep
 /public/uploads
 
-# Lumenmon data directories - these contain user configuration and runtime data
-*/data/
-console/data/
-agent/data/
+# Lumenmon data directories - ignore contents but keep structure
+console/data/ssh/*
+!console/data/ssh/.gitkeep
+console/data/*.log
+agent/data/ssh/*
+!agent/data/ssh/.gitkeep
+agent/data/.env
 docker-compose.override.yml
