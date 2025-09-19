@@ -15,6 +15,8 @@ from rich.panel import Panel
 from rich.live import Live
 from rich.text import Text
 from rich import box
+import subprocess
+import socket
 
 # Add current dir to path for boot animation
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -188,6 +190,53 @@ def create_display():
     )
 
 
+def get_install_command():
+    """Generate secure install command with host key"""
+    try:
+        # Get host IP
+        hostname = socket.gethostname()
+        host_ip = socket.gethostbyname(hostname)
+
+        # Read host public key (prefer ED25519 for shorter keys)
+        hostkey_path = '/data/ssh/ssh_host_ed25519_key.pub'
+        if not os.path.exists(hostkey_path):
+            hostkey_path = '/data/ssh/ssh_host_rsa_key.pub'
+
+        with open(hostkey_path, 'r') as f:
+            hostkey = f.read().strip()
+
+        # Build command
+        cmd = f'curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/install.sh | \\\n'
+        cmd += f'  CONSOLE_HOST={host_ip} CONSOLE_HOSTKEY="{hostkey}" bash'
+
+        return cmd
+    except Exception as e:
+        return f"Error generating command: {e}"
+
+def add_agent_key():
+    """Add agent public key to authorized_keys"""
+    console.clear()
+    console.print("\n[bold cyan]Add Agent Key[/bold cyan]\n")
+    console.print("Paste the agent's public key (from agent's show-key.sh):")
+
+    try:
+        key = input("\nKey: ")
+
+        if key and (key.startswith('ssh-rsa') or key.startswith('ssh-ed25519')):
+            # Append to authorized_keys with forced command
+            with open('/data/ssh/authorized_keys', 'a') as f:
+                f.write(f'command="/app/ssh/receiver.sh" {key}\n')
+            console.print("\n[green]✓ Agent key added successfully![/green]")
+            console.print("Agent can now connect to this console.")
+        else:
+            console.print("\n[red]Invalid key format. Expected ssh-rsa or ssh-ed25519...[/red]")
+    except Exception as e:
+        console.print(f"\n[red]Error: {e}[/red]")
+
+    console.print("\nPress Enter to continue...")
+    input()
+
+
 def main():
     """Main TUI loop"""
     # Show boot animation unless disabled
@@ -199,13 +248,53 @@ def main():
 
     console.clear()
 
+    # Instructions
+    console.print("[dim]Press Ctrl+C for menu[/dim]\n")
+
+    # Simple main loop without complex terminal handling
     try:
         with Live(create_display(), refresh_per_second=REFRESH_HZ, console=console) as live:
             while True:
                 time.sleep(1 / REFRESH_HZ)
                 live.update(create_display())
     except KeyboardInterrupt:
-        console.print("\n[yellow]Shutting down TUI...[/yellow]")
+        # When user hits Ctrl+C, show menu
+        show_menu()
+
+def show_menu():
+    """Show main menu when Ctrl+C is pressed"""
+    console.clear()
+    console.print("\n[bold cyan]Lumenmon Console Menu[/bold cyan]\n")
+    console.print("[1] Show secure install command")
+    console.print("[2] Add agent key")
+    console.print("[3] Return to dashboard")
+    console.print("[4] Exit\n")
+
+    try:
+        choice = input("Enter choice (1-4): ")
+
+        if choice == '1':
+            console.clear()
+            console.print("\n[bold cyan]Secure Install Command[/bold cyan]\n")
+            console.print("Run this on the agent machine:\n")
+            console.print(f"[yellow]{get_install_command()}[/yellow]")
+            console.print("\nPress Enter to continue...")
+            input()
+            main()  # Return to dashboard
+        elif choice == '2':
+            add_agent_key()
+            main()  # Return to dashboard
+        elif choice == '3':
+            main()  # Return to dashboard
+        elif choice == '4':
+            console.print("\n[yellow]Goodbye![/yellow]\n")
+            sys.exit(0)
+        else:
+            console.print("[red]Invalid choice[/red]")
+            show_menu()
+    except (EOFError, KeyboardInterrupt):
+        console.print("\n[yellow]Goodbye![/yellow]\n")
+        sys.exit(0)
 
 
 if __name__ == "__main__":
