@@ -10,13 +10,15 @@ Lumenmon is a lightweight system monitoring solution using SSH transport and TSV
 
 ### Local Development
 ```bash
-# Test environment with 3 agents
-./test-env.sh start    # Start console + 3 test agents
-./test-env.sh stop     # Stop all
-./test-env.sh status   # Check status
-./test-env.sh logs     # Follow logs
+# Development commands (from project root)
+./_dev/dev.sh rebuild   # Clean rebuild everything
+./_dev/dev.sh console   # Start console only
+./_dev/dev.sh agent     # Start agent only
+./_dev/dev.sh tui       # Open TUI dashboard
+./_dev/dev.sh logs [container]  # View logs
+./_dev/dev.sh clean     # Clean data directories
 
-# View dashboard
+# View dashboard directly
 docker exec -it lumenmon-console python3 /app/tui/tui.py
 ```
 
@@ -53,15 +55,19 @@ docker network prune -f; docker volume prune -f; rm -rf ~/.lumenmon
 4. TUI reads from `/var/lib/lumenmon/hot/` for real-time display
 
 ### SSH Transport Pattern
-- Console runs SSH server on port 2345
+- Console runs SSH server on port 2345 (internal port 22)
 - Agents establish persistent SSH connection with multiplexing
 - Each collector sends data through shared socket at `/tmp/lumenmon.sock`
-- Currently uses empty password auth (PermitEmptyPasswords yes)
+- SSH key-only authentication (PermitEmptyPasswords no, PasswordAuthentication no)
+- Auto-reconnection on connection failure via connection_monitor.sh
+- Per-agent Linux users with ForceCommand gateway pattern
 
 ### Critical Paths
-- **Console receiver**: `/app/ssh/receiver.sh` - processes incoming TSV
+- **Console gateway**: `/app/lib/gateway.sh` - receives filename then data via ForceCommand
 - **Agent orchestrator**: `/app/agent.sh` - manages SSH tunnel and collectors
-- **Collectors**: `/app/collectors/generic/*.sh` - send metrics via: `ssh -S $SSH_SOCKET $CONSOLE_USER@$CONSOLE_HOST "/app/ssh/receiver.sh --host $AGENT_ID"`
+- **Connection monitor**: `/app/lib/connection_monitor.sh` - checks tunnel health and reconnects
+- **Collectors**: `/app/collectors/generic/*.sh` - send metrics via SSH multiplexed socket
+- **User restoration**: `/app/lib/restore_agents.sh` - recreates ephemeral users on container restart
 
 ### Storage
 - tmpfs mount at `/var/lib/lumenmon/hot/` (100MB RAM)
@@ -91,14 +97,15 @@ REPORT=3600     # System info (1/hr)
 - Socket at `/tmp/lumenmon.sock` needs cleanup between runs
 
 **No metrics received:**
-- Collectors must call `/app/ssh/receiver.sh --host $AGENT_ID`
-- Check SSH auth (currently needs empty password setup)
+- Check if agent user exists in console: `docker exec lumenmon-console grep id_ /etc/passwd`
+- Verify SSH key authentication is working
+- Check gateway script permissions
 
 ## Testing and Validation
 
 ```bash
 # Check agent sending data
-docker logs -f lumenmon-agent  # Should show heartbeat every 30s
+docker logs -f lumenmon-agent  # Should show connection status every 30s
 
 # Check console receiving
 docker exec -it lumenmon-console ls -la /var/lib/lumenmon/hot/latest/
