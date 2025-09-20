@@ -3,7 +3,7 @@
 
 # Config
 RHYTHM="CYCLE"    # Uses CYCLE timing from agent.sh
-PREFIX="disk"     # Metric prefix: disk_root_usage
+PREFIX="generic_disk"     # Metric prefix: generic_disk_root_usage
 
 set -euo pipefail
 

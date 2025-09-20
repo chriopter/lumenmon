@@ -12,7 +12,7 @@ NC='\033[0m' # No Color
 
 # Find collectors directory
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-COLLECTORS_DIR="$SCRIPT_DIR/collectors/generic"
+COLLECTORS_DIR="$SCRIPT_DIR/generic"
 
 # Set up debug environment
 export AGENT_ID="${HOSTNAME:-debug}"

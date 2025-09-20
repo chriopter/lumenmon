@@ -3,7 +3,7 @@
 
 # Config
 RHYTHM="REPORT"   # Uses REPORT timing from agent.sh
-PREFIX="sys"      # Metric prefix: sys_os, sys_kernel, sys_uptime
+PREFIX="generic_sys"      # Metric prefix: generic_sys_os, generic_sys_kernel, generic_sys_uptime
 
 set -euo pipefail
 
