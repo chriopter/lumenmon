@@ -41,5 +41,15 @@ else
     echo "[agent] Calculated identity: $AGENT_USER"
 fi
 
+# Always display key info (whether generated or found)
+echo "======================================"
+echo "Agent identity: $AGENT_USER"
+echo "Public key:"
+cat "${SSH_KEY}.pub"
+echo "======================================"
+
+# Handle --show-only flag for standalone key display
+[ "${1:-}" = "--show-only" ] && exit 0
+
 # Export for other scripts
 export SSH_KEY AGENT_USER

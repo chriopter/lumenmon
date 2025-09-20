@@ -3,7 +3,7 @@
 set -euo pipefail
 
 # Handle show-key
-[ "${1:-}" = "--show-key" ] && exec lib/showkey.sh
+[ "${1:-}" = "--show-key" ] && exec core/setup/identity.sh --show-only
 
 # Set up environment
 export CONSOLE_HOST="${CONSOLE_HOST:-console}"
@@ -23,8 +23,8 @@ cleanup() {
 trap cleanup SIGTERM SIGINT EXIT
 
 # Run components
-source lib/keygen.sh  # Sets AGENT_USER and SSH_KEY
-source lib/tunnel.sh  # Establishes connection
-source lib/startup.sh # Starts collectors
-exec lib/connection_monitor.sh   # Monitor and reconnect
+source core/setup/identity.sh        # Sets AGENT_USER and SSH_KEY
+source core/connection/tunnel.sh     # Establishes connection
+source core/connection/collectors.sh # Starts collectors
+exec core/connection/watchdog.sh     # Monitor and reconnect
 
