@@ -32,7 +32,12 @@ echo "[agent] ✓ SSH port is open on $CONSOLE_HOST:$CONSOLE_PORT"
 echo "[agent] Waiting for registration on $CONSOLE_HOST:$CONSOLE_PORT..."
 echo "[agent] Add this agent via TUI using the public key shown above"
 
+# Connection retry logic with adaptive delays:
+# - No host key: retry every 1 second (waiting for registration)
+# - Just registered: reset counter, retry every 1 second for 10 attempts
+# - Persistent failures: retry every 10 seconds (real network issues)
 retry_count=0
+had_host_key=false
 while true; do
     retry_count=$((retry_count + 1))
     echo "[agent] Connection attempt $retry_count to $AGENT_USER@$CONSOLE_HOST:$CONSOLE_PORT..."
@@ -41,8 +46,17 @@ while true; do
     if [ ! -f "/home/metrics/.ssh/known_hosts" ]; then
         echo "[agent] ERROR: No host key found. Agent must be registered first."
         echo "[agent] Use registration invite to establish trust with console."
+        had_host_key=false
         sleep 1  # Fast retry when waiting for registration
         continue
+    fi
+
+    # Reset counter when registration is first detected
+    # This ensures we get fast retries right after registration, even if we waited long
+    if [ "$had_host_key" = "false" ]; then
+        echo "[agent] Registration detected! Attempting connection..."
+        retry_count=1  # Reset to give 10 fast attempts post-registration
+        had_host_key=true
     fi
 
     # Try to open SSH tunnel with strict host key checking
@@ -81,14 +95,21 @@ while true; do
     # Clean up failed socket
     [ -S "$SSH_SOCKET" ] && rm -f "$SSH_SOCKET"
 
-    # Adaptive retry delay
+    # Adaptive retry delay based on registration and attempt count
     if [ ! -f "/home/metrics/.ssh/known_hosts" ]; then
+        # No host key = not registered yet, poll quickly
         echo "[agent] Waiting for registration. Retrying in 1 second..."
         echo "[agent] (Enter invite in console TUI or add public key manually)"
-        sleep 1  # Fast retry when waiting for initial registration
+        sleep 1
+    elif [ $retry_count -le 10 ]; then
+        # First 10 attempts after registration: fast retry
+        # Handles SSH daemon recognizing new user, file system sync, etc.
+        echo "[agent] Connection failed (attempt $retry_count/10 fast). Retrying in 1 second..."
+        sleep 1
     else
+        # After 10 fast attempts: probably real network/config issues
         echo "[agent] Connection failed. Retrying in 10 seconds..."
         echo "[agent] (Check network and console status)"
-        sleep 10  # Normal retry for connection issues
+        sleep 10
     fi
 done
