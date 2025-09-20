@@ -10,6 +10,14 @@ if [ ! -f /data/ssh/ssh_host_rsa_key ]; then
     ssh-keygen -t ed25519 -f /data/ssh/ssh_host_ed25519_key -N ""
 fi
 
+# Display host key fingerprints
+echo "[console] ========================================"
+echo "[console] SSH Server starting on port 22"
+echo "[console] Host key fingerprints:"
+echo "[console] RSA: $(ssh-keygen -lf /data/ssh/ssh_host_rsa_key | awk '{print $2}')"
+echo "[console] ED25519: $(ssh-keygen -lf /data/ssh/ssh_host_ed25519_key | awk '{print $2}')"
+echo "[console] ========================================"
+
 echo "[console] Starting SSH authentication server..."
 exec /usr/sbin/sshd -D -f /app/lib/ssh_config &
 sleep 2

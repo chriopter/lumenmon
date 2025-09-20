@@ -21,7 +21,7 @@ ClientAliveInterval 30
 ClientAliveCountMax 3
 
 # Agent users - append only
-Match User id_*
+Match Group agents
     ForceCommand /app/lib/gateway.sh
     AuthorizedKeysFile /data/agents/%u/.ssh/authorized_keys
     AllowTcpForwarding no
