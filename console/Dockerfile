@@ -4,10 +4,11 @@ FROM python:3.13-slim
 RUN apt-get update && apt-get install -y \
     openssh-server \
     netcat-traditional \
+    xclip \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python packages for TUI
-RUN pip install --no-cache-dir rich
+RUN pip install --no-cache-dir rich textual plotext pyperclip
 
 # Create groups for agent and registration users
 RUN groupadd agents && \
