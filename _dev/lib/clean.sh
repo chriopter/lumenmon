@@ -1,7 +1,8 @@
 #!/bin/bash
 # Clean data directories
 
-PROJECT_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 echo "Cleaning data directories..."
 find "$PROJECT_ROOT/agent/data" -type f ! -name '.gitkeep' -delete 2>/dev/null || true
 find "$PROJECT_ROOT/console/data" -type f ! -name '.gitkeep' -delete 2>/dev/null || true
