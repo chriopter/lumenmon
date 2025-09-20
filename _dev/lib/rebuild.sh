@@ -1,8 +1,9 @@
 #!/bin/bash
 # Rebuild everything
 
-# Get the project root (parent of _dev)
-PROJECT_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+# Get the absolute path to this script's directory, then go up to project root
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 echo "Rebuilding everything..."
 # Stop containers
@@ -27,7 +28,7 @@ touch "$PROJECT_ROOT"/console/data/.gitkeep "$PROJECT_ROOT"/console/data/agents/
 
 # Start fresh
 echo "Starting console..."
-cd "$PROJECT_ROOT/console" && docker compose up -d --build
+docker compose -f "$PROJECT_ROOT/console/docker-compose.yml" up -d --build
 echo "Starting agent..."
-cd "$PROJECT_ROOT/agent" && CONSOLE_HOST=localhost CONSOLE_PORT=2345 docker compose up -d --build
+CONSOLE_HOST=localhost CONSOLE_PORT=2345 docker compose -f "$PROJECT_ROOT/agent/docker-compose.yml" up -d --build
 echo "Rebuilt! Use './dev tui' to register agents"
