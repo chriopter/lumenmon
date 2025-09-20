@@ -1,0 +1,23 @@
+#!/bin/bash
+# Start lumenmon containers
+
+case "${1:-all}" in
+    console)
+        echo "Starting console..."
+        docker compose -f console/docker-compose.yml up -d --build
+        ;;
+    agent)
+        echo "Starting agent..."
+        CONSOLE_HOST=localhost CONSOLE_PORT=2345 docker compose -f agent/docker-compose.yml up -d --build
+        ;;
+    all|"")
+        echo "Starting console..."
+        docker compose -f console/docker-compose.yml up -d --build
+        echo "Starting agent..."
+        CONSOLE_HOST=localhost CONSOLE_PORT=2345 docker compose -f agent/docker-compose.yml up -d --build
+        ;;
+    *)
+        echo "Usage: ./start [console|agent|all]"
+        exit 1
+        ;;
+esac

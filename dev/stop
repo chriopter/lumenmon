@@ -1,0 +1,18 @@
+#!/bin/bash
+# Stop lumenmon containers
+
+case "${1:-all}" in
+    console)
+        docker stop lumenmon-console 2>/dev/null || true
+        ;;
+    agent)
+        docker stop lumenmon-agent 2>/dev/null || true
+        ;;
+    all|"")
+        docker stop lumenmon-console lumenmon-agent 2>/dev/null || true
+        ;;
+    *)
+        echo "Usage: ./stop [console|agent|all]"
+        exit 1
+        ;;
+esac

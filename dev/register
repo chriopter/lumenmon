@@ -1,0 +1,16 @@
+#!/bin/bash
+# Test agent registration with invite URL
+
+if [ $# -ne 1 ]; then
+    echo "Usage: ./register \"ssh://reg_xxx:password@host:port/#hostkey\""
+    exit 1
+fi
+
+# Check agent container is running
+if ! docker ps | grep -q lumenmon-agent; then
+    echo "Error: Agent container not running. Run: ./start agent"
+    exit 1
+fi
+
+echo "Testing registration with invite URL..."
+docker exec lumenmon-agent /app/core/setup/register.sh "$1"
