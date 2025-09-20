@@ -4,114 +4,112 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Lumenmon is a lightweight system monitoring solution using SSH transport and TSV data format. Agents send metrics to a central console via SSH, which stores them in tmpfs (RAM) and displays via TUI.
+Lumenmon is a lightweight system monitoring solution with SSH transport and TUI dashboard. It consists of two main components:
+- **Console**: Central monitoring dashboard with SSH server and TUI interface
+- **Agent**: Metrics collector that sends data to console via SSH
 
 ## Development Commands
 
-### Local Development
+### Quick Start (Development)
 ```bash
-# Development commands (from project root)
-./_dev/dev.sh rebuild   # Clean rebuild everything
-./_dev/dev.sh console   # Start console only
-./_dev/dev.sh agent     # Start agent only
-./_dev/dev.sh tui       # Open TUI dashboard
-./_dev/dev.sh logs [container]  # View logs
-./_dev/dev.sh clean     # Clean data directories
+# Full auto-setup: reset, start containers, register agent, and launch TUI
+./dev/auto
 
-# View dashboard directly
-docker exec -it lumenmon-console python3 /app/tui/tui.py
+# Individual commands
+./dev/start      # Start console and agent containers
+./dev/stop       # Stop all containers
+./dev/reset      # Clean everything and restart fresh
+./dev/register   # Register agent with console (requires invite URL)
+./dev/tui        # Launch TUI dashboard
+./dev/logs       # Show container logs
 ```
 
-### Building and Running
+### Docker Operations
 ```bash
-# Console
-cd console
-docker compose up -d --build
+# Build and run console
+docker compose -f console/docker-compose.yml up -d --build
 
-# Agent
-cd agent
-docker compose up -d --build
+# Build and run agent (with local console)
+CONSOLE_HOST=localhost CONSOLE_PORT=2345 docker compose -f agent/docker-compose.yml up -d --build
 
-# Always use 'docker compose', not 'docker-compose'
+# Access TUI directly
+docker exec -it lumenmon-console python3 /app/tui/main.py
 ```
 
-### Deployment
+### Python Development (TUI)
 ```bash
-# Install via installer script
-curl -H "Accept: application/vnd.github.v3.raw" \
-     -sSL https://api.github.com/repos/chriopter/lumenmon/contents/install.sh | bash
+# Python dependencies (installed in Docker, but for reference)
+pip install rich textual plotext pyperclip
 
-# Clean everything
-docker rm -f $(docker ps -aq --filter "name=lumenmon") 2>/dev/null;
-docker network prune -f; docker volume prune -f; rm -rf ~/.lumenmon
+# No specific linting/testing commands defined yet
+# GitHub Actions uses: black, isort, flake8, pylint, mypy
 ```
 
 ## Architecture
 
 ### Data Flow
-1. Collectors (cpu.sh, memory.sh, etc.) gather metrics at defined rhythms (PULSE, BREATHE, CYCLE, REPORT)
-2. Metrics sent as TSV via SSH tunnel to console: `timestamp\tagent_id\tmetric\ttype\tvalue\tinterval`
-3. Console's SSH forced command (`/app/ssh/receiver.sh`) writes to tmpfs
-4. TUI reads from `/var/lib/lumenmon/hot/` for real-time display
+1. Agents collect metrics at intervals (CPU: 0.1s, Memory: 1s, Disk: 60s)
+2. Metrics sent as TSV through SSH: `timestamp\tagent_id\tmetric\ttype\tvalue\tinterval`
+3. Console SSH ForceCommand routes to gateway script → storage in `/var/lib/lumenmon/hot/`
+4. TUI reads from tmpfs-mounted directories for real-time display
 
-### SSH Transport Pattern
-- Console runs SSH server on port 2345 (internal port 22)
-- Agents establish persistent SSH connection with multiplexing
-- Each collector sends data through shared socket at `/tmp/lumenmon.sock`
-- SSH key-only authentication (PermitEmptyPasswords no, PasswordAuthentication no)
-- Auto-reconnection on connection failure via connection_monitor.sh
-- Per-agent Linux users with ForceCommand gateway pattern
+### Directory Structure
+- `console/`: Dashboard container
+  - `tui/`: Python Textual-based TUI application
+    - `views/`: Dashboard and detail views
+    - `models/`: Agent, metrics, invite data models
+    - `services/`: Monitor and clipboard services
+    - `config/`: Settings and theme CSS
+  - `core/`: Shell scripts for SSH, enrollment, ingress
+  - `data/`: Persistent agent data and SSH keys (gitignored)
 
-### Critical Paths
-- **Console gateway**: `/app/lib/gateway.sh` - receives filename then data via ForceCommand
-- **Agent orchestrator**: `/app/agent.sh` - manages SSH tunnel and collectors
-- **Connection monitor**: `/app/lib/connection_monitor.sh` - checks tunnel health and reconnects
-- **Collectors**: `/app/collectors/generic/*.sh` - send metrics via SSH multiplexed socket
-- **User restoration**: `/app/lib/restore_agents.sh` - recreates ephemeral users on container restart
+- `agent/`: Metrics collector container
+  - `collectors/`: Metric collection scripts (CPU, memory, disk)
+  - `core/`: Registration and connection scripts
+  - `data/`: SSH keys and config (gitignored)
 
-### Storage
-- tmpfs mount at `/var/lib/lumenmon/hot/` (100MB RAM)
-- Latest values: `/var/lib/lumenmon/hot/latest/{agent_id}.tsv`
-- Ring buffers: `/var/lib/lumenmon/hot/ring/{agent_id}/{metric}.tsv` (1000 entries max)
+### Security Model
+- SSH key-based authentication only (no passwords)
+- Per-agent Linux users in console container
+- ForceCommand prevents shell access
+- Agent data isolated by user permissions
 
-## Key Configuration
+## Key Implementation Details
 
-### Agent Environment Variables
-```bash
-CONSOLE_HOST    # Target console (from data/.env or docker-compose.override.yml)
-CONSOLE_PORT    # Always 2345
-PULSE=0.1       # CPU sampling (10Hz)
-BREATHE=1       # Memory sampling (1Hz)
-CYCLE=60        # Disk sampling (1/min)
-REPORT=3600     # System info (1/hr)
-```
+### Console TUI (`console/tui/`)
+- Built with Python Textual framework
+- Main entry: `main.py` - handles app lifecycle and routing
+- Dashboard view shows agents table and invites
+- Detail view shows real-time graphs using plotext
+- Refresh rate configurable in `config/settings.py`
 
-### Common Issues
+### SSH Enrollment Flow
+1. Console creates invite: `/app/core/enrollment/invite_create.sh`
+2. Agent registers: `/app/core/setup/register.sh <invite_url>`
+3. Console creates dedicated user and sets up SSH access
+4. Agent connects and starts streaming metrics
 
-**Agent won't connect to remote console:**
-- Check `~/.lumenmon/agent/data/.env` has correct CONSOLE_HOST
-- May need: `CONSOLE_HOST=x.x.x.x docker compose up -d`
+### Metric Storage
+- Hot data: `/var/lib/lumenmon/hot/<agent_id>/` (tmpfs)
+- Files: `cpu.tsv`, `memory.tsv`, `disk.tsv`, `meta.tsv`
+- Format: TSV with timestamp, agent_id, metric_name, type, value, interval
 
-**SSH socket already exists:**
-- Use `docker compose down` then `up -d`, not `restart`
-- Socket at `/tmp/lumenmon.sock` needs cleanup between runs
+## Common Tasks
 
-**No metrics received:**
-- Check if agent user exists in console: `docker exec lumenmon-console grep id_ /etc/passwd`
-- Verify SSH key authentication is working
-- Check gateway script permissions
+### Adding New Metrics
+1. Create collector script in `agent/collectors/`
+2. Add to agent's main loop in `agent/agent.sh`
+3. Update TUI models in `console/tui/models/metrics.py`
+4. Add visualization in `console/tui/views/detail.py`
 
-## Testing and Validation
+### Modifying TUI
+- Theme: Edit `console/tui/config/theme.css`
+- Layout: Modify views in `console/tui/views/`
+- Data models: Update `console/tui/models/`
+- Keybindings: Edit `BINDINGS` in `console/tui/main.py`
 
-```bash
-# Check agent sending data
-docker logs -f lumenmon-agent  # Should show connection status every 30s
-
-# Check console receiving
-docker exec -it lumenmon-console ls -la /var/lib/lumenmon/hot/latest/
-
-# Debug collector manually
-docker exec -it lumenmon-agent bash
-export CONSOLE_HOST=x.x.x.x CONSOLE_PORT=2345 SSH_SOCKET=/tmp/lumenmon.sock AGENT_ID=test
-./collectors/generic/cpu.sh
-```
+### Debugging
+- Container logs: `docker logs lumenmon-console` or `./dev/logs`
+- Agent debug output: Check `agent/data/debug/`
+- SSH issues: Verify keys in `console/data/ssh/` and `agent/data/ssh/`
+- TUI issues: Run directly with `docker exec -it lumenmon-console python3 /app/tui/main.py`
