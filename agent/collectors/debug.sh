@@ -16,11 +16,11 @@ chmod +x /tmp/ssh
 
 # List collectors
 echo "Collectors:"
-find . -name "*.sh" -not -path "./debug.sh" | nl
+find $(dirname "$0") -name "*.sh" -not -path "*/debug.sh" | nl
 
 # Get choice and run
 read -p "Number: " n
-script=$(find . -name "*.sh" -not -path "./debug.sh" | sed -n "${n}p")
+script=$(find $(dirname "$0") -name "*.sh" -not -path "*/debug.sh" | sed -n "${n}p")
 
 echo "Running $script (Ctrl+C to stop)..."
 echo "----------------------------------------"
