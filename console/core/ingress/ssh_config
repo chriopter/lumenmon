@@ -23,7 +23,7 @@ ClientAliveCountMax 3
 # Registration users - temporary, password auth
 Match Group registration
     PasswordAuthentication yes
-    ForceCommand /app/lib/register_agent.sh
+    ForceCommand /app/core/enrollment/gateway.sh
     MaxAuthTries 3
     MaxSessions 1
     AllowTcpForwarding no
@@ -33,7 +33,7 @@ Match Group registration
 
 # Agent users - append only
 Match Group agents
-    ForceCommand /app/lib/gateway.sh
+    ForceCommand /app/core/ingress/gateway.sh
     AuthorizedKeysFile /data/agents/%u/.ssh/authorized_keys
     AllowTcpForwarding no
     X11Forwarding no

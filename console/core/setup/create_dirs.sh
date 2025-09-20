@@ -1,5 +1,5 @@
 #!/bin/bash
-# Setup data directories and restore agents
+# Create required data directories
 
 set -euo pipefail
 
@@ -12,6 +12,3 @@ mkdir -p /data/agents
 mkdir -p /data/registration_queue
 chgrp registration /data/registration_queue
 chmod 1730 /data/registration_queue
-
-# Restore agent users from existing directories
-source /app/lib/restore_agents.sh

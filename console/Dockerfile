@@ -32,11 +32,11 @@ RUN mkdir -p /data/agents && \
 # Copy ultra-KISS console files
 WORKDIR /app
 COPY console.sh .
-COPY lib/ ./lib/
+COPY core/ ./core/
 COPY tui/ ./tui/
 
 # Make scripts executable
-RUN chmod +x console.sh lib/*.sh tui/*.py
+RUN chmod +x console.sh core/*/*.sh tui/*.py
 
 # Mount point for persistent data
 VOLUME /data
