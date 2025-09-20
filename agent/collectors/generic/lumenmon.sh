@@ -22,15 +22,15 @@ while true; do
     timestamp=$(date +%s)
 
     # OS info
-    echo -e "${PREFIX}_os.tsv\n$timestamp $os" | \
+    echo -e "${PREFIX}_os.tsv\n$timestamp $REPORT $os" | \
         ssh -S $SSH_SOCKET $AGENT_USER@$CONSOLE_HOST 2>/dev/null
 
     # Kernel info
-    echo -e "${PREFIX}_kernel.tsv\n$timestamp $kernel" | \
+    echo -e "${PREFIX}_kernel.tsv\n$timestamp $REPORT $kernel" | \
         ssh -S $SSH_SOCKET $AGENT_USER@$CONSOLE_HOST 2>/dev/null
 
     # Uptime info
-    echo -e "${PREFIX}_uptime.tsv\n$timestamp $uptime" | \
+    echo -e "${PREFIX}_uptime.tsv\n$timestamp $REPORT $uptime" | \
         ssh -S $SSH_SOCKET $AGENT_USER@$CONSOLE_HOST 2>/dev/null
 
     sleep $REPORT
