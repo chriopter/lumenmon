@@ -7,7 +7,7 @@ services:
     hostname: lumenmon-console
     volumes:
       - ./data/agents:/data/agents
-      - ./data/ssh:/etc/ssh
+      - ./data/ssh:/data/ssh
     ports:
       - "2345:22"
     networks:

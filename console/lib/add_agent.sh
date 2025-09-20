@@ -28,12 +28,16 @@ fi
 # Ensure base directory exists
 mkdir -p "/data/agents"
 
-# Create Linux user with home directory in /data/agents
-useradd -m -d "/data/agents/$FINGERPRINT" -s /bin/false "$FINGERPRINT"
-
-# Setup SSH access (already in home)
+# Create the home directory first (since it's a mounted volume)
 mkdir -p "/data/agents/$FINGERPRINT/.ssh"
+
+# Create Linux user WITHOUT -m flag (home already exists)
+useradd -d "/data/agents/$FINGERPRINT" -s /bin/false "$FINGERPRINT"
+
+# Setup SSH access
 echo "$PUBLIC_KEY" > "/data/agents/$FINGERPRINT/.ssh/authorized_keys"
+
+# Fix ownership and permissions
 chown -R "$FINGERPRINT:$FINGERPRINT" "/data/agents/$FINGERPRINT"
 chmod 700 "/data/agents/$FINGERPRINT" "/data/agents/$FINGERPRINT/.ssh"
 chmod 600 "/data/agents/$FINGERPRINT/.ssh/authorized_keys"
