@@ -23,32 +23,43 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from boot_animation import show_boot_animation
 
 # Configuration
-DATA_DIR = "/var/lib/lumenmon/hot"
+DATA_DIR = "/hot"  # New direct tmpfs mount
 REFRESH_HZ = 2
 
 console = Console()
 
 
 def get_agents():
-    """Find all agents from latest directory"""
-    latest_dir = f"{DATA_DIR}/latest"
-    if not os.path.exists(latest_dir):
+    """Find all agents from /hot directory"""
+    if not os.path.exists(DATA_DIR):
         return []
-    return sorted([Path(f).stem for f in glob.glob(f"{latest_dir}/*.tsv")])
+    # List all directories in /hot - each is an agent
+    agents = []
+    for d in os.listdir(DATA_DIR):
+        if os.path.isdir(os.path.join(DATA_DIR, d)):
+            agents.append(d)
+    return sorted(agents)
 
 
 def read_metric(agent, metric_name):
-    """Read specific metric from ring buffer"""
-    ring_file = f"{DATA_DIR}/ring/{agent}/{metric_name}.tsv"
-    if not os.path.exists(ring_file):
+    """Read specific metric from agent directory"""
+    # Map old metric names to new file names
+    file_map = {
+        "cpu_usage": "generic_cpu.tsv",
+        "mem_usage": "generic_mem.tsv",
+        "disk_root_usage": "generic_disk.tsv"
+    }
+
+    metric_file = f"{DATA_DIR}/{agent}/{file_map.get(metric_name, metric_name)}"
+    if not os.path.exists(metric_file):
         return None, 999
 
     try:
-        with open(ring_file, 'r') as f:
+        with open(metric_file, 'r') as f:
             lines = f.readlines()
             if lines:
-                # Get last line: timestamp \t value
-                parts = lines[-1].strip().split('\t')
+                # Get last line: timestamp value (space separated)
+                parts = lines[-1].strip().split()
                 if len(parts) >= 2:
                     timestamp = int(parts[0])
                     value = float(parts[1])
@@ -61,16 +72,23 @@ def read_metric(agent, metric_name):
 
 def get_metric_history(agent, metric_name, points=60):
     """Get history for sparkline graph"""
-    ring_file = f"{DATA_DIR}/ring/{agent}/{metric_name}.tsv"
-    if not os.path.exists(ring_file):
+    # Map old metric names to new file names
+    file_map = {
+        "cpu_usage": "generic_cpu.tsv",
+        "mem_usage": "generic_mem.tsv",
+        "disk_root_usage": "generic_disk.tsv"
+    }
+
+    metric_file = f"{DATA_DIR}/{agent}/{file_map.get(metric_name, metric_name)}"
+    if not os.path.exists(metric_file):
         return []
 
     try:
-        with open(ring_file, 'r') as f:
+        with open(metric_file, 'r') as f:
             lines = f.readlines()
             values = []
             for line in lines[-points:]:
-                parts = line.strip().split('\t')
+                parts = line.strip().split()  # Space separated now
                 if len(parts) >= 2:
                     values.append(float(parts[1]))
             return values
