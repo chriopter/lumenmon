@@ -16,17 +16,18 @@ for agent_dir in /data/agents/id_*; do
 
         # Skip if user already exists
         if id "$AGENT_ID" &>/dev/null; then
+            echo "[console] Agent user already exists: $AGENT_ID"
             continue
         fi
 
         # Create user for this agent
+        echo "[console] Recreating agent user: $AGENT_ID"
         useradd -d "/data/agents/$AGENT_ID" -s /bin/sh -G agents "$AGENT_ID"
         usermod -p '' "$AGENT_ID"  # Unlock account
 
         # Fix ownership
         chown -R "$AGENT_ID:$AGENT_ID" "$agent_dir"
 
-        echo "[console] Restored agent user: $AGENT_ID"
     fi
 done
 

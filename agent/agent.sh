@@ -26,5 +26,5 @@ trap cleanup SIGTERM SIGINT EXIT
 source lib/keygen.sh  # Sets AGENT_USER and SSH_KEY
 source lib/tunnel.sh  # Establishes connection
 source lib/startup.sh # Starts collectors
-exec lib/heartbeat.sh # Run forever
+exec lib/connection_monitor.sh   # Monitor and reconnect
 
