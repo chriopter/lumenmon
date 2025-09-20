@@ -22,20 +22,20 @@ RUN mkdir -p /var/run/sshd && \
     echo "StrictModes no" >> /etc/ssh/sshd_config
 
 # Setup directory structure
-RUN mkdir -p /var/lib/lumenmon/hot/{latest,ring} && \
-    chmod -R 777 /var/lib/lumenmon
+RUN mkdir -p /data/agents /data/ssh && \
+    chmod -R 755 /data
 
 # Copy ultra-KISS console files
 WORKDIR /app
 COPY console.sh .
-COPY ssh/ ./ssh/
+COPY auth/ ./auth/
 COPY tui/ ./tui/
 
 # Make scripts executable
-RUN chmod +x console.sh ssh/*.sh tui/*.py
+RUN chmod +x console.sh auth/*.sh tui/*.py
 
-# Mount point for tmpfs
-VOLUME /var/lib/lumenmon/hot
+# Mount point for persistent data
+VOLUME /data
 
 EXPOSE 22
 
