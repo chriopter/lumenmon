@@ -1,3 +1,6 @@
 #!/bin/bash
+# Gateway script - receives filename then data
 read -r filename
-[[ "$filename" =~ ^[a-zA-Z0-9_-]+\.tsv$ ]] && cat >> "/data/agents/$USER/$filename"
+if [[ "$filename" =~ ^[a-zA-Z0-9_-]+\.tsv$ ]]; then
+    cat >> "/data/agents/$USER/$filename"
+fi

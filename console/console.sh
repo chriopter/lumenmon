@@ -4,7 +4,7 @@ set -euo pipefail
 
 echo "[console] Starting Lumenmon Console"
 
-source lib/setup.sh        # Setup directories
+source lib/setup.sh        # Setup directories and restore agents
 source lib/ssh_daemon.sh   # Start SSH daemon
 source lib/info.sh         # Show usage info
 

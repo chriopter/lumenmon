@@ -31,13 +31,16 @@ mkdir -p "/data/agents"
 # Create the home directory first (since it's a mounted volume)
 mkdir -p "/data/agents/$FINGERPRINT/.ssh"
 
-# Ensure agents group exists
+# Ensure agents group exists (should already exist from setup)
 if ! getent group agents > /dev/null 2>&1; then
     groupadd agents
 fi
 
 # Create Linux user WITHOUT -m flag (home already exists) and add to agents group
-useradd -d "/data/agents/$FINGERPRINT" -s /bin/false -G agents "$FINGERPRINT"
+useradd -d "/data/agents/$FINGERPRINT" -s /bin/sh -G agents "$FINGERPRINT"
+
+# Unlock the account (set to no password for SSH key-only auth)
+usermod -p '' "$FINGERPRINT"
 
 # Setup SSH access
 echo "$PUBLIC_KEY" > "/data/agents/$FINGERPRINT/.ssh/authorized_keys"
