@@ -37,6 +37,7 @@ if ! getent group agents > /dev/null 2>&1; then
 fi
 
 # Create Linux user WITHOUT -m flag (home already exists) and add to agents group
+echo "[console] Creating new agent user: $FINGERPRINT"
 useradd -d "/data/agents/$FINGERPRINT" -s /bin/sh -G agents "$FINGERPRINT"
 
 # Unlock the account (set to no password for SSH key-only auth)
