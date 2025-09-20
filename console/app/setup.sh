@@ -4,4 +4,4 @@
 set -euo pipefail
 
 echo "[console] Setting up data storage..."
-mkdir -p /data/agents
+mkdir -p /data/metrics
