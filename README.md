@@ -19,6 +19,18 @@ View dashboard:
 docker exec -it lumenmon-console python3 /app/tui/tui.py
 ```
 
+## How It Works
+
+**Architecture:** Agents collect metrics and send them to a central console via SSH. The console stores metrics in RAM (tmpfs) and displays them in a TUI dashboard.
+
+**Data Flow:**
+1. Agent collectors gather metrics at defined intervals (CPU: 0.1s, Memory: 1s, Disk: 60s)
+2. Metrics sent as TSV lines through SSH tunnel: `timestamp\tagent_id\tmetric\ttype\tvalue\tinterval`
+3. Console SSH ForceCommand routes data through gateway script to appropriate storage
+4. TUI reads from `/var/lib/lumenmon/hot/` for real-time display
+
+**Security:** SSH key-only authentication, per-agent Linux users, ForceCommand prevents shell access.
+
 ## Structure
 
 ```
