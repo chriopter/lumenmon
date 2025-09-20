@@ -1,7 +1,7 @@
 """Monitoring service for refreshing data"""
 
 from typing import List, Tuple
-from ..models import Agent, Invite
+from models import Agent, Invite
 
 
 class MonitorService:
