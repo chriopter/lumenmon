@@ -56,9 +56,16 @@ def read_metric(agent, metric_name):
         with open(metric_file, 'r') as f:
             lines = f.readlines()
             if lines:
-                # Get last line: timestamp value (space separated)
+                # Get last line: timestamp interval value (space separated)
                 parts = lines[-1].strip().split()
-                if len(parts) >= 2:
+                if len(parts) >= 3:
+                    timestamp = int(parts[0])
+                    # interval = float(parts[1])  # Available for staleness checks
+                    value = float(parts[2])
+                    age = time.time() - timestamp
+                    return value, age
+                elif len(parts) >= 2:
+                    # Legacy format: timestamp value
                     timestamp = int(parts[0])
                     value = float(parts[1])
                     age = time.time() - timestamp
@@ -87,7 +94,11 @@ def get_metric_history(agent, metric_name, points=60):
             values = []
             for line in lines[-points:]:
                 parts = line.strip().split()  # Space separated now
-                if len(parts) >= 2:
+                if len(parts) >= 3:
+                    # New format: timestamp interval value
+                    values.append(float(parts[2]))
+                elif len(parts) >= 2:
+                    # Legacy format: timestamp value
                     values.append(float(parts[1]))
             return values
     except:

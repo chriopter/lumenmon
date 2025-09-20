@@ -38,7 +38,7 @@ while true; do
     fi
 
     # Send to console - no mkdir needed!
-    echo -e "${PREFIX}.tsv\n$(date +%s) $usage" | \
+    echo -e "${PREFIX}.tsv\n$(date +%s) $PULSE $usage" | \
         ssh -S $SSH_SOCKET $AGENT_USER@$CONSOLE_HOST 2>/dev/null
 
     # Save current as previous for next iteration
