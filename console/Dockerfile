@@ -22,17 +22,17 @@ RUN mkdir -p /var/run/sshd && \
     echo "StrictModes no" >> /etc/ssh/sshd_config
 
 # Setup directory structure
-RUN mkdir -p /data/agents /data/ssh && \
+RUN mkdir -p /data/metrics /data/ssh && \
     chmod -R 755 /data
 
 # Copy ultra-KISS console files
 WORKDIR /app
 COPY console.sh .
-COPY auth/ ./auth/
+COPY app/ ./app/
 COPY tui/ ./tui/
 
 # Make scripts executable
-RUN chmod +x console.sh auth/*.sh tui/*.py
+RUN chmod +x console.sh app/*.sh tui/*.py
 
 # Mount point for persistent data
 VOLUME /data

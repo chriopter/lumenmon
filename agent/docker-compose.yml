@@ -8,10 +8,9 @@ services:
     network_mode: host
     volumes:
       - ./data/ssh:/home/metrics/.ssh
-    env_file:
-      - ./data/.env
     environment:
-      - CONSOLE_PORT=${CONSOLE_PORT:-2345}
+      - CONSOLE_HOST=${CONSOLE_HOST:-console}
+      - CONSOLE_PORT=${CONSOLE_PORT:-22}
       - CONSOLE_USER=collector
       - AGENT_ID=${AGENT_ID:-${HOSTNAME:-agent}}
       # Sampling rates for different collectors
