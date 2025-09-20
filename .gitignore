@@ -68,11 +68,9 @@ yarn-debug.log*
 !/storage/.keep
 /public/uploads
 
-# Lumenmon data directories - ignore contents but keep structure
-console/data/ssh/*
-!console/data/ssh/.gitkeep
-console/data/*.log
-agent/data/ssh/*
-!agent/data/ssh/.gitkeep
-agent/data/.env
+# Lumenmon data directories - ignore ALL data except .gitkeep files
+console/data/**
+!console/data/**/.gitkeep
+agent/data/**
+!agent/data/**/.gitkeep
 docker-compose.override.yml
