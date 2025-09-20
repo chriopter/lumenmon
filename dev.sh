@@ -33,6 +33,20 @@ case "${1:-}" in
         docker logs -f lumenmon-${2:-console}
         ;;
 
+    rebuild)
+        echo "Rebuilding everything..."
+        # Stop containers
+        docker stop lumenmon-console lumenmon-agent 2>/dev/null || true
+        docker rm lumenmon-console lumenmon-agent 2>/dev/null || true
+        # Clean data
+        find agent/data -type f ! -name '.gitkeep' -delete 2>/dev/null || true
+        find console/data -type f ! -name '.gitkeep' -delete 2>/dev/null || true
+        # Start fresh
+        cd console && docker compose up -d --build && cd ..
+        cd agent && CONSOLE_HOST=localhost CONSOLE_PORT=2345 docker compose up -d --build && cd ..
+        echo "Rebuilt! Use './dev.sh tui' to register agents"
+        ;;
+
     *)
         echo "Usage: ./dev.sh [command]"
         echo ""
@@ -40,7 +54,8 @@ case "${1:-}" in
         echo "  clean    - Clean data directories"
         echo "  console  - Start console container"
         echo "  agent    - Start agent container"
-        echo "  tui      - Open TUI"
+        echo "  rebuild  - Stop, clean, and restart everything"
+        echo "  tui      - Open TUI (use to register agents)"
         echo "  stop     - Stop all containers"
         echo "  logs [console|agent] - Show logs"
         ;;
