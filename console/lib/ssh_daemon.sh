@@ -19,5 +19,5 @@ echo "[console] ED25519: $(ssh-keygen -lf /data/ssh/ssh_host_ed25519_key | awk '
 echo "[console] ========================================"
 
 echo "[console] Starting SSH authentication server..."
-exec /usr/sbin/sshd -D -f /app/lib/ssh_config &
+/usr/sbin/sshd -D -f /app/lib/ssh_config &
 sleep 2
