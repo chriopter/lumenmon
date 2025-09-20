@@ -269,19 +269,8 @@ def add_agent_key():
                 agent_id = f"id_{fingerprint}"
                 console.print(f"[cyan]Agent ID: {agent_id}[/cyan]")
 
-            # Check if add_agent.sh exists and is executable
-            script_path = '/app/add_agent.sh'
-            if not os.path.exists(script_path):
-                console.print(f"\n[red]Script not found at {script_path}[/red]")
-                console.print("[yellow]Trying alternative paths...[/yellow]")
-
-                # Try alternative paths
-                alt_paths = ['/app/app/add_agent.sh', './app/add_agent.sh', 'app/add_agent.sh']
-                for alt in alt_paths:
-                    if os.path.exists(alt):
-                        script_path = alt
-                        console.print(f"[green]Found at {script_path}[/green]")
-                        break
+            # Use the correct path for add_agent.sh
+            script_path = '/app/lib/add_agent.sh'
 
             # Call the add_agent.sh script
             console.print(f"\n[yellow]Running: {script_path}[/yellow]")

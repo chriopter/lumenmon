@@ -28,11 +28,11 @@ RUN mkdir -p /data/metrics /data/ssh && \
 # Copy ultra-KISS console files
 WORKDIR /app
 COPY console.sh .
-COPY app/ ./app/
+COPY lib/ ./lib/
 COPY tui/ ./tui/
 
 # Make scripts executable
-RUN chmod +x console.sh app/*.sh tui/*.py
+RUN chmod +x console.sh lib/*.sh tui/*.py
 
 # Mount point for persistent data
 VOLUME /data

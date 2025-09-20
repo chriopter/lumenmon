@@ -10,5 +10,5 @@ if [ ! -f /etc/ssh/ssh_host_rsa_key ]; then
 fi
 
 echo "[console] Starting SSH authentication server..."
-exec /usr/sbin/sshd -D -f /app/app/ssh_config &
+exec /usr/sbin/sshd -D -f /app/lib/ssh_config &
 sleep 2

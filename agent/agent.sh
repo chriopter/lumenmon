@@ -3,7 +3,7 @@
 set -euo pipefail
 
 # Handle show-key
-[ "${1:-}" = "--show-key" ] && exec app/showkey.sh
+[ "${1:-}" = "--show-key" ] && exec lib/showkey.sh
 
 # Set up environment
 export CONSOLE_HOST="${CONSOLE_HOST:-console}"
@@ -23,8 +23,8 @@ cleanup() {
 trap cleanup SIGTERM SIGINT EXIT
 
 # Run components
-source app/keygen.sh  # Sets AGENT_USER and SSH_KEY
-source app/tunnel.sh  # Establishes connection
-source app/startup.sh # Starts collectors
-exec app/heartbeat.sh # Run forever
+source lib/keygen.sh  # Sets AGENT_USER and SSH_KEY
+source lib/tunnel.sh  # Establishes connection
+source lib/startup.sh # Starts collectors
+exec lib/heartbeat.sh # Run forever
 

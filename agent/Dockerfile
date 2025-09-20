@@ -18,11 +18,11 @@ RUN mkdir -p .ssh && chmod 700 .ssh
 
 # Copy ultra-simple agent and collectors
 COPY --chown=metrics:metrics agent.sh /app/
-COPY --chown=metrics:metrics app/ /app/app/
+COPY --chown=metrics:metrics lib/ /app/lib/
 COPY --chown=metrics:metrics collectors /app/collectors/
 
 # Make everything executable
-RUN chmod +x /app/agent.sh /app/app/*.sh /app/collectors/*/*.sh
+RUN chmod +x /app/agent.sh /app/lib/*.sh /app/collectors/*/*.sh
 
 WORKDIR /app
 
