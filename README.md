@@ -40,3 +40,7 @@ Run installer again - it pulls latest and restarts containers.
 
 - Docker
 - Docker Compose
+
+## Performance Note
+
+For high-frequency deployments (>10,000 metrics/sec), consider using tmpfs mount for `/data/agents/` directory to reduce disk I/O.
