@@ -33,6 +33,17 @@ case "${1:-}" in
         docker logs -f lumenmon-${2:-console}
         ;;
 
+    ssh-test)
+        echo "Testing SSH connection..."
+        docker exec lumenmon-console sh -c "ps aux | grep sshd"
+        echo ""
+        echo "SSH config test:"
+        docker exec lumenmon-console /usr/sbin/sshd -T | grep -E "^(port|forcecommand|match)" | head -20
+        echo ""
+        echo "Testing gateway.sh:"
+        docker exec lumenmon-console ls -la /app/gateway.sh 2>&1 || echo "gateway.sh not found"
+        ;;
+
     rebuild)
         echo "Rebuilding everything..."
         # Stop containers

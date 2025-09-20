@@ -23,21 +23,19 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from boot_animation import show_boot_animation
 
 # Configuration
-DATA_DIR = "/data/agents"  # Persistent storage with per-agent directories
+DATA_DIR = "/data/metrics"  # Persistent storage with per-agent directories
 REFRESH_HZ = 2
 
 console = Console()
 
 
 def get_agents():
-    """Find all agents from /data/agents directory"""
-    if not os.path.exists(DATA_DIR):
-        return []
-    # List all directories in /data/agents - each is an agent
+    """Find all registered agents from /home/id_* directories"""
     agents = []
-    for d in os.listdir(DATA_DIR):
-        if os.path.isdir(os.path.join(DATA_DIR, d)):
-            agents.append(d)
+    # Get all registered agents (have Linux user)
+    for home_dir in glob.glob("/home/id_*"):
+        agent_name = os.path.basename(home_dir)
+        agents.append(agent_name)
     return sorted(agents)
 
 
@@ -140,9 +138,9 @@ def create_display():
 
     if not agents:
         table.add_row(
-            "Waiting...",
+            "No agents",
             Text("⏳", style="yellow"),
-            Text("No agents connected", style="dim"),
+            Text("No agents registered", style="dim"),
             "",
             ""
         )
@@ -160,32 +158,40 @@ def create_display():
             status = Text("●", style="green")
         elif min_age < 30:
             status = Text("●", style="yellow")
-        else:
+        elif min_age < 999:
             status = Text("●", style="red")
+        else:
+            status = Text("○", style="dim")  # Offline - no data at all
 
         # Get histories for sparklines
         cpu_history = get_metric_history(agent, "cpu_usage")
         mem_history = get_metric_history(agent, "mem_usage")
 
         # Format CPU column
-        if cpu_val is not None:
+        if cpu_val is not None and cpu_age < 999:
             cpu_text = f"{cpu_val:5.1f}% "
             cpu_spark = create_sparkline(cpu_history, 15)
             cpu_col = Text.assemble(cpu_text, cpu_spark)
+        elif cpu_age >= 999:
+            cpu_col = Text("offline", style="dim")
         else:
             cpu_col = Text("?", style="dim")
 
         # Format Memory column
-        if mem_val is not None:
+        if mem_val is not None and mem_age < 999:
             mem_text = f"{mem_val:5.1f}% "
             mem_spark = create_sparkline(mem_history, 15)
             mem_col = Text.assemble(mem_text, mem_spark)
+        elif mem_age >= 999:
+            mem_col = Text("offline", style="dim")
         else:
             mem_col = Text("?", style="dim")
 
         # Format Disk column (no sparkline, updates slowly)
-        if disk_val is not None:
+        if disk_val is not None and disk_age < 999:
             disk_col = Text(f"{disk_val:5.1f}%", style="cyan")
+        elif disk_age >= 999:
+            disk_col = Text("offline", style="dim")
         else:
             disk_col = Text("?", style="dim")
 
@@ -232,24 +238,104 @@ def get_install_command():
         return f"Error generating command: {e}"
 
 def add_agent_key():
-    """Add agent public key to authorized_keys"""
+    """Add agent using add_agent.sh script"""
     console.clear()
     console.print("\n[bold cyan]Add Agent Key[/bold cyan]\n")
-    console.print("Paste the agent's public key (from agent's show-key.sh):")
+    console.print("Paste the agent's public key (from agent logs):")
 
     try:
-        key = input("\nKey: ")
+        key = input("\nKey: ").strip()
 
         if key and (key.startswith('ssh-rsa') or key.startswith('ssh-ed25519')):
-            # Append to authorized_keys with forced command
-            with open('/home/collector/.ssh/authorized_keys', 'a') as f:
-                f.write(f'command="/app/ssh/receiver.sh" {key}\n')
-            console.print("\n[green]✓ Agent key added successfully![/green]")
-            console.print("Agent can now connect to this console.")
+            console.print("\n[yellow]Processing...[/yellow]")
+
+            # Generate fingerprint for display
+            import tempfile
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.pub', delete=False) as f:
+                f.write(key)
+                temp_key = f.name
+
+            # Get fingerprint
+            fp_result = subprocess.run(
+                ['ssh-keygen', '-lf', temp_key],
+                capture_output=True,
+                text=True
+            )
+            os.unlink(temp_key)
+
+            if fp_result.returncode == 0:
+                fingerprint = fp_result.stdout.split()[1].split(':')[1][:14]
+                fingerprint = fingerprint.replace('/', '_').replace('+', '-')
+                agent_id = f"id_{fingerprint}"
+                console.print(f"[cyan]Agent ID: {agent_id}[/cyan]")
+
+            # Check if add_agent.sh exists and is executable
+            script_path = '/app/add_agent.sh'
+            if not os.path.exists(script_path):
+                console.print(f"\n[red]Script not found at {script_path}[/red]")
+                console.print("[yellow]Trying alternative paths...[/yellow]")
+
+                # Try alternative paths
+                alt_paths = ['/app/app/add_agent.sh', './app/add_agent.sh', 'app/add_agent.sh']
+                for alt in alt_paths:
+                    if os.path.exists(alt):
+                        script_path = alt
+                        console.print(f"[green]Found at {script_path}[/green]")
+                        break
+
+            # Call the add_agent.sh script
+            console.print(f"\n[yellow]Running: {script_path}[/yellow]")
+            result = subprocess.run(
+                [script_path, key],
+                capture_output=True,
+                text=True
+            )
+
+            if result.returncode == 0:
+                console.print("\n[green]✓ Agent added successfully![/green]")
+
+                # Show detailed results
+                console.print("\n[bold]Actions performed:[/bold]")
+                console.print(f"  • Created Linux user: [cyan]{agent_id}[/cyan]")
+                console.print(f"  • Created data folder: [cyan]/data/metrics/{agent_id}[/cyan]")
+                console.print(f"  • Added SSH key to: [cyan]/home/{agent_id}/.ssh/authorized_keys[/cyan]")
+                console.print(f"  • Set permissions: [cyan]700[/cyan] for directories, [cyan]600[/cyan] for key")
+
+                # Show script output
+                if result.stdout:
+                    console.print(f"\n[dim]Script output:[/dim]")
+                    console.print(f"[dim]{result.stdout}[/dim]")
+
+                # Verify creation
+                console.print("\n[bold]Verification:[/bold]")
+
+                # Check user exists
+                user_check = subprocess.run(['id', agent_id], capture_output=True)
+                if user_check.returncode == 0:
+                    console.print(f"  ✓ User exists: [green]{agent_id}[/green]")
+                else:
+                    console.print(f"  ✗ User NOT found: [red]{agent_id}[/red]")
+
+                # Check directories
+                if os.path.exists(f"/home/{agent_id}"):
+                    console.print(f"  ✓ Home directory exists: [green]/home/{agent_id}[/green]")
+                else:
+                    console.print(f"  ✗ Home directory NOT found: [red]/home/{agent_id}[/red]")
+
+                if os.path.exists(f"/data/metrics/{agent_id}"):
+                    console.print(f"  ✓ Data directory exists: [green]/data/metrics/{agent_id}[/green]")
+                else:
+                    console.print(f"  ✗ Data directory NOT found: [red]/data/metrics/{agent_id}[/red]")
+
+                console.print("\n[green]Agent can now connect to this console.[/green]")
+            else:
+                console.print(f"\n[red]Error: {result.stderr or result.stdout}[/red]")
         else:
             console.print("\n[red]Invalid key format. Expected ssh-rsa or ssh-ed25519...[/red]")
     except Exception as e:
         console.print(f"\n[red]Error: {e}[/red]")
+        import traceback
+        console.print(f"[dim]{traceback.format_exc()}[/dim]")
 
     console.print("\nPress Enter to continue...")
     input()
