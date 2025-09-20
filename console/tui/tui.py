@@ -23,17 +23,17 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from boot_animation import show_boot_animation
 
 # Configuration
-DATA_DIR = "/hot"  # New direct tmpfs mount
+DATA_DIR = "/data/agents"  # Persistent storage with per-agent directories
 REFRESH_HZ = 2
 
 console = Console()
 
 
 def get_agents():
-    """Find all agents from /hot directory"""
+    """Find all agents from /data/agents directory"""
     if not os.path.exists(DATA_DIR):
         return []
-    # List all directories in /hot - each is an agent
+    # List all directories in /data/agents - each is an agent
     agents = []
     for d in os.listdir(DATA_DIR):
         if os.path.isdir(os.path.join(DATA_DIR, d)):
