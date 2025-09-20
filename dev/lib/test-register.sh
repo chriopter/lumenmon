@@ -40,7 +40,7 @@ fi
 
 # Execute registration in the agent container
 echo -e "${CYAN}[TEST-REGISTER]${NC} Calling agent registration script..."
-if docker exec lumenmon-agent /app/lib/register.sh "$INVITE_URL"; then
+if docker exec lumenmon-agent /app/core/setup/register.sh "$INVITE_URL"; then
     echo -e "${GREEN}✓ Registration completed!${NC}"
     echo ""
     echo "Next steps:"

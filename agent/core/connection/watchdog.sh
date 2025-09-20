@@ -23,10 +23,10 @@ while true; do
             [ -S "$SSH_SOCKET" ] && rm -f "$SSH_SOCKET"
 
             # Re-establish tunnel
-            source /app/lib/tunnel.sh
+            source /app/core/connection/tunnel.sh
 
             # Restart collectors
-            source /app/lib/startup.sh
+            source /app/core/connection/collectors.sh
 
             echo "[agent] ✓ Reconnected and collectors restarted"
         fi
@@ -37,10 +37,10 @@ while true; do
         jobs -p | xargs -r kill 2>/dev/null || true
 
         # Re-establish tunnel
-        source /app/lib/tunnel.sh
+        source /app/core/connection/tunnel.sh
 
         # Restart collectors
-        source /app/lib/startup.sh
+        source /app/core/connection/collectors.sh
 
         echo "[agent] ✓ Reconnected and collectors restarted"
     fi
