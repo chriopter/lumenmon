@@ -37,14 +37,22 @@ while true; do
     retry_count=$((retry_count + 1))
     echo "[agent] Connection attempt $retry_count to $AGENT_USER@$CONSOLE_HOST:$CONSOLE_PORT..."
 
-    # Try to open SSH tunnel (capture stderr for debugging)
+    # Require saved host key (registration is the only way to get it)
+    if [ ! -f "/home/metrics/.ssh/known_hosts" ]; then
+        echo "[agent] ERROR: No host key found. Agent must be registered first."
+        echo "[agent] Use registration invite to establish trust with console."
+        sleep 30
+        continue
+    fi
+
+    # Try to open SSH tunnel with strict host key checking
     if ssh -M -N -f \
         -S "$SSH_SOCKET" \
         -i "$SSH_KEY" \
         -o ControlPersist=yes \
         -o ServerAliveInterval=30 \
-        -o StrictHostKeyChecking=no \
-        -o UserKnownHostsFile=/dev/null \
+        -o StrictHostKeyChecking=yes \
+        -o UserKnownHostsFile=/home/metrics/.ssh/known_hosts \
         -o PreferredAuthentications=publickey \
         -o PasswordAuthentication=no \
         -o ConnectTimeout=5 \

@@ -20,6 +20,17 @@ MaxStartups 30:50:100
 ClientAliveInterval 30
 ClientAliveCountMax 3
 
+# Registration users - temporary, password auth
+Match Group registration
+    PasswordAuthentication yes
+    ForceCommand /app/lib/register_agent.sh
+    MaxAuthTries 3
+    MaxSessions 1
+    AllowTcpForwarding no
+    X11Forwarding no
+    PermitTunnel no
+    AllowAgentForwarding no
+
 # Agent users - append only
 Match Group agents
     ForceCommand /app/lib/gateway.sh
