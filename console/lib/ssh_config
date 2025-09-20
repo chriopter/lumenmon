@@ -4,8 +4,8 @@
 # Global settings
 Port 22
 Protocol 2
-HostKey /etc/ssh/ssh_host_rsa_key
-HostKey /etc/ssh/ssh_host_ed25519_key
+HostKey /data/ssh/ssh_host_rsa_key
+HostKey /data/ssh/ssh_host_ed25519_key
 
 # Security settings
 PasswordAuthentication no
@@ -23,6 +23,7 @@ ClientAliveCountMax 3
 # Agent users - append only
 Match User id_*
     ForceCommand /app/lib/gateway.sh
+    AuthorizedKeysFile /data/agents/%u/.ssh/authorized_keys
     AllowTcpForwarding no
     X11Forwarding no
     PermitTunnel no
