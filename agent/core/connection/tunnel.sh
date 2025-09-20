@@ -41,7 +41,7 @@ while true; do
     if [ ! -f "/home/metrics/.ssh/known_hosts" ]; then
         echo "[agent] ERROR: No host key found. Agent must be registered first."
         echo "[agent] Use registration invite to establish trust with console."
-        sleep 30
+        sleep 1  # Fast retry when waiting for registration
         continue
     fi
 
@@ -81,7 +81,14 @@ while true; do
     # Clean up failed socket
     [ -S "$SSH_SOCKET" ] && rm -f "$SSH_SOCKET"
 
-    echo "[agent] Not registered yet. Retrying in 10 seconds..."
-    echo "[agent] (Ensure agent is added in console TUI with the public key above)"
-    sleep 10
+    # Adaptive retry delay
+    if [ ! -f "/home/metrics/.ssh/known_hosts" ]; then
+        echo "[agent] Waiting for registration. Retrying in 1 second..."
+        echo "[agent] (Enter invite in console TUI or add public key manually)"
+        sleep 1  # Fast retry when waiting for initial registration
+    else
+        echo "[agent] Connection failed. Retrying in 10 seconds..."
+        echo "[agent] (Check network and console status)"
+        sleep 10  # Normal retry for connection issues
+    fi
 done
