@@ -1,11 +1,7 @@
 """Monitoring service for refreshing data"""
 
 from typing import List, Tuple
-import sys
-import os
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from models import Agent, Invite
+from ..models import Agent, Invite
 
 
 class MonitorService:
