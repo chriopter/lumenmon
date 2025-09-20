@@ -29,9 +29,9 @@ fi
 useradd -m -s /bin/false "$FINGERPRINT"
 
 # Create data folder (same name!)
-mkdir -p "/data/agents/$FINGERPRINT"
-chown "$FINGERPRINT:$FINGERPRINT" "/data/agents/$FINGERPRINT"
-chmod 700 "/data/agents/$FINGERPRINT"
+mkdir -p "/data/metrics/$FINGERPRINT"
+chown "$FINGERPRINT:$FINGERPRINT" "/data/metrics/$FINGERPRINT"
+chmod 700 "/data/metrics/$FINGERPRINT"
 
 # Setup SSH access
 mkdir -p "/home/$FINGERPRINT/.ssh"
@@ -41,7 +41,7 @@ chmod 700 "/home/$FINGERPRINT/.ssh"
 chmod 600 "/home/$FINGERPRINT/.ssh/authorized_keys"
 
 # Log
-echo "[$(date)] Added agent: $FINGERPRINT" >> /data/agents.log
+echo "[$(date)] Added agent: $FINGERPRINT" >> /data/metrics.log
 
 echo "Agent ready: $FINGERPRINT"
 echo "Configure agent with: AGENT_USER=$FINGERPRINT"
