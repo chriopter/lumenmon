@@ -22,7 +22,7 @@ ClientAliveCountMax 3
 
 # Agent users - append only
 Match User id_*
-    ForceCommand /app/gateway.sh
+    ForceCommand /app/lib/gateway.sh
     AllowTcpForwarding no
     X11Forwarding no
     PermitTunnel no
