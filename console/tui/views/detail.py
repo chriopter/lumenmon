@@ -5,7 +5,7 @@ from textual.widgets import Button, Static, Label, ListView, ListItem
 from textual.containers import Container, Horizontal, Vertical
 import plotext as plt
 
-from ..models import Agent, MetricsReader
+from models import Agent, MetricsReader
 
 
 class DetailView(Container):
