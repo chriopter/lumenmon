@@ -1,6 +1,7 @@
 #!/bin/bash
 # Start console container
 
-PROJECT_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 echo "Starting console..."
-cd "$PROJECT_ROOT/console" && docker compose up -d --build
+docker compose -f "$PROJECT_ROOT/console/docker-compose.yml" up -d --build

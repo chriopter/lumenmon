@@ -1,6 +1,7 @@
 #!/bin/bash
 # Start agent container
 
-PROJECT_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 echo "Starting agent..."
-cd "$PROJECT_ROOT/agent" && CONSOLE_HOST=localhost CONSOLE_PORT=2345 docker compose up -d --build
+CONSOLE_HOST=localhost CONSOLE_PORT=2345 docker compose -f "$PROJECT_ROOT/agent/docker-compose.yml" up -d --build
