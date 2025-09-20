@@ -1,4 +1,3 @@
 #!/bin/bash
-# Open TUI
-
+# Open Lumenmon TUI dashboard
 docker exec -it lumenmon-console python3 /app/tui/tui.py
