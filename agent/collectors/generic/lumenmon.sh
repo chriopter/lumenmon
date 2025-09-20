@@ -18,21 +18,20 @@ while true; do
     # Get uptime in seconds
     uptime=$(cut -d. -f1 /proc/uptime)
 
-    # Direct append system metrics to console tmpfs
-    # Each metric gets its own file for simplicity
+    # Send system metrics to console
     timestamp=$(date +%s)
 
     # OS info
-    echo "$timestamp $os" | $LUMENMON_BASE \
-        "mkdir -p /hot/$AGENT_ID && cat >> /hot/$AGENT_ID/${PREFIX}_os.tsv" 2>/dev/null
+    echo -e "${PREFIX}_os.tsv\n$timestamp $os" | \
+        ssh -S $SSH_SOCKET $AGENT_USER@$CONSOLE_HOST 2>/dev/null
 
     # Kernel info
-    echo "$timestamp $kernel" | $LUMENMON_BASE \
-        "cat >> /hot/$AGENT_ID/${PREFIX}_kernel.tsv" 2>/dev/null
+    echo -e "${PREFIX}_kernel.tsv\n$timestamp $kernel" | \
+        ssh -S $SSH_SOCKET $AGENT_USER@$CONSOLE_HOST 2>/dev/null
 
     # Uptime info
-    echo "$timestamp $uptime" | $LUMENMON_BASE \
-        "cat >> /hot/$AGENT_ID/${PREFIX}_uptime.tsv" 2>/dev/null
+    echo -e "${PREFIX}_uptime.tsv\n$timestamp $uptime" | \
+        ssh -S $SSH_SOCKET $AGENT_USER@$CONSOLE_HOST 2>/dev/null
 
     sleep $REPORT
 done

@@ -16,9 +16,9 @@ while true; do
     # Remove the % sign from percentage
     usage=${percentage%\%}
 
-    # Direct append to console tmpfs
-    echo "$(date +%s) $usage" | $LUMENMON_BASE \
-        "mkdir -p /hot/$AGENT_ID && cat >> /hot/$AGENT_ID/${PREFIX}.tsv" 2>/dev/null
+    # Send to console - no mkdir needed!
+    echo -e "${PREFIX}.tsv\n$(date +%s) $usage" | \
+        ssh -S $SSH_SOCKET $AGENT_USER@$CONSOLE_HOST 2>/dev/null
 
     sleep $CYCLE
 done

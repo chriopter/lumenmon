@@ -37,9 +37,9 @@ while true; do
         usage="0.0"
     fi
 
-    # Direct append to console tmpfs
-    echo "$(date +%s) $usage" | $LUMENMON_BASE \
-        "mkdir -p /hot/$AGENT_ID && cat >> /hot/$AGENT_ID/${PREFIX}.tsv" 2>/dev/null
+    # Send to console - no mkdir needed!
+    echo -e "${PREFIX}.tsv\n$(date +%s) $usage" | \
+        ssh -S $SSH_SOCKET $AGENT_USER@$CONSOLE_HOST 2>/dev/null
 
     # Save current as previous for next iteration
     prev_cpu=("${curr_cpu[@]}")
