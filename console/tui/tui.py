@@ -122,6 +122,53 @@ def create_sparkline(values, width=20):
     return Text(sparkline, style=style)
 
 
+def get_active_invites():
+    """Get list of active registration invites"""
+    import subprocess
+    import time
+    invites = []
+
+    # Read registration users directly
+    try:
+        # Get all users
+        result = subprocess.run(['getent', 'passwd'], capture_output=True, text=True)
+        current_ms = int(time.time() * 1000)
+
+        # Get ED25519 host key only
+        with open('/data/ssh/ssh_host_ed25519_key.pub') as f:
+            parts = f.read().strip().split()[:2]
+            hostkey = f"{parts[0]}_{parts[1]}"
+
+        for line in result.stdout.splitlines():
+            if line.startswith('reg_'):
+                user = line.split(':')[0]
+                timestamp = int(user[4:])  # Remove 'reg_' prefix
+
+                # Check if expired (5 minutes = 300000ms)
+                age_ms = current_ms - timestamp
+                if age_ms < 300000:
+                    # Read password if available
+                    password = "unknown"
+                    password_file = f"/tmp/.invite_{user}"
+                    if os.path.exists(password_file):
+                        with open(password_file) as f:
+                            password = f.read().strip()
+
+                    expires_sec = (300000 - age_ms) // 1000
+                    url = f"ssh://{user}:{password}@localhost:2345/#{hostkey}"
+
+                    invites.append({
+                        'user': user,
+                        'password': password,
+                        'url': url,
+                        'expires': expires_sec
+                    })
+    except:
+        pass
+
+    return sorted(invites, key=lambda x: x['user'], reverse=True)
+
+
 def create_display():
     """Create the main display table"""
     # Title with timestamp
@@ -204,10 +251,31 @@ def create_display():
         read_metric(a, "disk_root_usage")[1]
     ) < 5)
 
-    footer = f"Agents: {online}/{len(agents)} online | Refresh: {REFRESH_HZ}Hz | Ctrl+C to exit"
+    footer = f"Agents: {online}/{len(agents)} online | Press 'i' for invite | Ctrl+C for menu"
+
+    # Create a group to combine table and invites
+    from rich.console import Group
+    from rich.rule import Rule
+
+    display_items = [table]
+
+    # Add active invites section
+    invites = get_active_invites()
+    if invites:
+        display_items.append(Rule("Active Invites", style="cyan"))
+        for invite in invites:
+            mins = invite['expires'] // 60
+            secs = invite['expires'] % 60
+            invite_text = Text()
+            invite_text.append(f"{invite['user']} ", style="bold yellow")
+            invite_text.append(f"expires in {mins}:{secs:02d}\n", style="dim")
+            invite_text.append(f"└─ {invite['url']}", style="cyan")
+            display_items.append(invite_text)
+
+    display_group = Group(*display_items)
 
     return Panel(
-        table,
+        display_group,
         border_style="green" if online > 0 else "yellow",
         subtitle=footer,
         subtitle_align="center"
@@ -340,31 +408,93 @@ def main():
     console.clear()
 
     # Instructions
-    console.print("[dim]Press Ctrl+C for menu[/dim]\n")
+    console.print("[dim]Press 'i' to generate invite | Ctrl+C for menu[/dim]\n")
 
     # Simple main loop without complex terminal handling
+    import select
+    import termios
+    import tty
+
+    # Set up non-blocking input
+    old_settings = termios.tcgetattr(sys.stdin)
+
     try:
+        tty.setcbreak(sys.stdin.fileno())
         with Live(create_display(), refresh_per_second=REFRESH_HZ, console=console) as live:
             while True:
-                time.sleep(1 / REFRESH_HZ)
+                # Check for keyboard input
+                if select.select([sys.stdin], [], [], 0.1)[0]:
+                    char = sys.stdin.read(1)
+                    if char == 'i' or char == 'I':
+                        # Generate invite
+                        termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
+                        generate_invite()
+                        tty.setcbreak(sys.stdin.fileno())
+                    elif char == '\x03':  # Ctrl+C
+                        raise KeyboardInterrupt
+
                 live.update(create_display())
     except KeyboardInterrupt:
         # When user hits Ctrl+C, show menu
+        termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
         show_menu()
+    finally:
+        termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
+
+def generate_invite():
+    """Generate a new registration invite"""
+    import subprocess
+    console.print("\n[yellow]Generating registration invite...[/yellow]")
+
+    try:
+        result = subprocess.run(
+            ['/app/lib/create_invite.sh'],
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+
+        if result.returncode == 0 and result.stdout:
+            invite_url = result.stdout.strip()
+
+            # Copy to clipboard using OSC 52 escape sequence
+            import base64
+            encoded = base64.b64encode(invite_url.encode()).decode()
+            console.print(f"\033]52;c;{encoded}\007", end="")
+
+            console.print(f"\n[green]✓ Registration invite created and copied to clipboard![/green]")
+            console.print(f"\n[bold cyan]Invite URL:[/bold cyan]")
+            console.print(f"[yellow]{invite_url}[/yellow]")
+            console.print(f"\n[dim]This invite expires in 5 minutes[/dim]")
+            console.print(f"\n[bold]Test with:[/bold] _dev/dev.sh test-register \"<paste from clipboard>\"")
+        else:
+            console.print(f"\n[red]Failed to create invite: {result.stderr}[/red]")
+    except Exception as e:
+        console.print(f"\n[red]Error: {e}[/red]")
+
+    console.print("\nPress Enter to continue...")
+    input()
+    console.clear()
+    console.print("[dim]Press 'i' to generate invite | Ctrl+C for menu[/dim]\n")
 
 def show_menu():
     """Show main menu when Ctrl+C is pressed"""
     console.clear()
     console.print("\n[bold cyan]Lumenmon Console Menu[/bold cyan]\n")
-    console.print("[1] Show secure install command")
-    console.print("[2] Add agent key")
-    console.print("[3] Return to dashboard")
-    console.print("[4] Exit\n")
+    console.print("[1] Generate registration invite")
+    console.print("[2] Show secure install command")
+    console.print("[3] Add agent key (manual)")
+    console.print("[4] Clean expired invites")
+    console.print("[5] Return to dashboard")
+    console.print("[6] Exit\n")
 
     try:
-        choice = input("Enter choice (1-4): ")
+        choice = input("Enter choice (1-6): ")
 
         if choice == '1':
+            generate_invite()
+            main()  # Return to dashboard
+        elif choice == '2':
             console.clear()
             console.print("\n[bold cyan]Secure Install Command[/bold cyan]\n")
             console.print("Run this on the agent machine:\n")
@@ -372,12 +502,22 @@ def show_menu():
             console.print("\nPress Enter to continue...")
             input()
             main()  # Return to dashboard
-        elif choice == '2':
+        elif choice == '3':
             add_agent_key()
             main()  # Return to dashboard
-        elif choice == '3':
-            main()  # Return to dashboard
         elif choice == '4':
+            # Clean expired invites
+            import subprocess
+            console.print("\n[yellow]Cleaning expired invites...[/yellow]")
+            result = subprocess.run(['/app/lib/cleanup_invites.sh'], capture_output=True, text=True)
+            if result.returncode == 0:
+                console.print("[green]✓ Cleanup complete[/green]")
+            console.print("\nPress Enter to continue...")
+            input()
+            main()
+        elif choice == '5':
+            main()  # Return to dashboard
+        elif choice == '6':
             console.print("\n[yellow]Goodbye![/yellow]\n")
             sys.exit(0)
         else:

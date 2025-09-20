@@ -9,6 +9,10 @@ RUN apt-get update && apt-get install -y \
 # Install Python packages for TUI
 RUN pip install --no-cache-dir rich
 
+# Create groups for agent and registration users
+RUN groupadd agents && \
+    groupadd registration
+
 # Create collector user for SSH
 RUN useradd -m -s /bin/bash collector && \
     mkdir -p /home/collector/.ssh && \

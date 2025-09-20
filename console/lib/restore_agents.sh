@@ -4,10 +4,7 @@ set -euo pipefail
 
 echo "[console] Restoring agent users from /data/agents/..."
 
-# Create agents group if it doesn't exist
-if ! getent group agents > /dev/null 2>&1; then
-    groupadd agents
-fi
+# Groups already exist from Docker build
 
 # Recreate users for existing agent directories
 for agent_dir in /data/agents/id_*; do
