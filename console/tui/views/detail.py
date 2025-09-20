@@ -3,12 +3,9 @@
 from textual import on
 from textual.widgets import Button, Static, Label, ListView, ListItem
 from textual.containers import Container, Horizontal, Vertical
-import sys
-import os
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from models import Agent, MetricsReader
 import plotext as plt
+
+from ..models import Agent, MetricsReader
 
 
 class DetailView(Container):
@@ -64,7 +61,7 @@ class DetailView(Container):
 
     def update_graphs(self):
         """Update all graph displays with larger dimensions"""
-        from config import GRAPH_POINTS, GRAPH_WIDTH, GRAPH_HEIGHT
+        from ..config import GRAPH_POINTS, GRAPH_WIDTH, GRAPH_HEIGHT
 
         # CPU Graph - Large
         cpu_history = self.metrics.get_history(self.agent_id, "generic_cpu.tsv", GRAPH_POINTS)
