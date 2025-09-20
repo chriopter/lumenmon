@@ -1,24 +1,22 @@
 #!/bin/bash
 # Lumenmon Console - Ultra KISS Edition
-# Receives metrics via SSH, stores in tmpfs, displays in TUI
+# Receives metrics via SSH, stores persistently, displays in TUI
 
 set -euo pipefail
 
 # Configuration
-DATA_DIR="/var/lib/lumenmon/hot"
+DATA_DIR="/data/agents"
 
 # Startup
 echo "[console] Starting Lumenmon Console"
 
-# Setup tmpfs storage
-echo "[console] Setting up tmpfs storage..."
-mkdir -p "$DATA_DIR/latest"
-mkdir -p "$DATA_DIR/ring"
-chmod -R 777 "$DATA_DIR"
+# Setup data directories
+echo "[console] Setting up data storage..."
+mkdir -p "$DATA_DIR"
 
-# Start SSH server
-echo "[console] Starting SSH server..."
-ssh/sshd.sh
+# Start SSH server with authentication
+echo "[console] Starting SSH authentication server..."
+auth/sshd.sh
 
 # Wait for SSH to be ready
 sleep 2

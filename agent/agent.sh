@@ -28,9 +28,6 @@ fi
 # Connection
 CONSOLE_HOST="${CONSOLE_HOST:-console}"
 CONSOLE_PORT="${CONSOLE_PORT:-22}"
-CONSOLE_USER="${CONSOLE_USER:-collector}"
-# Generate unique agent ID: hostname + network hash for uniqueness
-AGENT_ID="${HOSTNAME:-$(hostname -s)}-$(hostname -I 2>/dev/null | md5sum | cut -c1-6 || echo 'local')"
 SSH_SOCKET="/tmp/lumenmon.sock"
 
 # Natural Rhythms
@@ -39,15 +36,8 @@ BREATHE="1"      # 1Hz    - Memory tracking
 CYCLE="60"       # 1/min  - Disk usage
 REPORT="3600"    # 1/hr   - System info
 
-# Setup base SSH command for collectors (no receiver.sh, just direct SSH)
-LUMENMON_BASE="ssh -S $SSH_SOCKET $CONSOLE_USER@$CONSOLE_HOST"
-
-# Export for collectors
-export CONSOLE_HOST CONSOLE_PORT CONSOLE_USER AGENT_ID SSH_SOCKET
-export PULSE BREATHE CYCLE REPORT LUMENMON_BASE
-
 # Startup
-echo "[agent] Starting Lumenmon Agent: $AGENT_ID"
+echo "[agent] Starting Lumenmon Agent"
 
 # Clean up any existing socket
 [ -S "$SSH_SOCKET" ] && rm -f "$SSH_SOCKET"
@@ -56,12 +46,12 @@ echo "[agent] Starting Lumenmon Agent: $AGENT_ID"
 cleanup() {
     echo "[agent] Shutting down..."
     jobs -p | xargs -r kill 2>/dev/null || true
-    [ -S "$SSH_SOCKET" ] && ssh -S "$SSH_SOCKET" -O exit "$CONSOLE_USER@$CONSOLE_HOST" 2>/dev/null || true
+    [ -S "$SSH_SOCKET" ] && ssh -S "$SSH_SOCKET" -O exit "$AGENT_USER@$CONSOLE_HOST" 2>/dev/null || true
     exit 0
 }
 trap cleanup SIGTERM SIGINT EXIT
 
-# Check for SSH key (using ED25519 for shorter keys) - generate before connecting
+# Check for SSH key - generate if needed
 SSH_KEY="/home/metrics/.ssh/id_ed25519"
 # Also check for legacy RSA key
 if [ -f "/home/metrics/.ssh/id_rsa" ] && [ ! -f "$SSH_KEY" ]; then
@@ -69,16 +59,33 @@ if [ -f "/home/metrics/.ssh/id_rsa" ] && [ ! -f "$SSH_KEY" ]; then
 fi
 
 if [ ! -f "$SSH_KEY" ]; then
-    echo "[agent] Generating SSH keypair (ED25519 for shorter keys)..."
+    echo "[agent] Generating SSH keypair..."
     SSH_KEY="/home/metrics/.ssh/id_ed25519"
     ssh-keygen -t ed25519 -f "$SSH_KEY" -N ""
+
+    # Calculate and save fingerprint with id_ prefix
+    FINGERPRINT="id_$(ssh-keygen -lf "${SSH_KEY}.pub" | awk '{print $2}' | cut -d: -f2 | tr '/+' '_-' | cut -c1-14)"
+    echo "$FINGERPRINT" > "${SSH_KEY}.username"
+
     echo "[agent] ======================================"
-    echo "[agent] Agent public key (add to console):"
+    echo "[agent] Agent identity: $FINGERPRINT"
+    echo "[agent] Public key (add to console):"
     echo "[agent] ======================================"
     cat "${SSH_KEY}.pub"
     echo "[agent] ======================================"
-    echo "[agent] Key saved to: ${SSH_KEY}.pub"
+    echo "[agent] Configure agent with: AGENT_USER=$FINGERPRINT"
     echo "[agent] ======================================"
+fi
+
+# Read saved username
+if [ -f "${SSH_KEY}.username" ]; then
+    AGENT_USER=$(cat "${SSH_KEY}.username")
+else
+    # For existing keys, calculate fingerprint
+    FINGERPRINT="id_$(ssh-keygen -lf "${SSH_KEY}.pub" | awk '{print $2}' | cut -d: -f2 | tr '/+' '_-' | cut -c1-14)"
+    echo "$FINGERPRINT" > "${SSH_KEY}.username"
+    AGENT_USER="$FINGERPRINT"
+    echo "[agent] Calculated identity: $AGENT_USER"
 fi
 
 # Wait for console
@@ -87,8 +94,8 @@ while ! nc -z "$CONSOLE_HOST" "$CONSOLE_PORT" 2>/dev/null; do
     sleep 2
 done
 
-# Open SSH tunnel (single multiplexed connection) - Key-based auth
-echo "[agent] Opening SSH tunnel..."
+# Open SSH tunnel directly (no registration)
+echo "[agent] Opening SSH tunnel as $AGENT_USER..."
 ssh -M -N -f \
     -S "$SSH_SOCKET" \
     -i "$SSH_KEY" \
@@ -99,15 +106,20 @@ ssh -M -N -f \
     -o PreferredAuthentications=publickey \
     -o PasswordAuthentication=no \
     -p "$CONSOLE_PORT" \
-    "$CONSOLE_USER@$CONSOLE_HOST"
+    "$AGENT_USER@$CONSOLE_HOST"
 
 # Verify connection
-if ! ssh -S "$SSH_SOCKET" -O check "$CONSOLE_USER@$CONSOLE_HOST" 2>/dev/null; then
+if ! ssh -S "$SSH_SOCKET" -O check "$AGENT_USER@$CONSOLE_HOST" 2>/dev/null; then
     echo "[agent] ERROR: SSH connection failed"
+    echo "[agent] Make sure agent is added to console with: ./add_agent.sh"
     exit 1
 fi
 
 echo "[agent] SSH tunnel established"
+
+# Export for collectors
+export CONSOLE_HOST CONSOLE_PORT AGENT_USER SSH_SOCKET
+export PULSE BREATHE CYCLE REPORT
 
 # Start collectors
 echo "[agent] Starting collectors:"

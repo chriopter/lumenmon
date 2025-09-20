@@ -1,0 +1,29 @@
+# Lumenmon SSH Configuration
+# Secure per-agent isolation
+
+# Global settings
+Port 22
+Protocol 2
+HostKey /etc/ssh/ssh_host_rsa_key
+HostKey /etc/ssh/ssh_host_ed25519_key
+
+# Security settings
+PasswordAuthentication no
+PubkeyAuthentication yes
+PermitRootLogin no
+StrictModes no  # Needed for Docker volume mounts
+PermitEmptyPasswords no
+
+# Performance
+UseDNS no
+MaxStartups 30:50:100
+ClientAliveInterval 30
+ClientAliveCountMax 3
+
+# Agent users - append only
+Match User id_*
+    ForceCommand /app/auth/append.sh
+    AllowTcpForwarding no
+    X11Forwarding no
+    PermitTunnel no
+    AllowAgentForwarding no
