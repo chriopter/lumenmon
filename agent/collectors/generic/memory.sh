@@ -16,9 +16,9 @@ while true; do
     # Calculate usage percentage: (total - available) / total * 100
     usage=$(((total - available) * 100 / total))
 
-    # Send metric through transport
-    echo -e "$(date +%s)\t$AGENT_ID\t${PREFIX}_usage\tfloat\t$usage\t$BREATHE" | \
-        eval "${LUMENMON_TRANSPORT:-cat}"
+    # Direct append to console tmpfs
+    echo "$(date +%s) $usage" | $LUMENMON_BASE \
+        "mkdir -p /hot/$AGENT_ID && cat >> /hot/$AGENT_ID/${PREFIX}.tsv" 2>/dev/null
 
     sleep $BREATHE
 done

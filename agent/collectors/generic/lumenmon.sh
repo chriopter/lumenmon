@@ -18,13 +18,21 @@ while true; do
     # Get uptime in seconds
     uptime=$(cut -d. -f1 /proc/uptime)
 
-    # Send all system metrics
-    # Using a loop to keep it DRY for multiple metrics
-    for metric in "${PREFIX}_os:string:$os" "${PREFIX}_kernel:string:$kernel" "${PREFIX}_uptime:int:$uptime"; do
-        IFS=: read -r name type value <<< "$metric"
-        echo -e "$(date +%s)\t$AGENT_ID\t$name\t$type\t$value\t$REPORT" | \
-            eval "${LUMENMON_TRANSPORT:-cat}"
-    done
+    # Direct append system metrics to console tmpfs
+    # Each metric gets its own file for simplicity
+    timestamp=$(date +%s)
+
+    # OS info
+    echo "$timestamp $os" | $LUMENMON_BASE \
+        "mkdir -p /hot/$AGENT_ID && cat >> /hot/$AGENT_ID/${PREFIX}_os.tsv" 2>/dev/null
+
+    # Kernel info
+    echo "$timestamp $kernel" | $LUMENMON_BASE \
+        "cat >> /hot/$AGENT_ID/${PREFIX}_kernel.tsv" 2>/dev/null
+
+    # Uptime info
+    echo "$timestamp $uptime" | $LUMENMON_BASE \
+        "cat >> /hot/$AGENT_ID/${PREFIX}_uptime.tsv" 2>/dev/null
 
     sleep $REPORT
 done

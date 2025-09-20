@@ -29,7 +29,8 @@ fi
 CONSOLE_HOST="${CONSOLE_HOST:-console}"
 CONSOLE_PORT="${CONSOLE_PORT:-22}"
 CONSOLE_USER="${CONSOLE_USER:-collector}"
-AGENT_ID="${HOSTNAME:-$(hostname -s)}"
+# Generate unique agent ID: hostname + network hash for uniqueness
+AGENT_ID="${HOSTNAME:-$(hostname -s)}-$(hostname -I 2>/dev/null | md5sum | cut -c1-6 || echo 'local')"
 SSH_SOCKET="/tmp/lumenmon.sock"
 
 # Natural Rhythms
@@ -38,12 +39,12 @@ BREATHE="1"      # 1Hz    - Memory tracking
 CYCLE="60"       # 1/min  - Disk usage
 REPORT="3600"    # 1/hr   - System info
 
-# Setup transport for collectors
-LUMENMON_TRANSPORT="ssh -S $SSH_SOCKET $CONSOLE_USER@$CONSOLE_HOST '/app/ssh/receiver.sh --host $AGENT_ID' 2>/dev/null"
+# Setup base SSH command for collectors (no receiver.sh, just direct SSH)
+LUMENMON_BASE="ssh -S $SSH_SOCKET $CONSOLE_USER@$CONSOLE_HOST"
 
 # Export for collectors
 export CONSOLE_HOST CONSOLE_PORT CONSOLE_USER AGENT_ID SSH_SOCKET
-export PULSE BREATHE CYCLE REPORT LUMENMON_TRANSPORT
+export PULSE BREATHE CYCLE REPORT LUMENMON_BASE
 
 # Startup
 echo "[agent] Starting Lumenmon Agent: $AGENT_ID"

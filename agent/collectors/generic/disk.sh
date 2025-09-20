@@ -16,9 +16,9 @@ while true; do
     # Remove the % sign from percentage
     usage=${percentage%\%}
 
-    # Send metric through transport
-    echo -e "$(date +%s)\t$AGENT_ID\t${PREFIX}_root_usage\tfloat\t$usage\t$CYCLE" | \
-        eval "${LUMENMON_TRANSPORT:-cat}"
+    # Direct append to console tmpfs
+    echo "$(date +%s) $usage" | $LUMENMON_BASE \
+        "mkdir -p /hot/$AGENT_ID && cat >> /hot/$AGENT_ID/${PREFIX}.tsv" 2>/dev/null
 
     sleep $CYCLE
 done
