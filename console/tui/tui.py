@@ -306,7 +306,7 @@ def get_install_command():
         return f"Error generating command: {e}"
 
 def add_agent_key():
-    """Add agent using add_agent.sh script"""
+    """Add agent using agent_enroll.sh script"""
     console.clear()
     console.print("\n[bold cyan]Add Agent Key[/bold cyan]\n")
     console.print("Paste the agent's public key (from agent logs):")
@@ -337,10 +337,10 @@ def add_agent_key():
                 agent_id = f"id_{fingerprint}"
                 console.print(f"[cyan]Agent ID: {agent_id}[/cyan]")
 
-            # Use the correct path for add_agent.sh
-            script_path = '/app/lib/add_agent.sh'
+            # Use the correct path for agent_enroll.sh
+            script_path = '/app/core/enrollment/agent_enroll.sh'
 
-            # Call the add_agent.sh script
+            # Call the agent_enroll.sh script
             console.print(f"\n[yellow]Running: {script_path}[/yellow]")
             result = subprocess.run(
                 [script_path, key],
@@ -448,7 +448,7 @@ def generate_invite():
 
     try:
         result = subprocess.run(
-            ['/app/lib/create_invite.sh'],
+            ['/app/core/enrollment/invite_create.sh'],
             capture_output=True,
             text=True,
             timeout=5
@@ -509,7 +509,7 @@ def show_menu():
             # Clean expired invites
             import subprocess
             console.print("\n[yellow]Cleaning expired invites...[/yellow]")
-            result = subprocess.run(['/app/lib/cleanup_invites.sh'], capture_output=True, text=True)
+            result = subprocess.run(['/app/core/enrollment/invite_cleanup.sh'], capture_output=True, text=True)
             if result.returncode == 0:
                 console.print("[green]✓ Cleanup complete[/green]")
             console.print("\nPress Enter to continue...")
