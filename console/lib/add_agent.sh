@@ -25,23 +25,21 @@ if id "$FINGERPRINT" &>/dev/null; then
     exit 0
 fi
 
-# Create Linux user
-useradd -m -s /bin/false "$FINGERPRINT"
+# Ensure base directory exists
+mkdir -p "/data/agents"
 
-# Create data folder (same name!)
-mkdir -p "/data/metrics/$FINGERPRINT"
-chown "$FINGERPRINT:$FINGERPRINT" "/data/metrics/$FINGERPRINT"
-chmod 700 "/data/metrics/$FINGERPRINT"
+# Create Linux user with home directory in /data/agents
+useradd -m -d "/data/agents/$FINGERPRINT" -s /bin/false "$FINGERPRINT"
 
-# Setup SSH access
-mkdir -p "/home/$FINGERPRINT/.ssh"
-echo "$PUBLIC_KEY" > "/home/$FINGERPRINT/.ssh/authorized_keys"
-chown -R "$FINGERPRINT:$FINGERPRINT" "/home/$FINGERPRINT/.ssh"
-chmod 700 "/home/$FINGERPRINT/.ssh"
-chmod 600 "/home/$FINGERPRINT/.ssh/authorized_keys"
+# Setup SSH access (already in home)
+mkdir -p "/data/agents/$FINGERPRINT/.ssh"
+echo "$PUBLIC_KEY" > "/data/agents/$FINGERPRINT/.ssh/authorized_keys"
+chown -R "$FINGERPRINT:$FINGERPRINT" "/data/agents/$FINGERPRINT"
+chmod 700 "/data/agents/$FINGERPRINT" "/data/agents/$FINGERPRINT/.ssh"
+chmod 600 "/data/agents/$FINGERPRINT/.ssh/authorized_keys"
 
 # Log
-echo "[$(date)] Added agent: $FINGERPRINT" >> /data/metrics.log
+echo "[$(date)] Added agent: $FINGERPRINT" >> /data/agents.log
 
 echo "Agent ready: $FINGERPRINT"
 echo "Configure agent with: AGENT_USER=$FINGERPRINT"

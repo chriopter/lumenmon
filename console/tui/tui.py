@@ -23,18 +23,18 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from boot_animation import show_boot_animation
 
 # Configuration
-DATA_DIR = "/data/metrics"  # Persistent storage with per-agent directories
+DATA_DIR = "/data/agents"  # Persistent storage with per-agent directories
 REFRESH_HZ = 2
 
 console = Console()
 
 
 def get_agents():
-    """Find all registered agents from /home/id_* directories"""
+    """Find all registered agents from /data/agents/id_* directories"""
     agents = []
-    # Get all registered agents (have Linux user)
-    for home_dir in glob.glob("/home/id_*"):
-        agent_name = os.path.basename(home_dir)
+    # Get all registered agents (have home directory in /data/agents)
+    for agent_dir in glob.glob("/data/agents/id_*"):
+        agent_name = os.path.basename(agent_dir)
         agents.append(agent_name)
     return sorted(agents)
 
@@ -286,8 +286,8 @@ def add_agent_key():
                 # Show detailed results
                 console.print("\n[bold]Actions performed:[/bold]")
                 console.print(f"  • Created Linux user: [cyan]{agent_id}[/cyan]")
-                console.print(f"  • Created data folder: [cyan]/data/metrics/{agent_id}[/cyan]")
-                console.print(f"  • Added SSH key to: [cyan]/home/{agent_id}/.ssh/authorized_keys[/cyan]")
+                console.print(f"  • Created home directory: [cyan]/data/agents/{agent_id}[/cyan]")
+                console.print(f"  • Added SSH key to: [cyan]/data/agents/{agent_id}/.ssh/authorized_keys[/cyan]")
                 console.print(f"  • Set permissions: [cyan]700[/cyan] for directories, [cyan]600[/cyan] for key")
 
                 # Show script output
@@ -305,16 +305,14 @@ def add_agent_key():
                 else:
                     console.print(f"  ✗ User NOT found: [red]{agent_id}[/red]")
 
-                # Check directories
-                if os.path.exists(f"/home/{agent_id}"):
-                    console.print(f"  ✓ Home directory exists: [green]/home/{agent_id}[/green]")
+                # Check directory
+                if os.path.exists(f"/data/agents/{agent_id}"):
+                    console.print(f"  ✓ Home directory exists: [green]/data/agents/{agent_id}[/green]")
+                    # Check SSH subdirectory
+                    if os.path.exists(f"/data/agents/{agent_id}/.ssh/authorized_keys"):
+                        console.print(f"  ✓ SSH key installed: [green]/data/agents/{agent_id}/.ssh/authorized_keys[/green]")
                 else:
-                    console.print(f"  ✗ Home directory NOT found: [red]/home/{agent_id}[/red]")
-
-                if os.path.exists(f"/data/metrics/{agent_id}"):
-                    console.print(f"  ✓ Data directory exists: [green]/data/metrics/{agent_id}[/green]")
-                else:
-                    console.print(f"  ✗ Data directory NOT found: [red]/data/metrics/{agent_id}[/red]")
+                    console.print(f"  ✗ Home directory NOT found: [red]/data/agents/{agent_id}[/red]")
 
                 console.print("\n[green]Agent can now connect to this console.[/green]")
             else:

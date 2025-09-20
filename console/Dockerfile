@@ -22,7 +22,7 @@ RUN mkdir -p /var/run/sshd && \
     echo "StrictModes no" >> /etc/ssh/sshd_config
 
 # Setup directory structure
-RUN mkdir -p /data/metrics /data/ssh && \
+RUN mkdir -p /data/agents && \
     chmod -R 755 /data
 
 # Copy ultra-KISS console files
