@@ -3,7 +3,7 @@
 
 # Config
 RHYTHM="PULSE"   # Uses PULSE timing from agent.sh
-PREFIX="cpu"      # Metric prefix: cpu_usage
+PREFIX="generic_cpu"      # Metric prefix: generic_cpu_usage
 
 set -euo pipefail
 
@@ -11,7 +11,7 @@ set -euo pipefail
 read prev_line < /proc/stat
 prev_cpu=($prev_line)
 
-# Main loop - calculate CPU usage and send
+# Main loop - KISS CPU usage calculation
 while true; do
     sleep $PULSE
 
@@ -19,25 +19,20 @@ while true; do
     read curr_line < /proc/stat
     curr_cpu=($curr_line)
 
-    # Calculate deltas for each field (skip "cpu" label at index 0)
-    # Fields: user nice system idle iowait irq softirq steal guest guest_nice
-    user_d=$((${curr_cpu[1]} - ${prev_cpu[1]}))
-    nice_d=$((${curr_cpu[2]} - ${prev_cpu[2]}))
-    system_d=$((${curr_cpu[3]} - ${prev_cpu[3]}))
-    idle_d=$((${curr_cpu[4]} - ${prev_cpu[4]}))
-    iowait_d=$((${curr_cpu[5]:-0} - ${prev_cpu[5]:-0}))
-    irq_d=$((${curr_cpu[6]:-0} - ${prev_cpu[6]:-0}))
-    softirq_d=$((${curr_cpu[7]:-0} - ${prev_cpu[7]:-0}))
-    steal_d=$((${curr_cpu[8]:-0} - ${prev_cpu[8]:-0}))
+    # Simple calculation: just need total and idle
+    # Fields after "cpu": user nice system idle (rest are optional)
+    prev_total=$((${prev_cpu[1]} + ${prev_cpu[2]} + ${prev_cpu[3]} + ${prev_cpu[4]} + ${prev_cpu[5]:-0} + ${prev_cpu[6]:-0} + ${prev_cpu[7]:-0}))
+    curr_total=$((${curr_cpu[1]} + ${curr_cpu[2]} + ${curr_cpu[3]} + ${curr_cpu[4]} + ${curr_cpu[5]:-0} + ${curr_cpu[6]:-0} + ${curr_cpu[7]:-0}))
 
-    # Total CPU time passed
-    total_d=$((user_d + nice_d + system_d + idle_d + iowait_d + irq_d + softirq_d + steal_d))
+    prev_idle=${prev_cpu[4]}
+    curr_idle=${curr_cpu[4]}
 
-    # Calculate usage (non-idle time / total time * 100)
+    # Calculate CPU usage
+    total_d=$((curr_total - prev_total))
+    idle_d=$((curr_idle - prev_idle))
+
     if [ $total_d -gt 0 ]; then
-        # Active time = total - idle - iowait (iowait is considered idle)
-        active_d=$((total_d - idle_d - iowait_d))
-        usage=$(awk "BEGIN {printf \"%.1f\", $active_d * 100.0 / $total_d}")
+        usage=$(awk "BEGIN {printf \"%.1f\", ($total_d - $idle_d) * 100.0 / $total_d}")
     else
         usage="0.0"
     fi

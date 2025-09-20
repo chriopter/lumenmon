@@ -3,7 +3,7 @@
 
 # Config
 RHYTHM="BREATHE"  # Uses BREATHE timing from agent.sh
-PREFIX="mem"      # Metric prefix: mem_usage
+PREFIX="generic_mem"      # Metric prefix: generic_mem_usage
 
 set -euo pipefail
 
