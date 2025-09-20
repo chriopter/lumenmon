@@ -1,0 +1,41 @@
+#!/bin/bash
+# Auto setup - reset, register agent, and launch TUI
+
+# Step 1: Reset everything (same as dev/reset)
+echo "🔄 Stopping containers..."
+docker stop lumenmon-console lumenmon-agent 2>/dev/null || true
+docker rm lumenmon-console lumenmon-agent 2>/dev/null || true
+
+echo "🧹 Cleaning data..."
+rm -rf agent/data/debug/* agent/data/ssh/* 2>/dev/null || true
+rm -rf console/data/agents/id_* console/data/ssh/ssh_host* console/data/*.log 2>/dev/null || true
+mkdir -p agent/data/{debug,ssh} console/data/{agents,ssh}
+
+# Step 2: Start containers
+echo "🚀 Starting fresh..."
+docker compose -f console/docker-compose.yml up -d --build
+CONSOLE_HOST=localhost CONSOLE_PORT=2345 docker compose -f agent/docker-compose.yml up -d --build
+
+# Step 3: Wait for console to be ready
+echo "⏳ Waiting for console to be ready..."
+sleep 3
+
+# Step 4: Create invite and register agent
+echo "🔑 Creating invite..."
+INVITE=$(docker exec lumenmon-console /app/core/enrollment/invite_create.sh 2>/dev/null | grep "^ssh://")
+if [ -z "$INVITE" ]; then
+    echo "❌ Failed to create invite"
+    exit 1
+fi
+echo "   Invite: $INVITE"
+
+echo "📝 Registering agent..."
+docker exec lumenmon-agent /app/core/setup/register.sh "$INVITE"
+
+# Give agent a moment to connect
+echo "⏳ Waiting for agent to connect..."
+sleep 2
+
+# Step 5: Launch TUI
+echo "📊 Launching TUI..."
+docker exec -it lumenmon-console python3 /app/tui/main.py
