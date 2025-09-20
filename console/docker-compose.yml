@@ -6,11 +6,8 @@ services:
     container_name: lumenmon-console
     hostname: lumenmon-console
     volumes:
-      - type: tmpfs
-        target: /var/lib/lumenmon/hot
-        tmpfs:
-          size: 100M
-      - ./data/ssh:/home/collector/.ssh
+      - ./data/agents:/data/agents
+      - ./data/ssh:/etc/ssh
     ports:
       - "2345:22"
     networks:
