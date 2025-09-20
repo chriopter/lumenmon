@@ -1,0 +1,22 @@
+#!/bin/bash
+# Start all collectors
+
+set -euo pipefail
+
+# Start collectors
+echo "[agent] Starting collectors:"
+for collector in collectors/*/*.sh; do
+    if [ -f "$collector" ]; then
+        name=$(basename "$collector" .sh)
+        case "$name" in
+            cpu)      echo "  - $name (PULSE: ${PULSE}s)" ;;
+            memory)   echo "  - $name (BREATHE: ${BREATHE}s)" ;;
+            disk)     echo "  - $name (CYCLE: ${CYCLE}s)" ;;
+            lumenmon) echo "  - $name (REPORT: ${REPORT}s)" ;;
+            *)        echo "  - $name" ;;
+        esac
+        "$collector" 2>/dev/null &
+    fi
+done
+
+echo "[agent] All collectors running. Press Ctrl+C to stop."

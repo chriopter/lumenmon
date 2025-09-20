@@ -22,7 +22,7 @@ ClientAliveCountMax 3
 
 # Agent users - append only
 Match User id_*
-    ForceCommand /app/auth/append.sh
+    ForceCommand /app/append.sh
     AllowTcpForwarding no
     X11Forwarding no
     PermitTunnel no
