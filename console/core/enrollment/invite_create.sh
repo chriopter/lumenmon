@@ -3,7 +3,7 @@
 echo "[INVITE] Creating registration invite" >&2
 
 USERNAME="reg_$(date +%s%3N)"
-PASSWORD=$(openssl rand -hex 16)
+PASSWORD=$(openssl rand -hex 6)
 
 # Create user (groups already exist from Docker build)
 useradd -M -s /bin/sh -G registration "$USERNAME"
