@@ -49,6 +49,12 @@ if [[ $REPLY =~ ^[Nn]$ ]]; then
 fi
 
 echo ""
+
+# Parse and save connection details BEFORE starting container
+echo "  Preparing connection configuration..."
+echo "CONSOLE_HOST=$CONSOLE_HOST" > "$DIR/agent/.env"
+echo "CONSOLE_PORT=$CONSOLE_PORT" >> "$DIR/agent/.env"
+
 echo "  Installing agent container..."
 
 # Install agent
@@ -59,12 +65,8 @@ deploy_component
 echo ""
 echo "  Registering with console..."
 
-# Register with invite and capture ENV output
-REGISTER_OUTPUT=$(docker exec lumenmon-agent /app/core/setup/register.sh "$LUMENMON_INVITE")
-echo "$REGISTER_OUTPUT" | grep -v "^ENV:"
-
-# Save connection details to .env
-echo "$REGISTER_OUTPUT" | grep "^ENV:" | sed 's/^ENV://' > "$DIR/agent/.env"
+# Register with invite
+docker exec lumenmon-agent /app/core/setup/register.sh "$LUMENMON_INVITE"
 
 echo ""
 echo "  Waiting for metrics transmission..."
