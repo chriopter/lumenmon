@@ -54,12 +54,19 @@ The console shows everything in a beautiful terminal dashboard.
 ## Commands
 
 ```bash
-lumenmon          # Open dashboard
-lumenmon invite   # Get a new server invite
-lumenmon status   # Check everything's running
+lumenmon            # Open dashboard (or show status)
+lumenmon status     # Show system status (alias: s)
+lumenmon logs       # Stream container logs (alias: l)
+lumenmon invite     # Generate agent invite (alias: i)
+lumenmon register   # Register agent with invite
+lumenmon update     # Update to latest version (alias: u)
+lumenmon uninstall  # Remove everything
+lumenmon help       # Show help (alias: h)
 ```
 
+---
 
+Thanks to Textual, plotext, Docker, and OpenSSH for the heavy lifting.
 
 ```
   ██╗     ██╗   ██╗███╗   ███╗███████╗███╗   ██╗███╗   ███╗ ██████╗ ███╗   ██╗
