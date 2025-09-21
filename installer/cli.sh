@@ -1,7 +1,7 @@
 #!/bin/bash
 # Setup lumenmon CLI command
 
-source installer/status.sh
+source "$DIR/installer/status.sh"
 
 # Check if already installed
 if [ -L /usr/local/bin/lumenmon ] || [ -L ~/.local/bin/lumenmon ]; then
