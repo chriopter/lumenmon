@@ -56,13 +56,11 @@ echo -e "\033[1;32m━━━━━━━━━━━━━━━━━━━━�
 echo ""
 echo "Next steps:"
 echo ""
-echo "1. Install agent on your first server:"
+echo "1. Install agent on your first server (expires in 5 minutes):"
 
 if [ -n "$FULL_CMD" ]; then
     echo ""
     echo -e "   \033[1;36m$FULL_CMD\033[0m"
-    echo ""
-    echo "   (This invite expires in 5 minutes)"
 else
     echo "   docker exec lumenmon-console /app/core/enrollment/invite_create.sh"
     echo "   Then use the command it generates on your server"
@@ -70,6 +68,6 @@ fi
 
 echo ""
 echo "2. View console dashboard:"
-echo "   docker exec -it lumenmon-console python3 /app/tui/main.py"
+echo "   lumenmon"
 
 echo ""

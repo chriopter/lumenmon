@@ -19,6 +19,10 @@ echo ""
 # Remove network
 docker network rm lumenmon-net 2>/dev/null && status_ok "network removed"
 
+# Remove lumenmon command
+[ -L /usr/local/bin/lumenmon ] && rm /usr/local/bin/lumenmon 2>/dev/null && status_ok "command removed"
+[ -L ~/.local/bin/lumenmon ] && rm ~/.local/bin/lumenmon 2>/dev/null && status_ok "command removed"
+
 # Remove directory
 cd "$HOME"
 rm -rf "$DIR" 2>/dev/null && status_ok "$DIR removed" || {
