@@ -74,3 +74,4 @@ console/data/**
 agent/data/**
 !agent/data/**/.gitkeep
 docker-compose.override.yml
+__pycache__/
