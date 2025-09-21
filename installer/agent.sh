@@ -33,6 +33,16 @@ cd "$DIR/agent"
 echo "CONSOLE_HOST=${HOST:-localhost}" > .env
 echo "CONSOLE_PORT=${PORT:-2345}" >> .env
 
+# Save image choice for future updates
+# This tells 'lumenmon update' how to update this installation
+if [ -n "$IMAGE" ]; then
+    # Remote image - save it so updates know to pull from registry
+    echo "LUMENMON_IMAGE=$IMAGE" >> .env
+else
+    # Local build - save empty value so updates know to build from source
+    echo "LUMENMON_IMAGE=" >> .env
+fi
+
 # Start container
 status_progress "Starting container..."
 docker compose down 2>/dev/null

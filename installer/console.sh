@@ -14,6 +14,16 @@ if [ -n "$CONSOLE_HOST" ]; then
     status_ok "Configuration saved"
 fi
 
+# Save image choice for future updates
+# This tells 'lumenmon update' how to update this installation
+if [ -n "$IMAGE" ]; then
+    # Remote image - save it so updates know to pull from registry
+    echo "LUMENMON_IMAGE=$IMAGE" >> .env
+else
+    # Local build - save empty value so updates know to build from source
+    echo "LUMENMON_IMAGE=" >> .env
+fi
+
 # Deploy container
 status_progress "Restarting container..."
 docker compose down 2>/dev/null
