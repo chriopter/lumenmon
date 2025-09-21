@@ -29,6 +29,10 @@ fi
 echo ""
 cd "$DIR/agent"
 
+# Pre-create SSH directory with secure permissions
+mkdir -p data/ssh
+chmod -R 755 data
+
 # Write config
 echo "CONSOLE_HOST=${HOST:-localhost}" > .env
 echo "CONSOLE_PORT=${PORT:-2345}" >> .env

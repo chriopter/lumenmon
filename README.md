@@ -13,27 +13,25 @@ Lumenmon is a one-command monitoring stack for Linux hosts.
 
 ## Install
 
-Get the console running, enroll an agent, open the dashboard—each step is one command.
+Bootstrap in three copy/paste commands:
 
-1. **Install the console**
-   ```bash
-   curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/install.sh | bash
-   ```
+```bash
+# console
+curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/install.sh | bash
 
-2. **Enroll an agent** (copy the invite URL printed by step 1)
-   ```bash
-   curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/install.sh | LUMENMON_INVITE='<invite_url>' bash
-   ```
+# agent (grab the invite URL printed by the console install)
+curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/install.sh | LUMENMON_INVITE='<invite_url>' bash
 
-3. **Open the TUI**
-   ```bash
-   lumenmon
-   ```
+# dashboard
+lumenmon
+```
 
 ## Architecture
 
-- **Console** – Listens on SSH, stores metrics in `/data/agents/<id>`, and serves the TUI.
-- **Agent** – Runs shell collectors and ships TSV metrics over SSH at tight intervals.
+| Component | What it does |
+| --- | --- |
+| Console | Accepts SSH on port 2345 (container 22), writes TSV metrics under `/data/agents/<id>`, serves the Textual TUI, and manages invite-driven enrollment |
+| Agent | Runs Bash collectors for CPU (100 ms), memory (1 s), disk (60 s) and streams each sample as TSV over SSH |
 
 ```
 ┌─────────────┐  SSH Tunnel   ┌─────────────┐
@@ -50,16 +48,6 @@ Get the console running, enroll an agent, open the dashboard—each step is one 
                               TSV Storage
                             (/data/agents)
 ```
-
-**Agent**
-- Collect CPU (100 ms), memory (1 s), and disk (60 s) samples via shell collectors.
-- Stream each sample as a TSV row over SSH.
-
-**Console**
-- Ingress receives the SSH stream and writes TSV files under `/data/agents/<id>`.
-- Enrollment scripts turn invite URLs into dedicated SSH users.
-- The TUI reads the TSV files and renders live tables and graphs.
-
 
 ### Security
 
@@ -88,6 +76,12 @@ Short aliases available: `s` (status), `l` (logs), `i` (invite), `u` (update), `
 The installer walks you through image selection (stable registry build by default, or dev/local builds) and wires up the console, agent, and CLI with Docker Compose.
 
 Prefer to roll your own image? Clone the repo and run the compose files inside `console/` and `agent/` with your `CONSOLE_HOST` and optional `CONSOLE_PORT` values.
+
+## Contributing
+
+PRs welcome—keep it simple, readable, and Bash-first.
+
+Thanks to Textual, plotext, Docker, and OpenSSH for the heavy lifting.
 
 ```
   ██╗     ██╗   ██╗███╗   ███╗███████╗███╗   ██╗███╗   ███╗ ██████╗ ███╗   ██╗

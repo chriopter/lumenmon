@@ -8,6 +8,10 @@ status_progress "Installing console..."
 
 cd "$DIR/console"
 
+# Pre-create data directories with secure permissions
+mkdir -p data/ssh data/agents
+chmod -R 755 data
+
 # Save configuration
 if [ -n "$CONSOLE_HOST" ]; then
     echo "CONSOLE_HOST=$CONSOLE_HOST" > .env
