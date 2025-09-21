@@ -5,6 +5,9 @@
 INVITE=$(docker exec lumenmon-console /app/core/enrollment/invite_create.sh 2>&1 | grep "ssh://" | head -1)
 
 echo ""
+echo "• View dashboard: docker exec -it lumenmon-console python3 /app/tui/main.py"
+echo "• Create invite: docker exec lumenmon-console /app/core/enrollment/invite_create.sh"
+echo ""
 echo -e "\033[1;32m✓ Console installed successfully\033[0m"
 
 if [ -n "$INVITE" ]; then
@@ -16,8 +19,4 @@ if [ -n "$INVITE" ]; then
     echo -e "\033[1;33m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
 fi
 
-echo ""
-echo "Next steps:"
-echo "• View dashboard: docker exec -it lumenmon-console python3 /app/tui/main.py"
-echo "• Create invite: docker exec lumenmon-console /app/core/enrollment/invite_create.sh"
 echo ""
