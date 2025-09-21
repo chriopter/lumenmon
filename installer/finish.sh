@@ -1,6 +1,10 @@
 #!/bin/bash
 # Finish console setup
 
+# Wait for container to be ready
+echo "Waiting for console to initialize..."
+sleep 3
+
 # Generate full install command
 FULL_CMD=$(docker exec lumenmon-console /app/core/enrollment/invite_create.sh --full 2>/dev/null)
 
