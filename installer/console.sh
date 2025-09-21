@@ -14,7 +14,7 @@ if [ -n "$CONSOLE_HOST" ]; then
     status_ok "Configuration saved"
 fi
 
-# Stop and restart container
+# Deploy container
 status_progress "Restarting container..."
 docker compose down 2>/dev/null
 
@@ -25,13 +25,14 @@ else
 fi
 status_ok "Console started"
 
-# Wait and generate invite
+# Initialize and generate invite
 status_progress "Initializing console..."
 sleep 3
 
 FULL_CMD=$(docker exec lumenmon-console /app/core/enrollment/invite_create.sh --full 2>/dev/null)
 [ -n "$FULL_CMD" ] && status_ok "Invite generated" || status_warn "Manual invite creation required"
 
+# Show usage commands
 echo ""
 echo "Commands:"
 echo "• View dashboard: docker exec -it lumenmon-console python3 /app/tui/main.py"
@@ -40,6 +41,7 @@ echo ""
 
 status_ok "Console ready at ${CONSOLE_HOST:-localhost}:2345"
 
+# Display first invite if generated
 if [ -n "$FULL_CMD" ]; then
     echo ""
     echo -e "\033[1;33m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
