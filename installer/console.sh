@@ -29,8 +29,12 @@ status_ok "Console started"
 status_progress "Initializing console..."
 sleep 3
 
-FULL_CMD=$(docker exec lumenmon-console /app/core/enrollment/invite_create.sh --full 2>/dev/null)
-[ -n "$FULL_CMD" ] && status_ok "Invite generated" || status_warn "Manual invite creation required"
+if FULL_CMD=$(docker exec lumenmon-console /app/core/enrollment/invite_create.sh --full 2>/dev/null); then
+    [ -n "$FULL_CMD" ] && status_ok "Invite generated" || status_warn "Manual invite creation required"
+else
+    FULL_CMD=""
+    status_warn "Manual invite creation required"
+fi
 
 # Show usage commands
 echo ""
