@@ -9,22 +9,43 @@
 
 Lightweight system monitoring with SSH transport and TUI dashboard.
 
-## Install
+## Quick Install
 
+### Console Installation
 ```bash
-curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/install.sh | bash
+curl -sSL https://lumenmon.run | bash
 ```
 
-## Usage
-
-Run installer and choose:
-- **Console** - Central monitoring dashboard
-- **Agent** - Metrics collector (can be on different machines)
-
-View dashboard:
+### Agent Installation (with invite)
 ```bash
-docker exec -it lumenmon-console python3 /app/tui/main.py
+curl -sSL https://lumenmon.run | LUMENMON_INVITE="<invite_url>" bash
 ```
+
+## Installation Options
+
+The installer offers a smart version selection for both Console and Agent:
+
+1. **Stable** (default) - Production-ready releases
+2. **Dev** - Latest features from continuous builds
+3. **Local** - Build from source code
+
+Just press Enter to use the stable version (KISS principle), or select another option for testing or development.
+
+## CLI Commands
+
+After installation, use the `lumenmon` command:
+
+```bash
+lumenmon              # Open TUI dashboard (or show status if not running)
+lumenmon status       # Show system status
+lumenmon logs         # Stream container logs
+lumenmon invite       # Generate agent enrollment invite
+lumenmon register     # Register agent with invite URL
+lumenmon update       # Update to latest version
+lumenmon uninstall    # Remove everything
+```
+
+Short aliases available: `s` (status), `l` (logs), `i` (invite), `r` (register), `u` (update)
 
 ## How It Works
 
@@ -56,9 +77,18 @@ docker exec -it lumenmon-console python3 /app/tui/main.py
 └── install.sh           # Main installer script
 ```
 
-## Update
+## Updating
 
-Run installer again - it pulls latest code and container updates.
+Simply run:
+```bash
+lumenmon update
+```
+
+This intelligently updates based on your installation method:
+- **Stable/Dev**: Pulls latest images from registry
+- **Local**: Rebuilds from updated source code
+
+The update system uses Docker Compose's native override mechanism to remember your installation choice.
 
 ## Releases
 

@@ -15,15 +15,15 @@ if [ -n "$LUMENMON_INVITE" ]; then
     HOST="${URL#*@}"; HOST="${HOST%%:*}"
     PORT="${URL##*:}"; PORT="${PORT%%/*}"
     status_ok "Found invite for $HOST:$PORT"
+    # Auto-continue with invite
 else
     status_warn "Manual setup mode"
+    echo ""
+    status_prompt "Continue? [Y/n]: "
+    read -r -n 1 REPLY < /dev/tty
+    echo ""
+    [[ $REPLY =~ ^[Nn]$ ]] && exit 0
 fi
-
-echo ""
-status_prompt "Continue? [Y/n]: "
-read -r -n 1 REPLY
-echo ""
-[[ $REPLY =~ ^[Nn]$ ]] && exit 0
 
 # Install
 echo ""
