@@ -53,10 +53,20 @@ That's it. Data flows.
                                   └── disk.tsv
 ```
 
-- **Agent**: Bash collectors stream metrics as TSV rows through SSH
-- **Console**: Each agent gets its own Linux user, ForceCommand routes data to storage
-- **Storage**: Simple TSV files, no database needed
-- **Security**: SSH keys only, no passwords, no shell access. Invites are temporary password accounts that are deleted by the server. host key is part of invitation link for pinning from first moment on.
+**Agent**
+- Bash collector scripts for CPU (100ms), memory (1s), disk (60s)
+- SSH client multiplexes all metrics through single persistent connection
+- Each metric sent as TSV row: `timestamp\tagent_id\tmetric\ttype\tvalue\tinterval`
+
+**Console**
+- SSH server on port 2345, each agent gets dedicated Linux user
+- ForceCommand gateway script routes metrics to `/data/agents/<id>/`
+- Textual TUI reads live TSV files for real-time display
+
+**Security**
+- SSH keys only, no passwords, no shell access via ForceCommand
+- Invites are temporary password accounts, expire after 5 minutes or enrollment
+- Host key included in invite URL for secure first connection
 
 ## Commands
 
