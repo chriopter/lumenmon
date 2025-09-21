@@ -29,18 +29,18 @@ echo ""
 
 # Install or update
 if [ -d "$DEFAULT_DIR/.git" ]; then
-    echo "Press Enter to update existing installation at $DEFAULT_DIR..."
+    echo "Press Enter to launch installer at $DEFAULT_DIR..."
     read -r < /dev/tty
     echo ""
     cd "$DEFAULT_DIR" && git pull --quiet
     log "✓ Updated"
 else
-    echo "Press Enter to clone to $DEFAULT_DIR and start installation..."
+    echo "Press Enter to clone to $DEFAULT_DIR and launch installer..."
     read -r < /dev/tty
     echo ""
-    log "Installing..."
+    log "Cloning repository..."
     git clone --quiet "$REPO" "$DEFAULT_DIR"
-    log "✓ Installed"
+    log "✓ Ready to launch"
 fi
 
 # Setup environment
