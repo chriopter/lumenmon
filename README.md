@@ -10,6 +10,12 @@
 
 Monitor all your servers from a single terminal. Based on bash, ssh and file storage - no setup of databases, dashboards or thousand of services.
 
+Install the console, copy the invite link to your servers, watch the metrics flow.
+
+```bash
+curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/install.sh | bash
+```
+
 - **30 seconds to monitoring** – One command, and you're watching live metrics
 - **Add servers with a magic link** – Copy, paste, done. Each agent gets its own SSH invite
 - **Just works everywhere** – If you have Docker and SSH, you have monitoring
@@ -17,16 +23,6 @@ Monitor all your servers from a single terminal. Based on bash, ssh and file sto
 - **Stupid simple** – Pure Bash, SSH, TSV files. No database, no bloat, no overhead
 
 <img width="650" alt="screenshot-2025-09-21_20-57-39" src="https://github.com/user-attachments/assets/a900ed9c-d519-4c1c-8268-2d2417807aed" />
-
-## Quick Start
-
-Install the console, copy the invite link to your servers, watch the metrics flow.
-
-```bash
-curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/install.sh | bash
-```
-
-<img width="650" height="870" alt="image" src="https://github.com/user-attachments/assets/281a5b74-908e-400b-b311-64e4a654a324" />
 
 
 ## How It Works
