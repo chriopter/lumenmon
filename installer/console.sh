@@ -36,6 +36,9 @@ else
     status_warn "Manual invite creation required"
 fi
 
+# Setup CLI command
+source installer/cli.sh
+
 echo ""
 echo -e "\033[1;32m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
 echo -e "\033[1;32m✓ LUMENMON Console installed!\033[0m"
