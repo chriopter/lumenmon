@@ -23,10 +23,33 @@ curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/install.sh |
 ```
 Just install the console once, the console will generate an invitation for new agents as well.
 
-<img width="1324" height="644" alt="image" src="https://github.com/user-attachments/assets/66e8d653-bd2e-4fc7-8f66-4233dcec360a" />
-<img width="1324" height="644" alt="image" src="https://github.com/user-attachments/assets/2b215f82-b6d4-4cc4-9034-9502f101556e" />
+<img width="400" height="644" alt="image" src="https://github.com/user-attachments/assets/66e8d653-bd2e-4fc7-8f66-4233dcec360a" />
+<img width="400" height="880" alt="image" src="https://github.com/user-attachments/assets/3389a70a-2bf6-460c-908c-198184dd21ec" />
 
 This invitation command will immediately connect the new agent to a temporary user account, registers the agent ssh key and then establishes a permanent connection.
+
+ ✔ Container lumenmon-console                 Started                                      0.2s
+[✓] Console started
+[→] Initializing console...
+[✓] Invite generated
+[✓] Command 'lumenmon' already installed in ~/.local/bin
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✓ LUMENMON Console installed!
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Next steps:
+
+1. Install agent on server (expires in 5 minutes):
+
+   curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/install.sh | LUMENMON_INVITE='ssh://reg_1758481722414:c734b0b18901@localhost:2345/#ssh-ed25519_AAAAC3NzaC1lZDI1NTE5AAAAIImZwbLPoVLRJpPPh6xjpTqILLbBYfwv7603ommQh0Fg' bash
+
+2. Open dashboard:
+
+   lumenmon
+
+
+lumenmon main ❯
 
 Done 
 ## How It Works
