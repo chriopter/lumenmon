@@ -11,7 +11,7 @@ ask_console_host() {
     echo ""
     echo "  Enter the URL where agents can reach this console."
     echo -n "  Console host [$DETECTED_HOST]: "
-    read -r USER_HOST
+    read -r USER_HOST < /dev/tty
     CONSOLE_HOST="${USER_HOST:-$DETECTED_HOST}"
 }
 
@@ -26,7 +26,7 @@ show_menu() {
     echo "  4) Exit"
     echo ""
 
-    read -r -p "  Select [1-4]: " choice
+    read -r -p "  Select [1-4]: " choice < /dev/tty
 
     case $choice in
         1)
@@ -66,7 +66,7 @@ show_advanced() {
     echo "  4) Back"
     echo ""
 
-    read -r -p "  Select [1-4]: " choice
+    read -r -p "  Select [1-4]: " choice < /dev/tty
 
     case $choice in
         1)
