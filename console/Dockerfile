@@ -37,7 +37,7 @@ COPY core/ ./core/
 COPY tui/ ./tui/
 
 # Make scripts executable
-RUN chmod +x console.sh core/*/*.sh tui/*.py
+RUN chmod +x console.sh core/*.sh core/*/*.sh tui/*.py
 
 # Mount point for persistent data
 VOLUME /data
