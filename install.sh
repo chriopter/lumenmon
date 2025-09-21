@@ -14,7 +14,7 @@ err() {
     exit 1
 }
 
-# Always check requirements first
+# Check requirements first
 log "Checking requirements..."
 command -v git >/dev/null 2>&1 || err "Git not found - please install git"
 command -v docker >/dev/null 2>&1 || err "Docker not found - please install docker"
