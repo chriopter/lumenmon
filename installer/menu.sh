@@ -7,9 +7,9 @@ ask_console_host() {
     [ -z "$DETECTED_HOST" ] && DETECTED_HOST="localhost"
 
     echo ""
-    echo "  Auto-detected: $DETECTED_HOST"
     echo "  Enter the URL where agents can reach this console."
-    read -p "  Console host [$DETECTED_HOST]: " USER_HOST < /dev/tty 2>/dev/null || read -p "  Console host [$DETECTED_HOST]: " USER_HOST
+    echo -n "  Console host [$DETECTED_HOST]: "
+    read USER_HOST < /dev/tty 2>/dev/null || read USER_HOST
     CONSOLE_HOST="${USER_HOST:-$DETECTED_HOST}"
     export CONSOLE_HOST
 }
