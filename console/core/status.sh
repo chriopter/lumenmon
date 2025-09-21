@@ -10,32 +10,32 @@ NC='\033[0m' # No Color
 echo "Console:"
 
 # Container
-echo -e "  Container    ${GREEN}✓${NC} Running"
+printf "  Container    ${GREEN}✓${NC} Running\n"
 
 # SSH daemon
 if pgrep -f sshd >/dev/null; then
-    echo -e "  SSH Server   ${GREEN}✓${NC} Port ${CONSOLE_PORT:-2345}"
+    printf "  SSH Server   ${GREEN}✓${NC} Port ${CONSOLE_PORT:-2345}\n"
 else
-    echo -e "  SSH Server   ${RED}✗${NC} Not running"
+    printf "  SSH Server   ${RED}✗${NC} Not running\n"
 fi
 
 # Host key
 if [ -f /data/ssh/ssh_host_ed25519_key ]; then
-    echo -e "  Host Key     ${GREEN}✓${NC} Configured"
+    printf "  Host Key     ${GREEN}✓${NC} Configured\n"
 else
-    echo -e "  Host Key     ${RED}✗${NC} Missing"
+    printf "  Host Key     ${RED}✗${NC} Missing\n"
 fi
 
 # Authorized keys
 if [ -f /data/ssh/authorized_keys ]; then
     KEYS=$(grep -c "^ssh-" /data/ssh/authorized_keys 2>/dev/null || echo 0)
     if [ $KEYS -gt 0 ]; then
-        echo -e "  Auth Keys    ${GREEN}✓${NC} $KEYS keys"
+        printf "  Auth Keys    ${GREEN}✓${NC} $KEYS keys\n"
     else
-        echo -e "  Auth Keys    ${YELLOW}⚠${NC} No keys"
+        printf "  Auth Keys    ${YELLOW}⚠${NC} No keys\n"
     fi
 else
-    echo -e "  Auth Keys    ${YELLOW}⚠${NC} No file"
+    printf "  Auth Keys    ${YELLOW}⚠${NC} No file\n"
 fi
 
 # Agents
@@ -74,19 +74,19 @@ if [ -d /data/agents ]; then
         fi
     done
 
-    echo -e "  Agents       ${GREEN}✓${NC} $TOTAL registered"
+    printf "  Agents       ${GREEN}✓${NC} $TOTAL registered\n"
 
     if [ $CONNECTED -gt 0 ]; then
-        echo -e "  Connections  ${GREEN}✓${NC} $CONNECTED active"
+        printf "  Connections  ${GREEN}✓${NC} $CONNECTED active\n"
     else
-        echo -e "  Connections  ${YELLOW}⚠${NC} None active"
+        printf "  Connections  ${YELLOW}⚠${NC} None active\n"
     fi
 
     if [ $ACTIVE -gt 0 ]; then
-        echo -e "  Data Flow    ${GREEN}✓${NC} $ACTIVE sending"
+        printf "  Data Flow    ${GREEN}✓${NC} $ACTIVE sending\n"
     else
-        echo -e "  Data Flow    ${YELLOW}⚠${NC} No recent data"
+        printf "  Data Flow    ${YELLOW}⚠${NC} No recent data\n"
     fi
 else
-    echo -e "  Agents       ${RED}✗${NC} Directory missing"
+    printf "  Agents       ${RED}✗${NC} Directory missing\n"
 fi
