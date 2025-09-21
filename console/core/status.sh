@@ -26,16 +26,22 @@ else
     printf "  Host Key     ${RED}✗${NC} Missing\n"
 fi
 
-# Authorized keys
-if [ -f /data/ssh/authorized_keys ]; then
-    KEYS=$(grep -c "^ssh-" /data/ssh/authorized_keys 2>/dev/null || echo 0)
+# Agent SSH keys
+if [ -d /data/agents ]; then
+    KEYS=0
+    for AGENT_DIR in /data/agents/*; do
+        [ -d "$AGENT_DIR" ] || continue
+        if [ -f "$AGENT_DIR/.ssh/authorized_keys" ]; then
+            KEYS=$((KEYS + 1))
+        fi
+    done
     if [ $KEYS -gt 0 ]; then
-        printf "  Auth Keys    ${GREEN}✓${NC} $KEYS keys\n"
+        printf "  Agent Keys   ${GREEN}✓${NC} $KEYS configured\n"
     else
-        printf "  Auth Keys    ${YELLOW}⚠${NC} No keys\n"
+        printf "  Agent Keys   ${YELLOW}⚠${NC} None configured\n"
     fi
 else
-    printf "  Auth Keys    ${YELLOW}⚠${NC} No file\n"
+    printf "  Agent Keys   ${RED}✗${NC} No agents dir\n"
 fi
 
 # Agents

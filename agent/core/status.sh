@@ -51,9 +51,6 @@ if [ -f /tmp/last_metric ]; then
     else
         printf "  Metrics      ${YELLOW}⚠${NC} No timestamp\n"
     fi
-elif ls /tmp/*.tsv 2>/dev/null | head -1 >/dev/null; then
-    COUNT=$(ls /tmp/*.tsv 2>/dev/null | wc -l)
-    printf "  Metrics      ${YELLOW}⚠${NC} $COUNT files buffered\n"
 else
-    printf "  Metrics      ${RED}✗${NC} No data\n"
+    printf "  Metrics      ${RED}✗${NC} No recent data\n"
 fi
