@@ -4,7 +4,11 @@
 source "$DIR/installer/status.sh"
 
 # Check if already installed
-if [ -L /usr/local/bin/lumenmon ] || [ -L ~/.local/bin/lumenmon ]; then
+if [ -L /usr/local/bin/lumenmon ]; then
+    status_ok "Command 'lumenmon' already installed globally"
+    return 0
+elif [ -L ~/.local/bin/lumenmon ]; then
+    status_ok "Command 'lumenmon' already installed in ~/.local/bin"
     return 0
 fi
 
