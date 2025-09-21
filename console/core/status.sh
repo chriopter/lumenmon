@@ -1,44 +1,35 @@
 #!/bin/sh
-# Console status with comprehensive checks
+# Console status - clean formatted output
 
 # Paths
 A="/data/agents"
 K="/data/ssh/ssh_host_ed25519_key"
-AUTH="/data/ssh/authorized_keys"
-INV="/data/invites"
 
-# Build status
-S="Console:"
+# SSH status
+if pgrep -f sshd >/dev/null; then
+    PORT="${CONSOLE_PORT:-2345}"
+    SSH="SSH on :$PORT"
+else
+    SSH="SSH down"
+fi
 
-# SSH host key
-[ -f "$K" ] && S="$S ✓key" || S="$S ✗key"
-
-# SSH service
-pgrep -f sshd >/dev/null && S="$S ✓ssh:${CONSOLE_PORT:-2345}" || S="$S ✗ssh"
-
-# Authorized keys
-[ -f "$AUTH" ] && S="$S ✓auth:$(grep -c ^ssh- "$AUTH" 2>/dev/null)" || S="$S ⚠auth:0"
-
-# Active invites
-[ -d "$INV" ] && {
-    N=$(find "$INV" -type f -mmin -5 2>/dev/null | wc -l)
-    [ $N -gt 0 ] && S="$S ✓inv:$N" || S="$S ○inv:0"
-}
-
-# Agents & activity
-[ -d "$A" ] && {
-    N=$(ls "$A" 2>/dev/null | wc -l)
-    [ $N -gt 0 ] && {
-        S="$S ✓agents:$N"
-        # Count active (data < 60s)
-        ACT=0
+# Agent count
+if [ -d "$A" ]; then
+    TOTAL=$(ls "$A" 2>/dev/null | wc -l)
+    if [ $TOTAL -gt 0 ]; then
+        # Count active (data within last 60s)
+        ACTIVE=0
         for D in "$A"/*; do
             [ -d "$D" ] || continue
             H="/var/lib/lumenmon/hot/$(basename "$D")"
-            [ -d "$H" ] && find "$H" -name "*.tsv" -mmin -1 2>/dev/null | grep -q . && ACT=$((ACT+1))
+            [ -d "$H" ] && find "$H" -name "*.tsv" -mmin -1 2>/dev/null | grep -q . && ACTIVE=$((ACTIVE+1))
         done
-        [ $ACT -gt 0 ] && S="$S ✓active:$ACT" || S="$S ⚠active:0"
-    } || S="$S ⚠agents:0"
-} || S="$S ✗agents"
+        AGENTS="$TOTAL agents, $ACTIVE active"
+    else
+        AGENTS="No agents"
+    fi
+else
+    AGENTS="No agents"
+fi
 
-echo "$S"
+echo "Console: $SSH | $AGENTS"
