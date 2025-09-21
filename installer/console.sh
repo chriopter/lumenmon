@@ -38,15 +38,12 @@ fi
 
 echo ""
 echo -e "\033[1;32m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
-echo -e "\033[1;32m✓ Console installation complete!\033[0m"
+echo -e "\033[1;32m✓ LUMENMON Console installed!\033[0m"
 echo -e "\033[1;32m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
 echo ""
 echo "Next steps:"
 echo ""
-echo "1. View dashboard:"
-echo "   docker exec -it lumenmon-console python3 /app/tui/main.py"
-echo ""
-echo "2. Install agent on your first server:"
+echo "1. Install agent on your first server:"
 
 if [ -n "$FULL_CMD" ]; then
     echo ""
@@ -57,5 +54,9 @@ else
     echo "   docker exec lumenmon-console /app/core/enrollment/invite_create.sh"
     echo "   Then use the command it generates on your server"
 fi
+
+echo ""
+echo "2. View console dashboard:"
+echo "   docker exec -it lumenmon-console python3 /app/tui/main.py"
 
 echo ""
