@@ -8,12 +8,19 @@
 ```
 
 # The One-Button Monitoring Setup
-This is a lightweight, KISS system monitoring tool. No Database, no Dashboards to set up no custom endpoints.
 
-Lumenmon connects Agents via standard SSH and Pipes data as TSVs. Everything is Bash, except the TUI to navigate data.
+Lightweight, KISS system monitoring that just works. No databases to configure, no dashboards to set up, no custom endpoints to manage.
+
+Lumenmon connects agents via standard SSH and pipes metrics as TSV files. Everything is shell scripts, except the TUI for navigating data.
 
 <img width="400" alt="screenshot-2025-09-21_20-57-00" src="https://github.com/user-attachments/assets/99c6eefa-8d93-4874-9ec6-0c9674d31f2b" />
 <img width="400" alt="screenshot-2025-09-21_20-57-39" src="https://github.com/user-attachments/assets/a900ed9c-d519-4c1c-8268-2d2417807aed" />
+
+## Install
+
+```bash
+curl -sSL https://lumenmon.run | bash
+```
 
 ## Key Features
 
