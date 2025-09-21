@@ -3,13 +3,15 @@
 
 Lumenmon is a one-command monitoring stack for Linux hosts.
 
-- **Magic invites** – Enroll every agent with a single SSH URL. No manual config.
-- **Standard tools** – Everything is built from standard Linux tools. SSH Transport, TSV Files, Bash scripts.
-- **Live TUI** – Shows CPU, memory, disk, and invite states.
+- **One command install** – Pipe `install.sh`; the console is ready in seconds.
+- **Copy/paste invites** – Every agent joins with a single SSH URL.
+- **All standard tools** – SSH transport, TSV files, and Bash scripts only.
+- **Live terminal view** – Textual TUI shows CPU, memory, disk, and invites.
+- **Nothing extra** – No database, no cert dance, no dashboards to wire up.
 
 <img width="500" alt="screenshot-2025-09-21_20-57-39" src="https://github.com/user-attachments/assets/a900ed9c-d519-4c1c-8268-2d2417807aed" />
 
-Pure Bash piping metrics over SSH. No extra ports. No web UI.
+Pure Bash piping metrics over SSH. No YAML. No web UI. No surprises.
 
 
 ## Install
