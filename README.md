@@ -17,19 +17,11 @@ Install the console:
 curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/install.sh | bash
 ```
 
-You'll see:
+You'll see an invite link like this, just paste it on each server to connect the agent.
 ```
-✓ Console ready at localhost:2345
-✓ Generated invite:
-
 curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/install.sh | \
   LUMENMON_INVITE='ssh://invite:xK3mP9Qw@your-server.com:2345' bash
-
-Copy this invite to any server you want to monitor.
 ```
-
-On each server, just paste the invite.
-
 
 Watch everything live:
 ```bash
