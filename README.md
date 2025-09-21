@@ -1,79 +1,77 @@
 # Lumenmon
 
-Lumenmon is a one-command monitoring stack for Linux hosts.
+Monitor all your servers from a single terminal. No config files, no databases, just SSH.
 
-- **One command install** – Pipe `install.sh`; the console is ready in seconds.
-- **Copy/paste invites** – Every agent joins with a single SSH URL.
-- **Standard tools** – SSH transport, TSV files, Bash scripts. Nothing exotic.
-- **Live terminal view** – Textual TUI shows CPU, memory, disk, and invites.
-- **Nothing extra** – No database, no cert dance, no dashboards to configure.
-
+- **30 seconds to monitoring** – One command, and you're watching live metrics
+- **Add servers with a magic link** – Copy, paste, done. Each agent gets its own SSH invite
+- **Just works everywhere** – If you have Docker and SSH, you have monitoring
+- **Live in your terminal** – Beautiful TUI shows everything at a glance
+- **Zero overhead** – Tiny agents, TSV files, no bloat
 
 <img width="650" alt="screenshot-2025-09-21_20-57-39" src="https://github.com/user-attachments/assets/a900ed9c-d519-4c1c-8268-2d2417807aed" />
 
+## Quick Start
 
-## Install
+Install the console:
 ```bash
 curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/install.sh | bash
 ```
-Agents can be added with the magic ssh link the installer will output for you.
 
-## Architecture
-
+You'll see:
 ```
-┌─────────────┐  SSH Tunnel   ┌─────────────┐
-│   Agent 1   │──────────────►│             │
-├─────────────┤               │   Console   │◄──── TUI Dashboard
-│ Collectors  │               │ SSH Server  │
-└─────────────┘               │ Port 2345   │
-                              │             │
-┌─────────────┐               │             │
-│   Agent 2   │──────────────►│             │
-├─────────────┤               └─────────────┘
-│ Collectors  │                     │
-└─────────────┘                     ▼
-                              TSV Storage
-                            (/data/agents)
+✓ Console ready at localhost:2345
+✓ Generated invite:
+
+  ssh://invite:xK3mP9Qw@your-server.com:2345
+
+Copy this invite to any server you want to monitor.
 ```
 
-**Console**
-- Accepts SSH on port 2345 (container 22) and writes TSV metrics under `/data/agents/<id>`.
-- Runs invite-driven enrollment to mint per-agent SSH users.
-- Serves the Textual TUI for live agents and metrics.
+On each server, just paste the invite:
+```bash
+curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/install.sh | \
+  LUMENMON_INVITE='ssh://invite:xK3mP9Qw@your-server.com:2345' bash
+```
 
-**Agent**
-- Runs Bash collectors for CPU (100 ms), memory (1 s), and disk (60 s).
-- Streams each sample as a TSV row over SSH.
+Watch everything live:
+```bash
+lumenmon
+```
 
-### Security
-- **SSH-only**: Key-based auth
-- **User isolation**: Each agent gets its own Linux user
-- **ForceCommand**: Agents can't get shell access
+That's it. Your servers are talking.
 
-## CLI Commands
+## How It Works
+
+```
+Your Servers                    Console
+─────────────                   ─────────
+
+[Agent] ──SSH──> [Port 2345] ──> [TUI Dashboard]
+         metrics               live view
+```
+
+Each agent streams metrics over SSH. No APIs, no certificates, no complexity.
+The console shows everything in a beautiful terminal dashboard.
+
+## Commands
 
 ```bash
-lumenmon            # Open TUI dashboard (or show status)
-lumenmon status     # Show system status (alias: s)
-lumenmon logs       # Stream container logs (alias: l)
-lumenmon invite     # Generate agent invite (alias: i)
-lumenmon register   # Register agent with invite
-lumenmon update     # Update to latest version (alias: u)
-lumenmon uninstall  # Remove everything
-lumenmon help       # Show help (alias: h)
+lumenmon          # Open dashboard
+lumenmon invite   # Get a new server invite
+lumenmon status   # Check everything's running
 ```
 
-## Installation Options
+## Why Lumenmon?
 
-The installer walks you through image selection (stable registry build by default, or dev/local builds) and wires up the console, agent, and CLI with Docker Compose.
+Traditional monitoring is heavy. Prometheus needs configuration. Grafana needs dashboards.
+Cloud services need agents and API keys.
 
-Prefer to roll your own image? Clone the repo and run the compose files inside `console/` and `agent/` with your `CONSOLE_HOST` and optional `CONSOLE_PORT` values.
+Lumenmon is different. It's built on SSH—the tool you already trust.
+One command to install, one link to connect, one terminal to monitor everything.
 
 ## Contributing
 
-PRs welcome—keep it simple, readable, and Bash-first.
-
-Thanks to Textual, plotext, Docker, and OpenSSH for the heavy lifting.
+Keep it simple, keep it working, keep it Bash.
 
 ```
   ██╗     ██╗   ██╗███╗   ███╗███████╗███╗   ██╗███╗   ███╗ ██████╗ ███╗   ██╗
