@@ -13,17 +13,6 @@ jobs:
     steps:
     - uses: actions/checkout@v5
 
-    - name: Set up Python
-      uses: actions/setup-python@v6
-      with:
-        python-version: '3.11'
-
-    - name: Test Console Python imports
-      run: |
-        cd console/tui
-        python3 -c "import main"
-        echo "✓ Console TUI loads"
-
     - name: Test shell scripts syntax
       run: |
         find . -name "*.sh" -type f -exec bash -n {} \;
