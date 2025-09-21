@@ -9,9 +9,7 @@
 
 # The One-Button Monitoring Setup
 
-Lightweight, KISS system monitoring that just works. No databases to configure, no dashboards to set up, no custom endpoints to manage.
-
-Lumenmon connects agents via standard SSH and pipes metrics as TSV files. Everything is stupidly simple shell scripts, except the TUI for navigating data.
+Very simple Monitoring tool with no custom sauce. Just Bash scripts, piping to a central server via SSH. No Database, no dashboard setup. Run one command to setup.
 
 <img width="400" alt="screenshot-2025-09-21_20-57-00" src="https://github.com/user-attachments/assets/99c6eefa-8d93-4874-9ec6-0c9674d31f2b" />
 <img width="400" alt="screenshot-2025-09-21_20-57-39" src="https://github.com/user-attachments/assets/a900ed9c-d519-4c1c-8268-2d2417807aed" />
@@ -25,15 +23,12 @@ curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/install.sh |
 This installs the console and generates invites for agents. Once installed, run `lumenmon invite` to get a one-line agent installer.
 
 <img width="600" alt="image" src="https://github.com/user-attachments/assets/3389a70a-2bf6-460c-908c-198184dd21ec" />
+<img width="1384" height="864" alt="image" src="https://github.com/user-attachments/assets/7c53ed47-cc74-42d9-9e37-dd1f44e65917" />
+
 
 The invite command creates a temporary SSH account, registers the agent's key, and establishes a permanent connection - all automatically.
 
 ## How It Works
-
-**Console**: Docker container running an SSH daemon with one user per agent
-**Agent**: Docker container that connects to console and pipes metrics from collector scripts
-
-### Key Features
 
 - 🚀 **Instant setup** - One-line installation, auto-generated agent invites
 - 🔒 **SSH transport** - Secure without additional ports
@@ -41,6 +36,13 @@ The invite command creates a temporary SSH account, registers the agent's key, a
 - 🪶 **Lightweight** - No databases or web servers
 - 🐳 **Docker-powered** - Consistent deployment everywhere
 - 🔑 **Zero passwords** - SSH key authentication only
+
+**Console**: Runs an SSH Server to receive data from agents.
+**Agent**: Delievers data from 
+
+### Key Features
+
+
 
 ### Architecture
 
