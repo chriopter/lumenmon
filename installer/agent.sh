@@ -4,26 +4,20 @@
 source installer/logo.sh
 source installer/status.sh
 
-# Parse invite URL components
-parse_invite() {
-    local url="$1"
-    # ssh://reg_123:pass@host:port/#key
-    HOST_PORT="${url#*@}"
-    HOST_PORT="${HOST_PORT%%/#*}"
-    HOST="${HOST_PORT%%:*}"
-    PORT="${HOST_PORT##*:}"
-    USER="${url#ssh://}"
-    USER="${USER%%:*}"
-}
-
-# Main installation
 clear
 show_logo
 echo -e "  \033[1mAgent Installation\033[0m"
 echo ""
 
+# Parse invite URL: ssh://reg_123:pass@host:port/#key
 status_progress "Parsing invite URL..."
-parse_invite "$LUMENMON_INVITE"
+URL="$LUMENMON_INVITE"
+HOST_PORT="${URL#*@}"
+HOST_PORT="${HOST_PORT%%/#*}"
+HOST="${HOST_PORT%%:*}"
+PORT="${HOST_PORT##*:}"
+USER="${URL#ssh://}"
+USER="${USER%%:*}"
 status_ok "Found invite for $USER@$HOST:$PORT"
 
 # Test connection
@@ -39,41 +33,29 @@ status_prompt "Install agent and connect? [Y/n]: "
 read -r -n 1 REPLY
 echo ""
 
-if [[ $REPLY =~ ^[Nn]$ ]]; then
-    echo ""
-    status_warn "Installation cancelled"
-    exit 0
-fi
+[[ $REPLY =~ ^[Nn]$ ]] && exit 0
 
 echo ""
-status_progress "Preparing configuration..."
-echo "CONSOLE_HOST=$HOST" > "$DIR/agent/.env"
-echo "CONSOLE_PORT=$PORT" >> "$DIR/agent/.env"
+status_progress "Configuring agent..."
+cd "$DIR/agent"
+echo "CONSOLE_HOST=$HOST" > .env
+echo "CONSOLE_PORT=$PORT" >> .env
 status_ok "Configuration saved"
 
-status_progress "Installing agent container..."
-cd "$DIR/agent"
-
-# Stop existing container
+status_progress "Starting container..."
 docker compose down 2>/dev/null
-
-# Deploy container
 if [ -n "$IMAGE" ]; then
-    export LUMENMON_IMAGE="$IMAGE"
-    docker compose up -d
+    LUMENMON_IMAGE="$IMAGE" docker compose up -d
 else
     docker compose up -d --build
 fi
 status_ok "Container started"
 
 status_progress "Registering with console..."
-if docker exec lumenmon-agent /app/core/setup/register.sh "$LUMENMON_INVITE"; then
-    status_ok "Registration successful"
-else
-    die "Registration failed - check invite URL"
-fi
+docker exec lumenmon-agent /app/core/setup/register.sh "$URL" || die "Registration failed"
+status_ok "Registration successful"
 
-status_progress "Verifying metrics transmission..."
+status_progress "Verifying connection..."
 sleep 3
 
 if docker ps | grep -q lumenmon-agent; then
@@ -83,8 +65,7 @@ if docker ps | grep -q lumenmon-agent; then
     echo -e "  \033[1;32m✓ Agent successfully installed!\033[0m"
     echo -e "  \033[1;32m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
 else
-    status_error "Agent not running"
-    echo "  Debug with: docker logs lumenmon-agent"
+    status_error "Agent not running - check: docker logs lumenmon-agent"
 fi
 
 echo ""
