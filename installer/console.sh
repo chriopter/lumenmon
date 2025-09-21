@@ -37,7 +37,7 @@ else
 fi
 
 # Setup CLI command
-source installer/cli.sh
+source "$DIR/installer/cli.sh"
 
 echo ""
 echo -e "\033[1;32m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"

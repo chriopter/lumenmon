@@ -57,6 +57,6 @@ else
 fi
 
 # Setup CLI command
-source installer/cli.sh
+source "$DIR/installer/cli.sh"
 
 echo ""
