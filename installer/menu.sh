@@ -1,31 +1,30 @@
 #!/bin/bash
-# Simple interactive menu
+# Interactive menu
+
+source installer/logo.sh
+source installer/status.sh
 
 ask_console_host() {
-    # Auto-detect and ask for console host
     DETECTED_HOST=$(hostname -I 2>/dev/null | awk '{print $1}')
     [ -z "$DETECTED_HOST" ] && DETECTED_HOST="localhost"
 
     echo ""
     echo "  Enter the URL where agents can reach this console."
     echo -n "  Console host [$DETECTED_HOST]: "
-    read USER_HOST < /dev/tty 2>/dev/null || read USER_HOST
+    read -r USER_HOST
     CONSOLE_HOST="${USER_HOST:-$DETECTED_HOST}"
     export CONSOLE_HOST
 }
 
+install_console() {
+    ask_console_host
+    export CONSOLE_HOST IMAGE
+    source installer/console.sh
+}
+
 show_menu() {
     clear
-
-    # Logo
-    echo -e "\033[0;36m"
-    echo "  ██╗     ██╗   ██╗███╗   ███╗███████╗███╗   ██╗███╗   ███╗ ██████╗ ███╗   ██╗"
-    echo "  ██║     ██║   ██║████╗ ████║██╔════╝████╗  ██║████╗ ████║██╔═══██╗████╗  ██║"
-    echo "  ██║     ██║   ██║██╔████╔██║█████╗  ██╔██╗ ██║██╔████╔██║██║   ██║██╔██╗ ██║"
-    echo "  ██║     ██║   ██║██║╚██╔╝██║██╔══╝  ██║╚██╗██║██║╚██╔╝██║██║   ██║██║╚██╗██║"
-    echo "  ███████╗╚██████╔╝██║ ╚═╝ ██║███████╗██║ ╚████║██║ ╚═╝ ██║╚██████╔╝██║ ╚████║"
-    echo "  ╚══════╝ ╚═════╝ ╚═╝     ╚═╝╚══════╝╚═╝  ╚═══╝╚═╝     ╚═╝ ╚═════╝ ╚═╝  ╚═══╝"
-    echo -e "\033[0m"
+    show_logo
     echo ""
 
     echo "  1) Install Console"
@@ -33,14 +32,12 @@ show_menu() {
     echo "  3) Exit"
     echo ""
 
-    read -p "  Select [1-3]: " choice < /dev/tty 2>/dev/null || read -p "  Select [1-3]: " choice
+    read -r -p "  Select [1-3]: " choice
 
     case $choice in
         1)
-            COMPONENT="console"
             IMAGE=""
-            ask_console_host
-            export COMPONENT IMAGE
+            install_console
             ;;
         2)
             show_advanced
@@ -49,7 +46,7 @@ show_menu() {
             exit 0
             ;;
         *)
-            echo "  Invalid choice"
+            status_error "Invalid choice"
             sleep 1
             show_menu
             ;;
@@ -58,72 +55,39 @@ show_menu() {
 
 show_advanced() {
     clear
-
-    # Logo
-    echo -e "\033[0;36m"
-    echo "  ██╗     ██╗   ██╗███╗   ███╗███████╗███╗   ██╗███╗   ███╗ ██████╗ ███╗   ██╗"
-    echo "  ██║     ██║   ██║████╗ ████║██╔════╝████╗  ██║████╗ ████║██╔═══██╗████╗  ██║"
-    echo "  ██║     ██║   ██║██╔████╔██║█████╗  ██╔██╗ ██║██╔████╔██║██║   ██║██╔██╗ ██║"
-    echo "  ██║     ██║   ██║██║╚██╔╝██║██╔══╝  ██║╚██╗██║██║╚██╔╝██║██║   ██║██║╚██╗██║"
-    echo "  ███████╗╚██████╔╝██║ ╚═╝ ██║███████╗██║ ╚████║██║ ╚═╝ ██║╚██████╔╝██║ ╚████║"
-    echo "  ╚══════╝ ╚═════╝ ╚═╝     ╚═╝╚══════╝╚═╝  ╚═══╝╚═╝     ╚═╝ ╚═════╝ ╚═╝  ╚═══╝"
-    echo -e "\033[0m"
+    show_logo
     echo ""
 
     echo -e "  \033[1mAdvanced Options:\033[0m"
     echo ""
-    echo "  1) Console - Latest"
-    echo "  2) Console - Dev"
-    echo "  3) Console - Build local"
+    echo "  Console versions:"
+    echo "  1) Latest release"
+    echo "  2) Development version"
+    echo "  3) Build from source"
     echo ""
-    echo "  4) Agent - Latest"
-    echo "  5) Agent - Dev"
-    echo "  6) Agent - Build local"
-    echo ""
-    echo "  7) Back"
+    echo "  4) Back"
     echo ""
 
-    read -p "  Select [1-7]: " choice < /dev/tty 2>/dev/null || read -p "  Select [1-7]: " choice
+    read -r -p "  Select [1-4]: " choice
 
     case $choice in
         1)
-            COMPONENT="console"
             IMAGE="ghcr.io/chriopter/lumenmon-console:latest"
-            ask_console_host
-            export COMPONENT IMAGE
+            install_console
             ;;
         2)
-            COMPONENT="console"
             IMAGE="ghcr.io/chriopter/lumenmon-console:main"
-            ask_console_host
-            export COMPONENT IMAGE
+            install_console
             ;;
         3)
-            COMPONENT="console"
             IMAGE=""
-            ask_console_host
-            export COMPONENT IMAGE
+            install_console
             ;;
         4)
-            COMPONENT="agent"
-            IMAGE="ghcr.io/chriopter/lumenmon-agent:latest"
-            export COMPONENT IMAGE
-            ;;
-        5)
-            COMPONENT="agent"
-            IMAGE="ghcr.io/chriopter/lumenmon-agent:main"
-            export COMPONENT IMAGE
-            ;;
-        6)
-            COMPONENT="agent"
-            IMAGE=""
-            export COMPONENT IMAGE
-            ;;
-        7)
             show_menu
             ;;
         *)
-            echo "  Invalid choice"
+            status_error "Invalid choice"
             sleep 1
             show_advanced
             ;;
