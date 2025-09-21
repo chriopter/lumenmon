@@ -1,4 +1,3 @@
-
 # Lumenmon
 
 Lumenmon is a one-command monitoring stack for Linux hosts.
@@ -18,7 +17,7 @@ Lumenmon is a one-command monitoring stack for Linux hosts.
 curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/install.sh | bash
 ```
 
-## Install
+## Add Agents
 
 The console prints an invite URL—copy/paste it on your agent host:
 
@@ -67,14 +66,14 @@ lumenmon
 ## CLI Commands
 
 ```bash
-lumenmon              # Open TUI dashboard (or show status)
-lumenmon status or s       # Show system status
-lumenmon logs       or l   # Stream container logs
-lumenmon invite     or i   # Generate agent invite
-lumenmon register     # Register agent with invite
-lumenmon update      or u  # Update to latest version
-lumenmon uninstall    # Remove everything
-lumenmon help/h
+lumenmon            # Open TUI dashboard (or show status)
+lumenmon status     # Show system status (alias: s)
+lumenmon logs       # Stream container logs (alias: l)
+lumenmon invite     # Generate agent invite (alias: i)
+lumenmon register   # Register agent with invite
+lumenmon update     # Update to latest version (alias: u)
+lumenmon uninstall  # Remove everything
+lumenmon help       # Show help (alias: h)
 ```
 
 ## Installation Options
