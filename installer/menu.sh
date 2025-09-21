@@ -1,6 +1,18 @@
 #!/bin/bash
 # Simple interactive menu
 
+ask_console_host() {
+    # Auto-detect and ask for console host
+    DETECTED_HOST=$(hostname -I 2>/dev/null | awk '{print $1}')
+    [ -z "$DETECTED_HOST" ] && DETECTED_HOST="localhost"
+
+    echo ""
+    echo "  Auto-detected: $DETECTED_HOST"
+    read -p "  Console host [$DETECTED_HOST]: " USER_HOST
+    CONSOLE_HOST="${USER_HOST:-$DETECTED_HOST}"
+    export CONSOLE_HOST
+}
+
 show_menu() {
     clear
 
@@ -26,6 +38,7 @@ show_menu() {
         1)
             COMPONENT="console"
             IMAGE=""
+            ask_console_host
             ;;
         2)
             show_advanced
@@ -74,14 +87,17 @@ show_advanced() {
         1)
             COMPONENT="console"
             IMAGE="ghcr.io/chriopter/lumenmon-console:latest"
+            ask_console_host
             ;;
         2)
             COMPONENT="console"
             IMAGE="ghcr.io/chriopter/lumenmon-console:main"
+            ask_console_host
             ;;
         3)
             COMPONENT="console"
             IMAGE=""
+            ask_console_host
             ;;
         4)
             COMPONENT="agent"

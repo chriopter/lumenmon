@@ -17,6 +17,7 @@ AGENT_COUNT=$(find /data/agents -maxdepth 1 -type d -name "id_*" 2>/dev/null | w
 echo "[console] ======================================"
 echo "[console] Lumenmon Console Ready"
 echo "[console] ======================================"
+echo "[console] Console Host: ${CONSOLE_HOST:-localhost}"
 echo "[console] SSH Server: Port 22 (mapped to host 2345)"
 echo "[console] Data Directory: /data/agents/"
 echo "[console] Registered agents: $AGENT_COUNT"
