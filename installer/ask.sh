@@ -23,16 +23,19 @@ ask_what_to_install() {
     clear
     print_header
 
-    # Redirect stdin to /dev/tty to read from terminal when piped
-    exec < /dev/tty
-
     # Ask for component
     echo "What to install?"
     echo "1) Console (monitoring dashboard)"
     echo "2) Agent (metrics collector)"
     echo "3) Exit"
     echo ""
-    read -p "> " choice
+
+    # Read from terminal if we're piped
+    if [ -t 0 ]; then
+        read -p "> " choice
+    else
+        read -p "> " choice < /dev/tty
+    fi
 
     case $choice in
         1) COMPONENT="console" ;;
@@ -48,7 +51,13 @@ ask_what_to_install() {
     echo "2) Dev (latest development)"
     echo "3) Local (build from source)"
     echo ""
-    read -p "> " choice
+
+    # Read from terminal if we're piped
+    if [ -t 0 ]; then
+        read -p "> " choice
+    else
+        read -p "> " choice < /dev/tty
+    fi
 
     case $choice in
         1) VERSION="latest" ;;
