@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   agent:
     image: ${LUMENMON_IMAGE:-ghcr.io/chriopter/lumenmon-agent:latest}
