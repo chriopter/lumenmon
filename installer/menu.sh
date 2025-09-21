@@ -13,13 +13,6 @@ ask_console_host() {
     echo -n "  Console host [$DETECTED_HOST]: "
     read -r USER_HOST
     CONSOLE_HOST="${USER_HOST:-$DETECTED_HOST}"
-    export CONSOLE_HOST
-}
-
-install_console() {
-    ask_console_host
-    export CONSOLE_HOST IMAGE
-    source installer/console.sh
 }
 
 show_menu() {
@@ -37,8 +30,10 @@ show_menu() {
 
     case $choice in
         1)
+            ask_console_host
             IMAGE=""
-            install_console
+            export CONSOLE_HOST IMAGE
+            source installer/console.sh
             ;;
         2)
             show_advanced
@@ -61,7 +56,6 @@ show_advanced() {
     clear
     show_logo
     echo ""
-
     echo -e "  \033[1mAdvanced Options:\033[0m"
     echo ""
     echo "  Console versions:"
@@ -76,16 +70,22 @@ show_advanced() {
 
     case $choice in
         1)
+            ask_console_host
             IMAGE="ghcr.io/chriopter/lumenmon-console:latest"
-            install_console
+            export CONSOLE_HOST IMAGE
+            source installer/console.sh
             ;;
         2)
+            ask_console_host
             IMAGE="ghcr.io/chriopter/lumenmon-console:main"
-            install_console
+            export CONSOLE_HOST IMAGE
+            source installer/console.sh
             ;;
         3)
+            ask_console_host
             IMAGE=""
-            install_console
+            export CONSOLE_HOST IMAGE
+            source installer/console.sh
             ;;
         4)
             show_menu
