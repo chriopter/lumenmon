@@ -1,47 +1,59 @@
 #!/bin/sh
-# Agent status - technical details
+# Agent status - detailed with colors
 
-# Check container basics
-echo -n "Agent: "
+# Colors
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+YELLOW='\033[0;33m'
+NC='\033[0m' # No Color
 
-# Container running (implicit since this script is running)
-echo -n "Container ✓ | "
+echo "Agent:"
 
-# Environment config
+# Container
+echo -e "  Container    ${GREEN}✓${NC} Running"
+
+# Configuration
 if [ -n "$CONSOLE_HOST" ]; then
-    echo -n "Config: $CONSOLE_HOST:${CONSOLE_PORT:-22} | "
+    echo -e "  Config       ${GREEN}✓${NC} $CONSOLE_HOST:${CONSOLE_PORT:-22}"
 else
-    echo "Config: ✗ Missing"
+    echo -e "  Config       ${RED}✗${NC} Not configured"
     exit
 fi
 
-# Network reachability
+# Network test
 if nc -zw1 "$CONSOLE_HOST" "${CONSOLE_PORT:-22}" 2>/dev/null; then
-    echo -n "Network ✓ | "
+    echo -e "  Network      ${GREEN}✓${NC} Console reachable"
 else
-    echo -n "Network ✗ | "
+    echo -e "  Network      ${RED}✗${NC} Cannot reach console"
 fi
 
-# SSH processes (check for actual SSH connection)
-if pgrep -f "ssh.*$CONSOLE_HOST" >/dev/null || pgrep -f "ssh.*id_" >/dev/null; then
-    echo -n "SSH ✓ | "
-
-    # Count collector processes
-    COLLECTORS=$(pgrep -f "collector" | wc -l)
-    [ $COLLECTORS -gt 0 ] && echo -n "Collectors: $COLLECTORS | "
+# SSH tunnel
+SSH_COUNT=$(pgrep -f "ssh.*$CONSOLE_HOST" | wc -l)
+if [ $SSH_COUNT -gt 0 ]; then
+    echo -e "  SSH Tunnel   ${GREEN}✓${NC} Established"
 else
-    echo -n "SSH ✗ | "
+    echo -e "  SSH Tunnel   ${RED}✗${NC} Not connected"
 fi
 
-# Metrics activity
+# Collector processes
+COLLECTORS=$(pgrep -f "collector" | wc -l)
+if [ $COLLECTORS -gt 0 ]; then
+    echo -e "  Collectors   ${GREEN}✓${NC} $COLLECTORS running"
+else
+    echo -e "  Collectors   ${YELLOW}⚠${NC} None running"
+fi
+
+# Metrics
 if [ -f /tmp/last_metric ]; then
     TIME=$(tail -1 /tmp/last_metric 2>/dev/null | cut -d' ' -f1 | cut -dT -f2 | cut -d. -f1)
-    [ -n "$TIME" ] && echo "Last metric: $TIME" || echo "Metrics: idle"
-else
-    # Check for any metric files
-    if ls /tmp/*.tsv 2>/dev/null | head -1 >/dev/null; then
-        echo "Metrics: buffered"
+    if [ -n "$TIME" ]; then
+        echo -e "  Metrics      ${GREEN}✓${NC} Last sent: $TIME"
     else
-        echo "Metrics: none"
+        echo -e "  Metrics      ${YELLOW}⚠${NC} No timestamp"
     fi
+elif ls /tmp/*.tsv 2>/dev/null | head -1 >/dev/null; then
+    COUNT=$(ls /tmp/*.tsv 2>/dev/null | wc -l)
+    echo -e "  Metrics      ${YELLOW}⚠${NC} $COUNT files buffered"
+else
+    echo -e "  Metrics      ${RED}✗${NC} No data"
 fi
