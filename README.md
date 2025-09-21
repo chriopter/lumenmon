@@ -9,12 +9,14 @@ Lumenmon is a one-command monitoring stack for Linux hosts.
 - **Live terminal view** – Textual TUI shows CPU, memory, disk, and invites.
 - **Nothing extra** – No database, no cert dance, no dashboards to configure.
 
+
+<img width="500" alt="screenshot-2025-09-21_20-57-39" src="https://github.com/user-attachments/assets/a900ed9c-d519-4c1c-8268-2d2417807aed" />
+
+
 ## Install
 ```bash
 curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/install.sh | bash
 ```
-
-<img width="500" alt="screenshot-2025-09-21_20-57-39" src="https://github.com/user-attachments/assets/a900ed9c-d519-4c1c-8268-2d2417807aed" />
 
 ## Install
 
@@ -58,26 +60,22 @@ lumenmon
 - Streams each sample as a TSV row over SSH.
 
 ### Security
-
-- **SSH-only**: No additional attack surface
-- **Key-based auth**: No passwords ever
+- **SSH-only**: Key-based auth
 - **User isolation**: Each agent gets its own Linux user
 - **ForceCommand**: Agents can't get shell access
-- **No root**: Everything runs as regular users
 
 ## CLI Commands
 
 ```bash
 lumenmon              # Open TUI dashboard (or show status)
-lumenmon status       # Show system status
-lumenmon logs         # Stream container logs
-lumenmon invite       # Generate agent invite
+lumenmon status or s       # Show system status
+lumenmon logs       or l   # Stream container logs
+lumenmon invite     or i   # Generate agent invite
 lumenmon register     # Register agent with invite
-lumenmon update       # Update to latest version
+lumenmon update      or u  # Update to latest version
 lumenmon uninstall    # Remove everything
+lumenmon help/h
 ```
-
-Short aliases available: `s` (status), `l` (logs), `i` (invite), `u` (update), `h` (help)
 
 ## Installation Options
 
