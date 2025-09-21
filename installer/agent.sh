@@ -56,4 +56,7 @@ else
     echo "• docker exec lumenmon-agent /app/core/setup/register.sh <invite>"
 fi
 
+# Setup CLI command
+source installer/cli.sh
+
 echo ""
