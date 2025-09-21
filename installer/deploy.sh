@@ -22,16 +22,31 @@ print_error() {
 deploy_container() {
     print_info "Deploying ${COMPONENT}..."
 
-    cd "${COMPONENT}"
+    # Ensure we're in the install directory
+    if [ ! -d "${INSTALL_DIR}/${COMPONENT}" ]; then
+        print_error "Component directory not found: ${INSTALL_DIR}/${COMPONENT}"
+        exit 1
+    fi
+
+    cd "${INSTALL_DIR}/${COMPONENT}"
 
     # Stop existing container if any
+    print_info "Stopping existing containers..."
     docker compose down 2>/dev/null || true
 
     # Deploy based on version
+    print_info "Starting ${COMPONENT} container..."
     if [ "$VERSION" = "local" ]; then
+        print_info "Building from local source..."
         docker compose up -d --build
-    else
+    elif [ -n "$LUMENMON_IMAGE" ]; then
+        print_info "Using image: ${LUMENMON_IMAGE}"
+        # Override the image in docker-compose
+        export LUMENMON_IMAGE
         docker compose up -d
+    else
+        print_info "Building from local source (fallback)..."
+        docker compose up -d --build
     fi
 
     if [ $? -eq 0 ]; then

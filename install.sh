@@ -2,9 +2,9 @@
 # Lumenmon Installer - Bootstrap Script
 set -e
 
-# Configuration
-REPO_URL="https://github.com/chriopter/lumenmon.git"
-INSTALL_DIR="${INSTALL_DIR:-$HOME/.lumenmon}"
+# Configuration (export for use in sourced scripts)
+export REPO_URL="https://github.com/chriopter/lumenmon.git"
+export INSTALL_DIR="${INSTALL_DIR:-$HOME/.lumenmon}"
 
 # Colors for output (export for use in sourced scripts)
 export RED='\033[0;31m'
