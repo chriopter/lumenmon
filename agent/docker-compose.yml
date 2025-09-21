@@ -2,6 +2,7 @@ version: '3.8'
 
 services:
   agent:
+    image: ${LUMENMON_IMAGE:-ghcr.io/chriopter/lumenmon-agent:latest}
     build: .
     container_name: lumenmon-agent
     hostname: agent-${AGENT_ID:-default}

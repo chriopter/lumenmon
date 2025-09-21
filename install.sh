@@ -1,207 +1,128 @@
 #!/bin/bash
-# Lumenmon Installer - KISS & Bulletproof
 set -e
 
-# Colors for output
+# Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
-YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # Configuration
-REPO_URL="https://github.com/chriopter/lumenmon.git"
-INSTALL_DIR="$HOME/.lumenmon"
+GITHUB_OWNER="${GITHUB_OWNER:-chriopter}"  # Replace with actual owner
+REGISTRY="ghcr.io"
 
-echo "================================"
-echo "      Lumenmon Installer"
-echo "================================"
-echo ""
+# Functions
+print_header() {
+    echo -e "${BLUE}=== Lumenmon Installer ===${NC}"
+    echo ""
+}
 
-# Check for Docker
-if ! command -v docker >/dev/null 2>&1; then
-    echo -e "${RED}❌ Docker is not installed${NC}"
-    echo "Please install Docker first: https://docs.docker.com/get-docker/"
-    exit 1
-fi
+print_success() {
+    echo -e "${GREEN}✓${NC} $1"
+}
 
-# Check for Docker Compose
-if ! docker compose version >/dev/null 2>&1; then
-    echo -e "${RED}❌ Docker Compose is not installed${NC}"
-    echo "Please install Docker Compose first"
-    exit 1
-fi
+print_error() {
+    echo -e "${RED}✗${NC} $1"
+}
 
-COMPOSE_CMD="docker compose"
+print_info() {
+    echo -e "${BLUE}→${NC} $1"
+}
 
-# Smart clone/update
-if [ -d "$INSTALL_DIR/.git" ]; then
-    echo -e "${BLUE}📦 Updating Lumenmon...${NC}"
-    cd "$INSTALL_DIR"
-    git pull --ff-only --quiet
-    echo -e "${GREEN}✓ Updated successfully${NC}"
-else
-    echo -e "${BLUE}📦 Installing Lumenmon...${NC}"
-    git clone --quiet "$REPO_URL" "$INSTALL_DIR"
-    cd "$INSTALL_DIR"
-    echo -e "${GREEN}✓ Installed successfully${NC}"
-fi
+select_component() {
+    echo "What to install?"
+    echo "1) Console (monitoring dashboard)"
+    echo "2) Agent (metrics collector)"
+    echo "3) Exit"
+    echo ""
+    read -p "> " choice
 
-# Data directories are now part of the repo, no need to create them
+    case $choice in
+        1) COMPONENT="console" ;;
+        2) COMPONENT="agent" ;;
+        3) exit 0 ;;
+        *) print_error "Invalid choice"; exit 1 ;;
+    esac
+}
 
-# Menu
-echo ""
-echo "What would you like to do?"
-echo ""
-echo "  1) Install/Start Console"
-echo "  2) Install/Start Agent"
-echo "  3) Install/Start Both"
-echo "  4) Update Containers"
-echo "  5) Stop All"
-echo ""
-read -p "Enter choice [1-5]: " choice </dev/tty
+select_version() {
+    echo ""
+    echo "Which version?"
+    echo "1) Stable (latest release)"
+    echo "2) Dev (latest development)"
+    echo "3) Local (build from source)"
+    echo ""
+    read -p "> " choice
 
-case $choice in
-    1)
-        # Install Console
-        echo -e "${BLUE}Starting Console...${NC}"
-        cd "$INSTALL_DIR/console"
-        $COMPOSE_CMD up -d
+    case $choice in
+        1) VERSION="latest" ;;
+        2) VERSION="dev" ;;
+        3) VERSION="local" ;;
+        *) print_error "Invalid choice"; exit 1 ;;
+    esac
+}
 
-        # Get console IP
-        CONSOLE_IP=$(hostname -I 2>/dev/null | awk '{print $1}' || echo "localhost")
+install_component() {
+    echo ""
+    print_info "Installing ${COMPONENT} (${VERSION})..."
 
-        echo ""
-        echo -e "${GREEN}✅ Console is running!${NC}"
-        echo ""
-        echo "📊 Access the dashboard:"
-        echo -e "${YELLOW}   docker exec -it lumenmon-console python3 /app/tui/tui.py${NC}"
-        echo ""
-        echo "🔐 Press 'a' in TUI for admin menu to:"
-        echo "   - Get secure install command for agents"
-        echo "   - Add agent keys"
-        echo ""
-        echo "📝 Console IP for agents: ${CONSOLE_IP}"
-        ;;
+    cd $(dirname "$0")/${COMPONENT}
 
-    2)
-        # Install Agent
-        echo -e "${BLUE}Configuring Agent...${NC}"
+    if [ "$VERSION" = "local" ]; then
+        print_info "Building from local source..."
+        docker compose down 2>/dev/null || true
+        docker compose up -d --build
+    else
+        print_info "Pulling from GHCR..."
+        IMAGE="${REGISTRY}/${GITHUB_OWNER}/lumenmon-${COMPONENT}:${VERSION}"
 
-        # Load existing config if it exists
-        CURRENT_HOST="lumenmon-console"
-        if [ -f "$INSTALL_DIR/agent/data/.env" ]; then
-            source "$INSTALL_DIR/agent/data/.env"
-            CURRENT_HOST="${CONSOLE_HOST:-lumenmon-console}"
-        fi
+        docker pull "$IMAGE"
 
-        # Always ask for Console host (showing current value)
-        echo "Current Console host: ${CURRENT_HOST}"
-        read -p "Enter Console hostname/IP [${CURRENT_HOST}]: " NEW_HOST </dev/tty
-        CONSOLE_HOST=${NEW_HOST:-$CURRENT_HOST}
+        # Update docker-compose to use the pulled image
+        export LUMENMON_IMAGE="$IMAGE"
+        docker compose down 2>/dev/null || true
+        docker compose up -d
+    fi
 
-        # Save configuration (always use port 2345)
-        echo "CONSOLE_HOST=$CONSOLE_HOST" > "$INSTALL_DIR/agent/data/.env"
-        echo -e "${GREEN}✓ Configuration saved${NC}"
+    if [ $? -eq 0 ]; then
+        print_success "Installation complete!"
 
-        # Handle host key pinning if provided
-        if [ ! -z "${CONSOLE_HOSTKEY:-}" ]; then
-            echo -e "${BLUE}Pinning console host key...${NC}"
-            mkdir -p "$INSTALL_DIR/agent/data/ssh"
-            echo "[$CONSOLE_HOST]:2345 $CONSOLE_HOSTKEY" > "$INSTALL_DIR/agent/data/ssh/known_hosts"
-            echo -e "${GREEN}✓ Host key pinned for secure connection${NC}"
-        fi
-
-        # Check for agent key
-        if [ ! -f "$INSTALL_DIR/agent/data/ssh/id_rsa" ]; then
+        if [ "$COMPONENT" = "console" ]; then
             echo ""
-            echo -e "${YELLOW}Note: Agent will generate SSH key on first run${NC}"
-            echo -e "${YELLOW}You'll need to add it to the console${NC}"
-            read -p "Press Enter after adding the key to continue..." </dev/tty
-        fi
-
-        echo -e "${BLUE}Starting Agent...${NC}"
-        cd "$INSTALL_DIR/agent"
-        $COMPOSE_CMD up -d
-
-        echo ""
-        echo -e "${GREEN}✅ Agent is running!${NC}"
-        echo "   Connected to console: $CONSOLE_HOST"
-        echo ""
-        echo "📊 View logs: docker logs -f lumenmon-agent"
-        echo ""
-        echo "🔑 To show agent key: docker exec lumenmon-agent /app/show-key.sh"
-        ;;
-
-    3)
-        # Install Both
-        echo -e "${BLUE}Starting Console and Agent...${NC}"
-
-        cd "$INSTALL_DIR/console"
-        $COMPOSE_CMD up -d
-
-        # Ask if agent should use local or remote console
-        echo ""
-        echo "Agent configuration:"
-        echo "  1) Use local console (same machine)"
-        echo "  2) Use remote console (different machine)"
-        read -p "Choice [1]: " AGENT_CHOICE </dev/tty
-
-        if [ "${AGENT_CHOICE}" == "2" ]; then
-            read -p "Enter Console hostname/IP: " CONSOLE_HOST </dev/tty
-            echo "CONSOLE_HOST=$CONSOLE_HOST" > "$INSTALL_DIR/agent/data/.env"
+            print_info "Console is running on port 2345"
+            print_info "Create an invite: docker exec lumenmon-console /app/core/enrollment/invite_create.sh"
+            print_info "Access TUI: docker exec -it lumenmon-console python3 /app/tui/main.py"
         else
-            # Default to local console
-            echo "CONSOLE_HOST=lumenmon-console" > "$INSTALL_DIR/agent/data/.env"
+            echo ""
+            print_info "Agent is running"
+            print_info "Register with console using an invite URL"
+            print_info "Check logs: docker logs lumenmon-agent"
         fi
-
-        cd "$INSTALL_DIR/agent"
-        $COMPOSE_CMD up -d
-
-        echo ""
-        echo -e "${GREEN}✅ Console and Agent are running!${NC}"
-        echo ""
-        echo "📊 Access the dashboard:"
-        echo -e "${YELLOW}   docker exec -it lumenmon-console python3 /app/tui/tui.py${NC}"
-        ;;
-
-    4)
-        # Update containers
-        echo -e "${BLUE}Updating containers...${NC}"
-
-        if [ -d "$INSTALL_DIR/console" ]; then
-            cd "$INSTALL_DIR/console"
-            $COMPOSE_CMD pull
-            $COMPOSE_CMD up -d
-        fi
-
-        if [ -d "$INSTALL_DIR/agent" ]; then
-            cd "$INSTALL_DIR/agent"
-            $COMPOSE_CMD pull
-            $COMPOSE_CMD up -d
-        fi
-
-        echo -e "${GREEN}✅ Containers updated${NC}"
-        ;;
-
-    5)
-        # Stop all
-        echo -e "${BLUE}Stopping all containers...${NC}"
-
-        cd "$INSTALL_DIR"
-        [ -d console ] && (cd console && $COMPOSE_CMD down)
-        [ -d agent ] && (cd agent && $COMPOSE_CMD down)
-
-        echo -e "${GREEN}✅ All containers stopped${NC}"
-        ;;
-
-    *)
-        echo -e "${RED}Invalid choice${NC}"
+    else
+        print_error "Installation failed"
         exit 1
-        ;;
-esac
+    fi
+}
+
+# Main
+clear
+print_header
+
+# Check Docker
+if ! command -v docker &> /dev/null; then
+    print_error "Docker is not installed"
+    exit 1
+fi
+
+# Check if we're in the right directory
+if [ ! -d "console" ] || [ ! -d "agent" ]; then
+    print_error "Please run this script from the lumenmon repository root"
+    exit 1
+fi
+
+select_component
+select_version
+install_component
 
 echo ""
-echo "To run this installer again:"
-echo -e "${BLUE}curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/install.sh | bash${NC}"
-echo ""
+print_success "Done!"

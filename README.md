@@ -55,6 +55,31 @@ docker exec -it lumenmon-console python3 /app/tui/tui.py
 
 Run installer again - it pulls latest and restarts containers.
 
+## Releases
+
+### Creating a Release
+
+```bash
+git tag v0.0.1
+git push origin v0.0.1
+```
+
+GitHub Actions automatically:
+- Builds console and agent containers
+- Pushes to GHCR with version tag + `latest`
+- Creates GitHub release
+
+### Version Tags
+
+- **Development**: Every push to `main` → `:dev` images
+- **Releases**: Tags like `v0.0.1` → `:v0.0.1` and `:latest` images
+
+### Container Images
+
+After release, images are available at:
+- `ghcr.io/chriopter/lumenmon-console:latest`
+- `ghcr.io/chriopter/lumenmon-agent:latest`
+
 ## Requirements
 
 - Docker
