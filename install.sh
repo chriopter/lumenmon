@@ -35,7 +35,7 @@ if [ -d "$DEFAULT_DIR/.git" ]; then
     cd "$DEFAULT_DIR" && git pull --quiet
     log "✓ Updated"
 else
-    echo "Press Enter to install to $DEFAULT_DIR..."
+    echo "Press Enter to clone to $DEFAULT_DIR and start installation..."
     read -r < /dev/tty
     echo ""
     log "Installing..."

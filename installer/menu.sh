@@ -58,15 +58,20 @@ show_advanced() {
     echo ""
     echo -e "  \033[1mAdvanced Options:\033[0m"
     echo ""
-    echo "  Console versions:"
+    echo "  Console:"
     echo "  1) Latest release"
     echo "  2) Development version"
     echo "  3) Build from source"
     echo ""
-    echo "  4) Back"
+    echo "  Agent:"
+    echo "  4) Latest release"
+    echo "  5) Development version"
+    echo "  6) Build from source"
+    echo ""
+    echo "  7) Back"
     echo ""
 
-    read -r -p "  Select [1-4]: " choice < /dev/tty
+    read -r -p "  Select [1-7]: " choice < /dev/tty
 
     case $choice in
         1)
@@ -88,6 +93,21 @@ show_advanced() {
             source installer/console.sh
             ;;
         4)
+            IMAGE="ghcr.io/chriopter/lumenmon-agent:latest"
+            export IMAGE
+            source installer/agent.sh
+            ;;
+        5)
+            IMAGE="ghcr.io/chriopter/lumenmon-agent:main"
+            export IMAGE
+            source installer/agent.sh
+            ;;
+        6)
+            IMAGE=""
+            export IMAGE
+            source installer/agent.sh
+            ;;
+        7)
             show_menu
             ;;
         *)
