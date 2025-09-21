@@ -18,15 +18,9 @@ if [ -d "$DEFAULT_DIR/.git" ]; then
 else
     # First time install - explain and confirm
     echo ""
-    echo "Lumenmon System Monitor"
+    echo -e "\033[1;32mLUMENMON\033[0m"
     echo ""
-    echo "This will:"
-    echo "• Install to $DEFAULT_DIR"
-    echo "• Set up monitoring containers"
-    echo ""
-
-    # Wait for explicit confirmation
-    echo "Press Enter to continue or Ctrl+C to cancel..."
+    echo "Press Enter to clone installer to $DEFAULT_DIR and start setup..."
     read -r < /dev/tty
 
     echo ""
