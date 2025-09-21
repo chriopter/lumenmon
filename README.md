@@ -9,7 +9,7 @@
 
 # The One-Button Monitoring Setup
 
-Absolutely KISS Monitoring tool with no special sauce.
+Absolutely KISS Monitoring tool with no special sauce.\
 Just Bash scripts, piping to a central server via SSH. No Database, no dashboard setup. Run one command to setup.
 
 <img width="600" alt="screenshot-2025-09-21_20-57-39" src="https://github.com/user-attachments/assets/a900ed9c-d519-4c1c-8268-2d2417807aed" />
