@@ -39,10 +39,6 @@ if echo "$PUBLIC_KEY" | sshpass -p "$PASSWORD" \
     mv "$KNOWN_HOSTS" /home/metrics/.ssh/known_hosts
 
     echo "[REGISTER] Success! Host key saved." >&2
-
-    # Output connection details for installer to save
-    echo "ENV:CONSOLE_HOST=$HOST"
-    echo "ENV:CONSOLE_PORT=$PORT"
 else
     ERROR=$?
     rm -f "$KNOWN_HOSTS"
