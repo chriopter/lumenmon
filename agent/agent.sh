@@ -6,6 +6,7 @@ set -euo pipefail
 [ "${1:-}" = "--show-key" ] && exec core/setup/identity.sh --show-only
 
 # Set up environment
+# Connection details come from Docker environment variables set via .env file
 export CONSOLE_HOST="${CONSOLE_HOST:-console}"
 export CONSOLE_PORT="${CONSOLE_PORT:-22}"
 export SSH_SOCKET="/tmp/lumenmon.sock"
