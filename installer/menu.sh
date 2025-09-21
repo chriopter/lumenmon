@@ -60,12 +60,12 @@ show_advanced() {
     echo ""
     echo "  Console:"
     echo "  1) Stable (latest release)"
-    echo "  2) Edge (continuous builds)"
+    echo "  2) Dev (continuous builds)"
     echo "  3) Local (build from source)"
     echo ""
     echo "  Agent:"
     echo "  4) Stable (latest release)"
-    echo "  5) Edge (continuous builds)"
+    echo "  5) Dev (continuous builds)"
     echo "  6) Local (build from source)"
     echo ""
     echo "  7) Back"
@@ -82,7 +82,7 @@ show_advanced() {
             ;;
         2)
             ask_console_host
-            IMAGE="ghcr.io/chriopter/lumenmon-console:main"
+            IMAGE="ghcr.io/chriopter/lumenmon-console:dev"
             export CONSOLE_HOST IMAGE
             source installer/console.sh
             ;;
@@ -98,7 +98,7 @@ show_advanced() {
             source installer/agent.sh
             ;;
         5)
-            IMAGE="ghcr.io/chriopter/lumenmon-agent:main"
+            IMAGE="ghcr.io/chriopter/lumenmon-agent:dev"
             export IMAGE
             source installer/agent.sh
             ;;
