@@ -43,14 +43,4 @@ else
     printf "  Collectors   ${YELLOW}⚠${NC} None running\n"
 fi
 
-# Metrics
-if [ -f /tmp/last_metric ]; then
-    TIME=$(tail -1 /tmp/last_metric 2>/dev/null | cut -d' ' -f1 | cut -dT -f2 | cut -d. -f1)
-    if [ -n "$TIME" ]; then
-        printf "  Metrics      ${GREEN}✓${NC} Last sent: $TIME\n"
-    else
-        printf "  Metrics      ${YELLOW}⚠${NC} No timestamp\n"
-    fi
-else
-    printf "  Metrics      ${RED}✗${NC} No recent data\n"
-fi
+# Metrics flow check removed - /tmp is flushed too fast for reliable tracking
