@@ -25,8 +25,8 @@ case "$1" in
         ;;
 
     logs|l)
-        docker logs -f lumenmon-console 2>&1 | sed 's/^/[console] /' &
-        docker logs -f lumenmon-agent 2>&1 | sed 's/^/[agent] /' &
+        docker logs -f lumenmon-console 2>&1 &
+        docker logs -f lumenmon-agent 2>&1 &
         wait
         ;;
 
