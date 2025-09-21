@@ -8,6 +8,7 @@ ask_console_host() {
 
     echo ""
     echo "  Auto-detected: $DETECTED_HOST"
+    echo "  Enter the URL where agents can reach this console."
     read -p "  Console host [$DETECTED_HOST]: " USER_HOST
     CONSOLE_HOST="${USER_HOST:-$DETECTED_HOST}"
     export CONSOLE_HOST
@@ -39,6 +40,7 @@ show_menu() {
             COMPONENT="console"
             IMAGE=""
             ask_console_host
+            export COMPONENT IMAGE
             ;;
         2)
             show_advanced
@@ -88,28 +90,34 @@ show_advanced() {
             COMPONENT="console"
             IMAGE="ghcr.io/chriopter/lumenmon-console:latest"
             ask_console_host
+            export COMPONENT IMAGE
             ;;
         2)
             COMPONENT="console"
             IMAGE="ghcr.io/chriopter/lumenmon-console:main"
             ask_console_host
+            export COMPONENT IMAGE
             ;;
         3)
             COMPONENT="console"
             IMAGE=""
             ask_console_host
+            export COMPONENT IMAGE
             ;;
         4)
             COMPONENT="agent"
             IMAGE="ghcr.io/chriopter/lumenmon-agent:latest"
+            export COMPONENT IMAGE
             ;;
         5)
             COMPONENT="agent"
             IMAGE="ghcr.io/chriopter/lumenmon-agent:main"
+            export COMPONENT IMAGE
             ;;
         6)
             COMPONENT="agent"
             IMAGE=""
+            export COMPONENT IMAGE
             ;;
         7)
             show_menu
@@ -121,6 +129,3 @@ show_advanced() {
             ;;
     esac
 }
-
-# Export variables for deploy script
-export COMPONENT IMAGE
