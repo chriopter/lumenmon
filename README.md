@@ -34,7 +34,7 @@ Get the console running, enroll an agent, open the dashboard—each step is one 
 
 ## Architecture
 
-- **Console** – Listens on SSH, stores hot metrics in `/var/lib/lumenmon/hot`, and serves the TUI.
+- **Console** – Listens on SSH, stores metrics in `/data/agents/<id>`, and serves the TUI.
 - **Agent** – Runs shell collectors and ships TSV metrics over SSH at tight intervals.
 - **Transport** – A ForceCommand pipeline on the console receives the stream and writes files.
 
