@@ -6,7 +6,7 @@
   ███████╗╚██████╔╝██║ ╚═╝ ██║███████╗██║ ╚████║██║ ╚═╝ ██║╚██████╔╝██║ ╚████║
   ╚══════╝ ╚═════╝ ╚═╝     ╚═╝╚══════╝╚═╝  ╚═══╝╚═╝     ╚═╝ ╚═════╝ ╚═╝  ╚═══╝
 ```
-<img width="600" alt="screenshot-2025-09-21_20-57-39" src="https://github.com/user-attachments/assets/a900ed9c-d519-4c1c-8268-2d2417807aed" />
+<img width="500" alt="screenshot-2025-09-21_20-57-39" src="https://github.com/user-attachments/assets/a900ed9c-d519-4c1c-8268-2d2417807aed" />
 
 # The One-Button Monitoring Setup
 
@@ -21,7 +21,7 @@ Run central installer to setup the Console Container:
 ```bash
 curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/install.sh | bash
 ```
-<img width="400" height="864" alt="image" src="https://github.com/user-attachments/assets/7c53ed47-cc74-42d9-9e37-dd1f44e65917" />
+<img width="500" height="864" alt="image" src="https://github.com/user-attachments/assets/7c53ed47-cc74-42d9-9e37-dd1f44e65917" />
 
 
 After installation, the console generates a magic link to setup your first agent. This is just a temporary ssh user, the servers fingerprint is encoded in it. 
@@ -29,7 +29,7 @@ After installation, the console generates a magic link to setup your first agent
 ''' example
    curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/install.sh | LUMENMON_INVITE='ssh://reg_1758482881441:b71f0da33953@localhost:2345/#ssh-ed25519_AAAAC3NzaC1lZDI1NTE5AAAAIImZwbLPoVLRJpPPh6xjpTqILLbBYfwv7603ommQh0Fg' bash
 '''
-<img width="400" alt="image" src="https://github.com/user-attachments/assets/3389a70a-2bf6-460c-908c-198184dd21ec" />
+<img width="500" alt="image" src="https://github.com/user-attachments/assets/3389a70a-2bf6-460c-908c-198184dd21ec" />
 
 
 ### Architecture
