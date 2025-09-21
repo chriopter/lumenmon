@@ -44,7 +44,7 @@ jobs:
         fi
 
     - name: Build and push Console
-      uses: docker/build-push-action@v5
+      uses: docker/build-push-action@v6
       with:
         context: ./console
         push: true
@@ -53,7 +53,7 @@ jobs:
         cache-to: type=gha,mode=max
 
     - name: Build and push Agent
-      uses: docker/build-push-action@v5
+      uses: docker/build-push-action@v6
       with:
         context: ./agent
         push: true
