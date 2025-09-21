@@ -4,38 +4,54 @@
 DIR="$(dirname "$(readlink -f "$0")")"
 cd "$DIR"
 
+# Check if container is running
+is_running() { docker ps | grep -q "lumenmon-$1"; }
+
 case "$1" in
-    console|tui|dashboard)
-        docker exec -it lumenmon-console python3 /app/tui/main.py
+    # Default without args - open TUI or show status
+    "")
+        if is_running console; then
+            docker exec -it lumenmon-console python3 /app/tui/main.py
+        else
+            "$0" status
+        fi
         ;;
-    logs)
-        docker logs -f lumenmon-console
+
+    status|s)
+        echo "Lumenmon Status"
+        echo "━━━━━━━━━━━━━━━"
+        is_running console && echo "✓ $(docker exec lumenmon-console /app/core/status.sh 2>/dev/null)" || echo "✗ Console stopped"
+        is_running agent && echo "✓ $(docker exec lumenmon-agent /app/core/status.sh 2>/dev/null)" || echo "✗ Agent stopped"
         ;;
-    agent-logs)
-        docker logs -f lumenmon-agent
+
+    logs|l)
+        docker logs -f lumenmon-console 2>&1 | sed 's/^/[console] /' &
+        docker logs -f lumenmon-agent 2>&1 | sed 's/^/[agent] /' &
+        wait
         ;;
-    invite)
+
+    invite|i)
         docker exec lumenmon-console /app/core/enrollment/invite_create.sh
         ;;
-    update)
+
+    update|u)
         git pull && echo "✓ Updated"
         ;;
+
     uninstall)
         source installer/uninstall.sh
         ;;
-    help|"")
-        echo "Usage: lumenmon {console|logs|agent-logs|invite|update|uninstall}"
-        echo ""
-        echo "Commands:"
-        echo "  console     Open the TUI dashboard"
-        echo "  logs        View console container logs"
-        echo "  agent-logs  View agent container logs"
-        echo "  invite      Generate agent installation invite"
-        echo "  update      Update Lumenmon from git"
-        echo "  uninstall   Remove Lumenmon completely"
+
+    help|h)
+        echo "lumenmon              - Open TUI (or status if not running)"
+        echo "lumenmon status       - Show system status"
+        echo "lumenmon logs        - View logs"
+        echo "lumenmon invite      - Generate agent invite"
+        echo "lumenmon update      - Update from git"
+        echo "lumenmon uninstall   - Remove everything"
         ;;
+
     *)
-        echo "Unknown command: $1"
-        echo "Usage: lumenmon {console|logs|agent-logs|invite|update|uninstall}"
+        echo "Unknown: $1 (try 'lumenmon help')"
         ;;
 esac
