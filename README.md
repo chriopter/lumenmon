@@ -36,15 +36,27 @@ That's it. Data flows.
 ## How It Works
 
 ```
-Your Servers                    Console
-─────────────                   ─────────
-
-[Agent] ──SSH──> [Port 2345] ──> [TUI Dashboard]
-         metrics               live view
+┌─────────────┐  SSH Tunnel   ┌─────────────┐
+│   Agent     │──────────────►│   Console   │
+├─────────────┤   Port 2345   ├─────────────┤
+│ • CPU 100ms │               │ • SSH Server│──► TUI Dashboard
+│ • Mem 1s    │  TSV Stream   │ • Per-agent │    (Textual)
+│ • Disk 60s  │──────────────►│   Linux user│
+└─────────────┘               │ • TSV files │
+                              └─────────────┘
+                                    │
+                                    ▼
+                              /data/agents/
+                              └── <agent-id>/
+                                  ├── cpu.tsv
+                                  ├── memory.tsv
+                                  └── disk.tsv
 ```
 
-Each agent streams metrics over SSH. No APIs, no certificates, no complexity.
-The console shows everything in a beautiful terminal dashboard.
+**Agent**: Bash collectors stream metrics as TSV rows through SSH
+**Console**: Each agent gets its own Linux user, ForceCommand routes data to storage
+**Storage**: Simple TSV files, no database needed
+**Security**: SSH keys only, no passwords, no shell access
 
 ## Commands
 
