@@ -26,8 +26,13 @@ curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/install.sh |
 
 After installation, the console generates a magic link to setup your first agent. This is just a temporary ssh user, the servers fingerprint is encoded in it. 
 
+''' example
+   curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/install.sh | LUMENMON_INVITE='ssh://reg_1758482881441:b71f0da33953@localhost:2345/#ssh-ed25519_AAAAC3NzaC1lZDI1NTE5AAAAIImZwbLPoVLRJpPPh6xjpTqILLbBYfwv7603ommQh0Fg' bash
+'''
 <img width="400" alt="image" src="https://github.com/user-attachments/assets/3389a70a-2bf6-460c-908c-198184dd21ec" />
 
+
+### Architecture
 ## How It Works
 
 - 🚀 **Instant setup** - One-line installation, auto-generated agent invites
@@ -39,12 +44,6 @@ After installation, the console generates a magic link to setup your first agent
 
 **Console**: Runs an SSH Server to receive data from agents.
 **Agent**: Delievers data from 
-
-### Key Features
-
-
-
-### Architecture
 
 ```
 ┌─────────────┐  SSH Tunnel   ┌─────────────┐
