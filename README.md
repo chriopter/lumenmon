@@ -8,7 +8,7 @@
 ```
 
 
-Monitor all your servers from a single terminal. No config files, no databases, just SSH.
+Monitor all your servers from a single terminal. Based on bash, ssh and file storage - no setup of databases, dashboards or complex setup.
 
 - **30 seconds to monitoring** – One command, and you're watching live metrics
 - **Add servers with a magic link** – Copy, paste, done. Each agent gets its own SSH invite
