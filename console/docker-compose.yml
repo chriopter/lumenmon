@@ -15,6 +15,7 @@ services:
       - lumenmon
     environment:
       - PYTHONUNBUFFERED=1
+      - CONSOLE_HOST=${CONSOLE_HOST:-localhost}
     stdin_open: true
     tty: true
 

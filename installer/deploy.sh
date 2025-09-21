@@ -7,6 +7,11 @@ deploy_component() {
 
     cd "$DIR/$COMPONENT"
 
+    # Save console host to .env if installing console
+    if [ "$COMPONENT" = "console" ] && [ -n "$CONSOLE_HOST" ]; then
+        echo "CONSOLE_HOST=$CONSOLE_HOST" > "$DIR/console/.env"
+    fi
+
     # Stop any existing container
     docker compose down 2>/dev/null
 

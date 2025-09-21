@@ -13,6 +13,7 @@ mkdir -p agent/data/{debug,ssh} console/data/{agents,ssh}
 
 # Step 2: Start containers
 echo "🚀 Starting fresh..."
+echo "CONSOLE_HOST=localhost" > console/.env
 docker compose -f console/docker-compose.yml up -d --build
 CONSOLE_HOST=localhost CONSOLE_PORT=2345 docker compose -f agent/docker-compose.yml up -d --build
 

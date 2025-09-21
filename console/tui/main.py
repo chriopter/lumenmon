@@ -27,7 +27,7 @@ class LumenmonTUI(App):
         ("q", "quit", "Quit"),
         ("r", "refresh", "Refresh"),
         ("i", "create_invite", "Create Invite"),
-        ("c", "copy_invite", "Copy Invite URL"),
+        ("c", "copy_invite", "Copy Install Command"),
         ("d", "toggle_dark", "Toggle Dark Mode"),
     ]
 
@@ -191,16 +191,19 @@ class LumenmonTUI(App):
             return
 
         invite_url = self.invite_urls[0]
-        if self.clipboard_service.copy(invite_url, app=self):
-            self.notify(f"✓ Copied to clipboard!\n{invite_url}", timeout=5)
-        elif self.clipboard_service.save_fallback(invite_url):
+        host = invite_url.split('@')[1].split('/')[0]
+        full_command = f"curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/install.sh | LUMENMON_INVITE='{invite_url}' bash"
+
+        if self.clipboard_service.copy(full_command, app=self):
+            self.notify(f"✓ Copied install command to clipboard!\n{full_command}", timeout=5)
+        elif self.clipboard_service.save_fallback(full_command):
             self.notify(
-                f"⚠ Could not copy to clipboard.\nSaved to: /tmp/lumenmon_invite.txt\n\n{invite_url}",
+                f"⚠ Could not copy to clipboard.\nSaved to: /tmp/lumenmon_invite.txt\n\n{full_command}",
                 timeout=15,
             )
         else:
             self.notify(
-                f"⚠ Could not copy to clipboard.\nManually copy:\n\n{invite_url}",
+                f"⚠ Could not copy to clipboard.\nManually copy:\n\n{full_command}",
                 timeout=20,
             )
 

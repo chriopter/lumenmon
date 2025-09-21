@@ -18,11 +18,16 @@ else
     git clone --quiet "$REPO" "$DIR"
 fi
 
-# Run installer
+# Dispatch to appropriate installer
 cd "$DIR"
-source installer/menu.sh
-source installer/deploy.sh
 
-# Start
-show_menu
-deploy_component
+if [ -n "$LUMENMON_INVITE" ]; then
+    # Agent installation with invite
+    source installer/agent.sh
+else
+    # Interactive menu
+    source installer/menu.sh
+    source installer/deploy.sh
+    show_menu
+    deploy_component
+fi
