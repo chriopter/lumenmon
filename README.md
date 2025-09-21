@@ -49,7 +49,7 @@ curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/install.sh |
 
 - **Agents** collect metrics (CPU/memory/disk) and push TSV data through persistent SSH connections
 - **Console** creates isolated Linux users per agent, routes incoming data to `/data/agents/<id>/*.tsv` files
-- **Security** all SSH-based, all data pushed (never pulled): invites are temporary SSH accounts for enrollment, then certificates only
+- **Security** all SSH-based, push-only: invites are temporary SSH accounts (password + host fingerprint), exchanged for certificates on enrollment
 
 ## Commands
 
@@ -63,6 +63,10 @@ lumenmon update     # Update to latest version (alias: u)
 lumenmon uninstall  # Remove everything
 lumenmon help       # Show help (alias: h)
 ```
+
+## Current State
+
+The structure, installer, and lumenmon command are v0.1. TUI and collectors will be polished next.
 
 ---
 
