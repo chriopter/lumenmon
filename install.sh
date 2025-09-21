@@ -25,9 +25,9 @@ else
     echo "• Set up monitoring containers"
     echo ""
 
-    # For curl|bash compatibility, default to yes unless explicitly cancelled
-    echo "Press Ctrl+C to cancel, or wait 5 seconds to continue..."
-    sleep 5
+    # Wait for explicit confirmation
+    echo "Press Enter to continue or Ctrl+C to cancel..."
+    read -r < /dev/tty
 
     echo ""
     log "Checking requirements..."
