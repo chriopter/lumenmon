@@ -1,29 +1,17 @@
 version: 2
 updates:
-  # Python dependencies for server
-  - package-ecosystem: "pip"
-    directory: "/server/app"
-    schedule:
-      interval: "weekly"
-    open-pull-requests-limit: 5
-    labels:
-      - "dependencies"
-      - "python"
-    commit-message:
-      prefix: "chore"
-      include: "scope"
-
-  # Docker dependencies
+  # Docker dependencies for console
   - package-ecosystem: "docker"
-    directory: "/server"
+    directory: "/console"
     schedule:
       interval: "weekly"
     labels:
       - "dependencies"
       - "docker"
 
+  # Docker dependencies for agent
   - package-ecosystem: "docker"
-    directory: "/client"
+    directory: "/agent"
     schedule:
       interval: "weekly"
     labels:
