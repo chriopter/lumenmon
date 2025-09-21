@@ -5,7 +5,7 @@ set -e
 REPO="https://github.com/chriopter/lumenmon.git"
 DEFAULT_DIR="$HOME/.lumenmon"
 
-# Minimal status output before repo is cloned
+# Output helpers
 log() { echo "$1"; }
 err() {
     echo "Error: $1" >&2
@@ -14,53 +14,42 @@ err() {
     exit 1
 }
 
-# Check requirements first
+# Title
+echo ""
+echo -e "\033[1;32mLUMENMON\033[0m"
+echo ""
+
+# Check prerequisites
 log "Checking requirements..."
-if command -v git >/dev/null 2>&1; then
-    log "✓ Git installed"
-else
-    err "Git not found - please install git"
-fi
-if command -v docker >/dev/null 2>&1; then
-    log "✓ Docker installed"
-else
-    err "Docker not found - please install docker"
-fi
-if docker compose version >/dev/null 2>&1; then
-    log "✓ Docker Compose installed"
-else
-    err "'docker compose' not available - please install Docker Compose v2"
-fi
+command -v git >/dev/null 2>&1 && log "✓ Git installed" || err "Git not found - please install git"
+command -v docker >/dev/null 2>&1 && log "✓ Docker installed" || err "Docker not found - please install docker"
+docker compose version >/dev/null 2>&1 && log "✓ Docker Compose installed" || err "'docker compose' not available - please install Docker Compose v2"
 
-# Update existing or install new
+echo ""
+
+# Install or update
 if [ -d "$DEFAULT_DIR/.git" ]; then
-    DIR="$DEFAULT_DIR"
-    log "Updating existing installation at $DIR..."
-    cd "$DIR" && git pull --quiet
-    log "✓ Repository updated"
-else
-    # First time install - explain and confirm
-    echo ""
-    echo -e "\033[1;32mLUMENMON\033[0m"
-    echo ""
-    echo "Press Enter to clone installer to $DEFAULT_DIR and start setup..."
+    echo "Press Enter to update existing installation at $DEFAULT_DIR..."
     read -r < /dev/tty
-
-    DIR="$DEFAULT_DIR"
     echo ""
-    log "Installing to $DIR..."
-    git clone --quiet "$REPO" "$DIR"
-    log "✓ Installation ready"
+    cd "$DEFAULT_DIR" && git pull --quiet
+    log "✓ Updated"
+else
+    echo "Press Enter to install to $DEFAULT_DIR..."
+    read -r < /dev/tty
+    echo ""
+    log "Installing..."
+    git clone --quiet "$REPO" "$DEFAULT_DIR"
+    log "✓ Installed"
 fi
 
+# Setup environment
+DIR="$DEFAULT_DIR"
 export DIR
-
-# Load proper status helpers
 source "$DIR/installer/status.sh"
-
 cd "$DIR"
 
-# Route to appropriate installer
+# Launch appropriate installer
 if [ -n "$LUMENMON_INVITE" ]; then
     status_progress "Starting agent installer..."
     source installer/agent.sh
