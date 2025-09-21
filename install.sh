@@ -5,6 +5,7 @@ set -e
 # Setup
 REPO="https://github.com/chriopter/lumenmon.git"
 DIR="$HOME/.lumenmon"
+export DIR
 
 # Check requirements
 command -v git >/dev/null 2>&1 || { echo "Need git"; exit 1; }
