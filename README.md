@@ -1,6 +1,10 @@
 
 # Lumenmon
 
+```bash
+curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/install.sh | bash
+```
+
 Lumenmon is a one-command monitoring stack for Linux hosts.
 
 - **One command install** – Pipe `install.sh`; the console is ready in seconds.
@@ -12,10 +16,6 @@ Lumenmon is a one-command monitoring stack for Linux hosts.
 <img width="500" alt="screenshot-2025-09-21_20-57-39" src="https://github.com/user-attachments/assets/a900ed9c-d519-4c1c-8268-2d2417807aed" />
 
 ## Install
-
-```bash
-curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/install.sh | bash
-```
 
 The console prints an invite URL—copy/paste it on your agent host:
 
