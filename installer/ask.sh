@@ -23,6 +23,9 @@ ask_what_to_install() {
     clear
     print_header
 
+    # Redirect stdin to /dev/tty to read from terminal when piped
+    exec < /dev/tty
+
     # Ask for component
     echo "What to install?"
     echo "1) Console (monitoring dashboard)"
