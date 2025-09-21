@@ -36,23 +36,26 @@ else
     status_warn "Manual invite creation required"
 fi
 
-# Show usage commands
 echo ""
-echo "Commands:"
-echo "• View dashboard: docker exec -it lumenmon-console python3 /app/tui/main.py"
-echo "• Create invite:  docker exec lumenmon-console /app/core/enrollment/invite_create.sh"
+echo -e "\033[1;32m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+echo -e "\033[1;32m✓ Console installation complete!\033[0m"
+echo -e "\033[1;32m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
 echo ""
+echo "Next steps:"
+echo ""
+echo "1. View dashboard:"
+echo "   docker exec -it lumenmon-console python3 /app/tui/main.py"
+echo ""
+echo "2. Install agent on your first server:"
 
-status_ok "Console ready at ${CONSOLE_HOST:-localhost}:2345"
-
-# Display first invite if generated
 if [ -n "$FULL_CMD" ]; then
     echo ""
-    echo -e "\033[1;33m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
-    echo -e "\033[1;33mAgent install command (expires in 5 minutes):\033[0m"
+    echo -e "   \033[1;36m$FULL_CMD\033[0m"
     echo ""
-    echo -e "\033[1;36m$FULL_CMD\033[0m"
-    echo -e "\033[1;33m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+    echo "   (This invite expires in 5 minutes)"
+else
+    echo "   docker exec lumenmon-console /app/core/enrollment/invite_create.sh"
+    echo "   Then use the command it generates on your server"
 fi
 
 echo ""
