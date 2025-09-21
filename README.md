@@ -14,6 +14,14 @@ Absolutely KISS Monitoring tool with no special sauce.\
 Just Bash scripts, piping to a central server via SSH. No Database, no dashboard setup. Run one command to setup.
 
 
+- 🚀 **Instant setup** - One-line installation, auto-generated agent invites
+- 🔒 **SSH transport** - Secure without additional ports
+- 📊 **Real-time TUI** - Beautiful terminal dashboard
+- 🪶 **Lightweight** - No databases or web servers
+- 🐳 **Docker-powered** - Consistent deployment everywhere
+- 🔑 **Zero passwords** - SSH key authentication only
+
+
 ## Install
 
 Run central installer to setup the Console Container:
@@ -32,18 +40,13 @@ After installation, the console generates a magic link to setup your first agent
 <img width="500" alt="image" src="https://github.com/user-attachments/assets/3389a70a-2bf6-460c-908c-198184dd21ec" />
 
 
-### Architecture
-## How It Works
-
-- 🚀 **Instant setup** - One-line installation, auto-generated agent invites
-- 🔒 **SSH transport** - Secure without additional ports
-- 📊 **Real-time TUI** - Beautiful terminal dashboard
-- 🪶 **Lightweight** - No databases or web servers
-- 🐳 **Docker-powered** - Consistent deployment everywhere
-- 🔑 **Zero passwords** - SSH key authentication only
+## Architecture
 
 **Console**: Runs an SSH Server to receive data from agents.
 **Agent**: Delievers data from 
+
+
+
 
 ```
 ┌─────────────┐  SSH Tunnel   ┌─────────────┐
@@ -60,12 +63,15 @@ After installation, the console generates a magic link to setup your first agent
                               TSV Storage
                             (/data/agents)
 ```
+Agent
+> Collectors collect metrics at intervals (CPU: 0.1s, Memory: 1s, Disk: 60s)
+> tunnel transports metrics as TSV lines
+console
+> ingress receives data via SSH ForceCommand
+> enrollment
+> storage   uses tmpfs for hot data, disk for persistence
+> tui reads TSV files and renders real-time graphs
 
-1. **Agents** collect metrics at intervals (CPU: 0.1s, Memory: 1s, Disk: 60s)
-2. **SSH tunnel** transports metrics as TSV lines
-3. **Console** receives data via SSH ForceCommand
-4. **Storage** uses tmpfs for hot data, disk for persistence
-5. **TUI** reads TSV files and renders real-time graphs
 
 ### Security
 
