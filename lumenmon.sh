@@ -34,6 +34,19 @@ case "$1" in
         docker exec lumenmon-console /app/core/enrollment/invite_create.sh
         ;;
 
+    register|r)
+        if [ -z "$2" ]; then
+            echo "Usage: lumenmon register <invite-url>"
+            echo "Get an invite with: lumenmon invite"
+        else
+            if is_running agent; then
+                docker exec lumenmon-agent /app/core/setup/register.sh "$2"
+            else
+                echo "Agent not running. Install agent first."
+            fi
+        fi
+        ;;
+
     # Update: respects installation method via docker-compose.override.yml
     update|u)
         echo "Updating Lumenmon..."
@@ -79,6 +92,7 @@ case "$1" in
         echo "lumenmon status    - Show system status"
         echo "lumenmon logs     - View logs"
         echo "lumenmon invite   - Generate agent invite"
+        echo "lumenmon register - Register agent with invite"
         echo "lumenmon update   - Pull latest containers and restart"
         echo "lumenmon uninstall - Remove everything"
         ;;
