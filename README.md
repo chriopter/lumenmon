@@ -13,25 +13,23 @@ Lumenmon is a one-command monitoring stack for Linux hosts.
 
 ## Install
 
-Bootstrap in three copy/paste commands:
+```bash
+curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/install.sh | bash
+```
+
+The console prints an invite URL—copy/paste it on your agent host:
 
 ```bash
-# console
-curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/install.sh | bash
-
-# agent (grab the invite URL printed by the console install)
 curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/install.sh | LUMENMON_INVITE='<invite_url>' bash
+```
 
-# dashboard
+Open the Textual dashboard anytime with:
+
+```bash
 lumenmon
 ```
 
 ## Architecture
-
-| Component | What it does |
-| --- | --- |
-| Console | Accepts SSH on port 2345 (container 22), writes TSV metrics under `/data/agents/<id>`, serves the Textual TUI, and manages invite-driven enrollment |
-| Agent | Runs Bash collectors for CPU (100 ms), memory (1 s), disk (60 s) and streams each sample as TSV over SSH |
 
 ```
 ┌─────────────┐  SSH Tunnel   ┌─────────────┐
@@ -48,6 +46,15 @@ lumenmon
                               TSV Storage
                             (/data/agents)
 ```
+
+**Console**
+- Accepts SSH on port 2345 (container 22) and writes TSV metrics under `/data/agents/<id>`.
+- Runs invite-driven enrollment to mint per-agent SSH users.
+- Serves the Textual TUI for live agents and metrics.
+
+**Agent**
+- Runs Bash collectors for CPU (100 ms), memory (1 s), and disk (60 s).
+- Streams each sample as a TSV row over SSH.
 
 ### Security
 
