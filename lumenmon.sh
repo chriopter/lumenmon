@@ -49,38 +49,63 @@ case "$1" in
 
     # Update: respects installation method via docker-compose.override.yml
     update|u)
-        echo "Updating Lumenmon..."
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "Updating Lumenmon"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo ""
+
+        # Pull latest code
+        echo "→ Pulling latest code from git..."
         git pull
+        echo ""
 
         # Update console if running
         if is_running console; then
-            echo "Updating console..."
             cd "$DIR/console"
 
-            # Pull if using remote image (has override file)
-            [ -f docker-compose.override.yml ] && docker compose pull
-
-            # Restart (builds if needed, uses image if specified)
-            docker compose down && docker compose up -d --build
-
-            echo "✓ Console updated"
+            # Determine update method
+            if [ -f docker-compose.override.yml ]; then
+                IMAGE=$(grep "image:" docker-compose.override.yml | awk '{print $2}')
+                echo "Console: Using remote image"
+                echo "  Image: $IMAGE"
+                echo "  → Pulling from registry..."
+                docker compose pull
+                echo "  → Restarting container..."
+                docker compose down && docker compose up -d
+            else
+                echo "Console: Building locally from source"
+                echo "  → Building new image..."
+                docker compose down && docker compose up -d --build
+            fi
+            echo "  ✓ Console updated"
+            echo ""
         fi
 
         # Update agent if running
         if is_running agent; then
-            echo "Updating agent..."
             cd "$DIR/agent"
 
-            # Pull if using remote image (has override file)
-            [ -f docker-compose.override.yml ] && docker compose pull
-
-            # Restart (builds if needed, uses image if specified)
-            docker compose down && docker compose up -d --build
-
-            echo "✓ Agent updated"
+            # Determine update method
+            if [ -f docker-compose.override.yml ]; then
+                IMAGE=$(grep "image:" docker-compose.override.yml | awk '{print $2}')
+                echo "Agent: Using remote image"
+                echo "  Image: $IMAGE"
+                echo "  → Pulling from registry..."
+                docker compose pull
+                echo "  → Restarting container..."
+                docker compose down && docker compose up -d
+            else
+                echo "Agent: Building locally from source"
+                echo "  → Building new image..."
+                docker compose down && docker compose up -d --build
+            fi
+            echo "  ✓ Agent updated"
+            echo ""
         fi
 
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
         echo "✓ Update complete"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
         ;;
 
     uninstall)
