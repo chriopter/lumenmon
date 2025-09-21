@@ -64,7 +64,7 @@ That's it. Data flows.
 **Agent**
 - Bash collector scripts for CPU (100ms), memory (1s), disk (60s)
 - SSH client multiplexes all metrics through single persistent connection
-- Each metric sent as TSV row: `timestamp\tagent_id\tmetric\ttype\tvalue\tinterval`
+- Metrics streamed as TSV rows, one file per metric type
 
 **Console**
 - SSH server on port 2345, each agent gets dedicated Linux user
