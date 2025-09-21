@@ -24,11 +24,10 @@ else
     echo "• Install to $DEFAULT_DIR"
     echo "• Set up monitoring containers"
     echo ""
-    echo -n "Continue? [Y/n]: "
-    read -r -n 1 CONFIRM < /dev/tty
-    echo ""
 
-    [[ $CONFIRM =~ ^[Nn]$ ]] && exit 0
+    # For curl|bash compatibility, default to yes unless explicitly cancelled
+    echo "Press Ctrl+C to cancel, or wait 5 seconds to continue..."
+    sleep 5
 
     echo ""
     log "Checking requirements..."
