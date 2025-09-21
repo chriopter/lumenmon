@@ -1,10 +1,6 @@
 
 # Lumenmon
 
-```bash
-curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/install.sh | bash
-```
-
 Lumenmon is a one-command monitoring stack for Linux hosts.
 
 - **One command install** – Pipe `install.sh`; the console is ready in seconds.
@@ -12,6 +8,11 @@ Lumenmon is a one-command monitoring stack for Linux hosts.
 - **Standard tools** – SSH transport, TSV files, Bash scripts. Nothing exotic.
 - **Live terminal view** – Textual TUI shows CPU, memory, disk, and invites.
 - **Nothing extra** – No database, no cert dance, no dashboards to configure.
+
+## Install
+```bash
+curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/install.sh | bash
+```
 
 <img width="500" alt="screenshot-2025-09-21_20-57-39" src="https://github.com/user-attachments/assets/a900ed9c-d519-4c1c-8268-2d2417807aed" />
 
