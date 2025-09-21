@@ -1,74 +1,27 @@
 #!/bin/bash
-# Lumenmon Installer - Bootstrap Script
+# Lumenmon Installer
 set -e
 
-# Configuration (export for use in sourced scripts)
-export REPO_URL="https://github.com/chriopter/lumenmon.git"
-export INSTALL_DIR="${INSTALL_DIR:-$HOME/.lumenmon}"
+# Setup
+REPO="https://github.com/chriopter/lumenmon.git"
+DIR="$HOME/.lumenmon"
 
-# Colors for output (export for use in sourced scripts)
-export RED='\033[0;31m'
-export GREEN='\033[0;32m'
-export BLUE='\033[0;34m'
-export NC='\033[0m'
+# Check requirements
+command -v git >/dev/null 2>&1 || { echo "Need git"; exit 1; }
+command -v docker >/dev/null 2>&1 || { echo "Need docker"; exit 1; }
 
-# Print functions (will be reused by sourced scripts)
-print_error() {
-    echo -e "${RED}✗${NC} $1"
-}
-
-print_success() {
-    echo -e "${GREEN}✓${NC} $1"
-}
-
-print_info() {
-    echo -e "${BLUE}→${NC} $1"
-}
-
-# Export functions for use in sourced scripts
-export -f print_error
-export -f print_success
-export -f print_info
-
-# Basic prerequisite checks before cloning
-if ! command -v git &> /dev/null; then
-    print_error "Git is not installed. Please install Git first."
-    exit 1
-fi
-
-if ! command -v docker &> /dev/null; then
-    print_error "Docker is not installed. Please install Docker first: https://docs.docker.com/get-docker/"
-    exit 1
-fi
-
-if ! docker compose version &> /dev/null; then
-    print_error "Docker Compose is not installed."
-    exit 1
-fi
-
-# Clone or update the repository
-if [ -d "$INSTALL_DIR/.git" ]; then
-    print_info "Updating Lumenmon..."
-    cd "$INSTALL_DIR"
-    git pull --ff-only --quiet
-    print_success "Updated successfully"
+# Clone or update
+if [ -d "$DIR/.git" ]; then
+    cd "$DIR" && git pull --quiet
 else
-    print_info "Installing Lumenmon to $INSTALL_DIR..."
-    git clone --quiet "$REPO_URL" "$INSTALL_DIR"
-    print_success "Repository cloned successfully"
+    git clone --quiet "$REPO" "$DIR"
 fi
 
-# Change to install directory and run the actual installer
-cd "$INSTALL_DIR"
-
-# Source all installer modules
-source installer/check.sh
-source installer/ask.sh
-source installer/fetch.sh
+# Run installer
+cd "$DIR"
+source installer/menu.sh
 source installer/deploy.sh
 
-# Run the installation flow
-check_prerequisites
-ask_what_to_install
-fetch_image
-deploy_container
+# Start
+show_menu
+deploy_component
