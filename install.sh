@@ -49,12 +49,12 @@ export DIR
 source "$DIR/installer/status.sh"
 cd "$DIR"
 
-# Launch appropriate installer
+# Launch installer
 if [ -n "$LUMENMON_INVITE" ]; then
-    status_progress "Starting agent installer..."
+    status_progress "Launching agent installer..."
     source installer/agent.sh
 else
-    status_progress "Starting console installer..."
+    status_progress "Launching installer menu..."
     source installer/menu.sh
     show_menu
 fi
