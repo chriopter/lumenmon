@@ -1,18 +1,18 @@
 
+# Lumenmon
+
+Lumenmon is a one-command monitoring stack for Linux hosts. It delivers everything you need to see the health of your fleet without adding new infrastructure:
+
+- **Instant install** – Pipe `install.sh` and get a ready-to-use console in seconds.
+- **One invite per agent** – Every enrollment is just a magic SSH URL; no manual key exchange.
+- **SSH-only transport** – Metrics ride existing SSH ports with ForceCommand locking agents into the data gateway.
+- **Live terminal dashboard** – The Textual TUI streams CPU, memory, disk, and invite status in real time.
+- **Minimal footprint** – Collectors are shell scripts, hot data lives in tmpfs, and there is no database to babysit.
+- **Container-native workflow** – Console and agent are Docker Compose stacks that ship consistently everywhere.
+
 <img width="500" alt="screenshot-2025-09-21_20-57-39" src="https://github.com/user-attachments/assets/a900ed9c-d519-4c1c-8268-2d2417807aed" />
 
-# The One-Button Monitoring Setup
-
-Absolutely KISS Monitoring tool with no special sauce.\
-Just Bash scripts, piping to a central server via SSH. No Database, no dashboard setup. Run one command to setup.
-
-
-- 🚀 **Instant setup** - One-line installation, auto-generated agent invites
-- 🔒 **SSH transport** - Secure without additional ports
-- 📊 **Real-time TUI** - Beautiful terminal dashboard
-- 🪶 **Lightweight** - No databases or web servers
-- 🐳 **Docker-powered** - Consistent deployment everywhere
-- 🔑 **Zero passwords** - SSH key authentication only
+Absolutely KISS. Just Bash scripts piping metrics over SSH. No dashboards to wire up, no extra ports, and nothing outside your shell.
 
 
 ## Install
