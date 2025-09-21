@@ -54,20 +54,23 @@ echo -e "\033[1;32m━━━━━━━━━━━━━━━━━━━━�
 echo -e "\033[1;32m✓ LUMENMON Console installed!\033[0m"
 echo -e "\033[1;32m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
 echo ""
-echo "Next steps:"
+echo -e "\033[1mNext steps:\033[0m"
 echo ""
-echo "1. Install agent on your first server (expires in 5 minutes):"
 
 if [ -n "$FULL_CMD" ]; then
+    echo -e "1. Install agent on server \033[2m(expires in 5 minutes)\033[0m:"
     echo ""
     echo -e "   \033[1;36m$FULL_CMD\033[0m"
+    echo ""
+    echo "2. Open dashboard:"
+    echo ""
+    echo -e "   \033[1;36mlumenmon\033[0m"
 else
-    echo "   docker exec lumenmon-console /app/core/enrollment/invite_create.sh"
-    echo "   Then use the command it generates on your server"
+    echo "1. Generate invite for agent:"
+    echo -e "   \033[1;36mdocker exec lumenmon-console /app/core/enrollment/invite_create.sh\033[0m"
+    echo ""
+    echo "2. Open dashboard:"
+    echo -e "   \033[1;36mlumenmon\033[0m"
 fi
-
-echo ""
-echo "2. View console dashboard:"
-echo "   lumenmon"
 
 echo ""
