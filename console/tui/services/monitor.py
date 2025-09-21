@@ -1,43 +1,38 @@
-"""Monitoring service for refreshing data"""
+"""Monitoring service for refreshing data."""
 
-from typing import List, Tuple
-from models import Agent, Invite
+from __future__ import annotations
+
+import logging
+from typing import List
+
+from config import DATA_DIR
+from models import Agent, AgentSnapshot, Invite
+
+LOGGER = logging.getLogger(__name__)
 
 
 class MonitorService:
-    """Handles data monitoring and refresh operations"""
+    """Handles filesystem-backed data retrieval for the TUI."""
 
-    def __init__(self, data_dir: str = "/data/agents"):
+    def __init__(self, data_dir: str = DATA_DIR):
         self.data_dir = data_dir
 
-    def get_agents_data(self) -> List[dict]:
-        """Get all agents with their current metrics"""
-        agents = Agent.get_all(self.data_dir)
-        data = []
+    def get_agents_data(self) -> List[AgentSnapshot]:
+        """Return latest metrics for all discovered agents."""
 
-        for agent in agents:
-            cpu_val, cpu_age = agent.read_metric("generic_cpu.tsv")
-            mem_val, mem_age = agent.read_metric("generic_mem.tsv")
-            disk_val, disk_age = agent.read_metric("generic_disk.tsv")
-
-            # Determine status based on most recent update
-            min_age = min(cpu_age, mem_age, disk_age)
-            status_color = agent.get_status_color(min_age)
-
-            data.append({
-                'id': agent.id,
-                'status': status_color,
-                'cpu': cpu_val,
-                'cpu_age': cpu_age,
-                'memory': mem_val,
-                'mem_age': mem_age,
-                'disk': disk_val,
-                'disk_age': disk_age,
-                'min_age': min_age
-            })
-
-        return data
+        snapshots: List[AgentSnapshot] = []
+        for agent in Agent.get_all(self.data_dir):
+            try:
+                snapshots.append(agent.snapshot())
+            except Exception as exc:  # pragma: no cover - defensive
+                LOGGER.debug("Failed to capture snapshot for %s: %s", agent.id, exc)
+        return snapshots
 
     def get_invites_data(self) -> List[Invite]:
-        """Get all active invites"""
-        return Invite.get_active()
+        """Return all currently active invites."""
+
+        try:
+            return Invite.get_active()
+        except Exception as exc:  # pragma: no cover - defensive
+            LOGGER.debug("Failed to load invites: %s", exc)
+            return []
