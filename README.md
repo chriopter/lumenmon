@@ -23,7 +23,7 @@ Run installer and choose:
 
 View dashboard:
 ```bash
-docker exec -it lumenmon-console python3 /app/tui/tui.py
+docker exec -it lumenmon-console python3 /app/tui/main.py
 ```
 
 ## How It Works
@@ -41,19 +41,24 @@ docker exec -it lumenmon-console python3 /app/tui/tui.py
 ## Structure
 
 ```
-~/.lumenmon/
-├── console/           # Dashboard container
+~/.lumenmon/              # Cloned repository
+├── console/              # Dashboard container
 │   ├── docker-compose.yml
-│   └── data/         # Persistent data (gitignored)
-├── agent/            # Metrics collector
+│   └── data/            # Persistent data (gitignored)
+├── agent/               # Metrics collector
 │   ├── docker-compose.yml
-│   └── data/         # Config (.env with CONSOLE_HOST)
-└── install.sh        # Installer/updater
+│   └── data/            # SSH keys and config (gitignored)
+├── installer/           # Modular installer components
+│   ├── ask.sh
+│   ├── check.sh
+│   ├── fetch.sh
+│   └── deploy.sh
+└── install.sh           # Main installer script
 ```
 
 ## Update
 
-Run installer again - it pulls latest and restarts containers.
+Run installer again - it pulls latest code and container updates.
 
 ## Releases
 
@@ -84,6 +89,7 @@ After release, images are available at:
 
 - Docker
 - Docker Compose
+- Git (for installer)
 
 ## Performance Note
 

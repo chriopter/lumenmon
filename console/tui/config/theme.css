@@ -7,13 +7,15 @@ Screen {
     color: $text;
 }
 
-/* ========== Splash Screen ========== */
-SplashWidget {
+/* ========== Retro Boot Splash ========== */
+RetroBootSplash {
     height: 100%;
     width: 100%;
-    align: center middle;
-    text-align: center;
-    padding: 2;
+    background: #000000;
+    color: #00ff00;  /* Green phosphor CRT color */
+    padding: 1;
+    text-align: left;
+    overflow-y: auto;
 }
 
 /* ========== Dashboard ========== */
