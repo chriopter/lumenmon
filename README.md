@@ -7,20 +7,20 @@
   ╚══════╝ ╚═════╝ ╚═╝     ╚═╝╚══════╝╚═╝  ╚═══╝╚═╝     ╚═╝ ╚═════╝ ╚═╝  ╚═══╝
 ```
 
-# Lumenmon
+# The One-Button Monitoring Setup
+This is a lightweight, KISS system monitoring tool. No Database, no Dashboards to set up no custom endpoints.
 
-Lightweight system monitoring with SSH transport and TUI dashboard. No databases, no web servers, just SSH and shell scripts.
+Lumenmon connects Agents via standard SSH and Pipes data as TSVs. Everything is Bash, except the TUI to navigate data.
 
-![Status](https://img.shields.io/badge/status-active-brightgreen)
-![Docker](https://img.shields.io/badge/docker-required-blue)
-![License](https://img.shields.io/badge/license-MIT-green)
+<img width="400" alt="screenshot-2025-09-21_20-57-00" src="https://github.com/user-attachments/assets/99c6eefa-8d93-4874-9ec6-0c9674d31f2b" />
+<img width="400" alt="screenshot-2025-09-21_20-57-39" src="https://github.com/user-attachments/assets/a900ed9c-d519-4c1c-8268-2d2417807aed" />
 
-## What is Lumenmon?
+## Key Features
 
 Lumenmon is a minimalist monitoring solution that collects system metrics from multiple agents and displays them in a beautiful terminal UI. Built on the KISS principle - it uses SSH for transport, TSV files for data, and shell scripts for collection.
 
 **Key Features:**
-- 🚀 **Instant setup** - One-line installation
+- 🚀 **Instant setup** - One-line installation. Lumenmon generates Install-links for Agents 
 - 🔒 **SSH-based** - Secure transport without additional ports
 - 📊 **Real-time TUI** - Beautiful terminal dashboard
 - 🪶 **Lightweight** - No databases or web servers
