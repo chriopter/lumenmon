@@ -59,17 +59,7 @@ lumenmon invite   # Get a new server invite
 lumenmon status   # Check everything's running
 ```
 
-## Why Lumenmon?
 
-Traditional monitoring is heavy. Prometheus needs configuration. Grafana needs dashboards.
-Cloud services need agents and API keys.
-
-Lumenmon is different. It's built on SSH—the tool you already trust.
-One command to install, one link to connect, one terminal to monitor everything.
-
-## Contributing
-
-Keep it simple, keep it working, keep it Bash.
 
 ```
   ██╗     ██╗   ██╗███╗   ███╗███████╗███╗   ██╗███╗   ███╗ ██████╗ ███╗   ██╗
