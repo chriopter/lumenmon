@@ -21,70 +21,46 @@ Lumenmon connects agents via standard SSH and pipes metrics as TSV files. Everyt
 ```bash
 curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/install.sh | bash
 ```
-Just install the console once, the console will generate an invitation for new agents as well.
 
-<img width="400" height="644" alt="image" src="https://github.com/user-attachments/assets/66e8d653-bd2e-4fc7-8f66-4233dcec360a" />
-<img width="400" height="880" alt="image" src="https://github.com/user-attachments/assets/3389a70a-2bf6-460c-908c-198184dd21ec" />
+This installs the console and generates invites for agents. Once installed, run `lumenmon invite` to get a one-line agent installer.
 
-This invitation command will immediately connect the new agent to a temporary user account, registers the agent ssh key and then establishes a permanent connection.
+<img width="600" alt="image" src="https://github.com/user-attachments/assets/3389a70a-2bf6-460c-908c-198184dd21ec" />
 
- ✔ Container lumenmon-console                 Started                                      0.2s
-[✓] Console started
-[→] Initializing console...
-[✓] Invite generated
-[✓] Command 'lumenmon' already installed in ~/.local/bin
+The invite command creates a temporary SSH account, registers the agent's key, and establishes a permanent connection - all automatically.
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-✓ LUMENMON Console installed!
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Next steps:
-
-1. Install agent on server (expires in 5 minutes):
-
-   curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/install.sh | LUMENMON_INVITE='ssh://reg_1758481722414:c734b0b18901@localhost:2345/#ssh-ed25519_AAAAC3NzaC1lZDI1NTE5AAAAIImZwbLPoVLRJpPPh6xjpTqILLbBYfwv7603ommQh0Fg' bash
-
-2. Open dashboard:
-
-   lumenmon
-
-
-lumenmon main ❯
-
-Done 
 ## How It Works
 
+**Console**: Docker container running an SSH daemon with one user per agent
+**Agent**: Docker container that connects to console and pipes metrics from collector scripts
 
-Lumenmon Console is a Docker container that runs an ssh deamon with one user per agent to connect.
-Lumenmon Agent is a Docker container that connects to the Console and Pipes infos in from Collector Scripts.
+### Key Features
 
-**Key Features:**
-- 🚀 **Instant setup** - One-line installation. Lumenmon generates Install-links for Agents 
-- 🔒 **SSH-based** - Secure transport without additional ports
+- 🚀 **Instant setup** - One-line installation, auto-generated agent invites
+- 🔒 **SSH transport** - Secure without additional ports
 - 📊 **Real-time TUI** - Beautiful terminal dashboard
 - 🪶 **Lightweight** - No databases or web servers
 - 🐳 **Docker-powered** - Consistent deployment everywhere
 - 🔑 **Zero passwords** - SSH key authentication only
-- 
+
+### Architecture
+
 ```
 ┌─────────────┐  SSH Tunnel   ┌─────────────┐
 │   Agent 1   │──────────────►│             │
 ├─────────────┤               │   Console   │◄──── TUI Dashboard
-│ Collectors  │               │             │
-└─────────────┘               │             │
-                              │ SSH Server  │
-┌─────────────┐               │   Port 2345 │
+│ Collectors  │               │ SSH Server  │
+└─────────────┘               │ Port 2345   │
+                              │             │
+┌─────────────┐               │             │
 │   Agent 2   │──────────────►│             │
 ├─────────────┤               └─────────────┘
 │ Collectors  │                     │
 └─────────────┘                     ▼
-                              Permanent TSV Storage
-                            (/data/lumenmon)
+                              TSV Storage
+                            (/data/agents)
 ```
 
-### Architecture
-
-1. **Agents** collect metrics every few seconds (CPU: 0.1s, Memory: 1s, Disk: 60s)
+1. **Agents** collect metrics at intervals (CPU: 0.1s, Memory: 1s, Disk: 60s)
 2. **SSH tunnel** transports metrics as TSV lines
 3. **Console** receives data via SSH ForceCommand
 4. **Storage** uses tmpfs for hot data, disk for persistence
@@ -202,51 +178,18 @@ Lumenmon is designed for small to medium deployments. For thousands of servers, 
 
 Drop a shell script in `agent/collectors/` that outputs TSV lines. The agent automatically picks it up.
 
-### Can I use my own SSH keys?
-
-Yes. The console and agents generate keys on first run, but you can replace them in the `data/ssh/` directories.
-
-### What about Windows?
-
-Windows with WSL2 and Docker Desktop works. Native Windows is not supported.
-
-### How do updates work?
-
-`lumenmon update` pulls the latest code and rebuilds containers. It detects whether you're using registry images or local builds and updates accordingly.
-
 ### Where is data stored?
 
 - Console: `/var/lib/lumenmon/` in container, `./console/data/` on host
 - Agent: `/tmp/` for metrics buffer, `./agent/data/` for keys
 
-## Troubleshooting
-
-### Agent can't connect
-
-1. Check network: `lumenmon status`
-2. Verify console is reachable from agent machine
-3. Check firewall allows port 2345 (or your custom port)
-4. Ensure invite hasn't expired (1 hour timeout)
-
-### No metrics showing
-
-1. Run `lumenmon status` - check "Data Flow" on console
-2. Verify collectors are running on agent
-3. Check logs: `lumenmon logs`
-
-### TUI won't start
-
-1. Ensure console container is running
-2. Try direct access: `docker exec -it lumenmon-console python3 /app/tui/main.py`
-3. Check terminal supports Unicode and colors
-
 ## Contributing
 
-Contributions welcome! The codebase follows KISS principles:
-- Shell scripts for system tasks
-- Python (Textual) for TUI only
-- No external dependencies beyond Docker
-- Clear, readable code over clever tricks
+Feel free to contribute - the codebase values simplicity over complexity.
+
+### Current State
+
+Basic installation and SSH key exchange are complete and working. The TUI and monitoring scripts are being reworked for better performance and clarity.
 
 ## License
 
