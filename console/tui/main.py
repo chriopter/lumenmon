@@ -14,6 +14,7 @@ from config import REFRESH_RATE
 from models import AgentSnapshot, Invite
 from services import ClipboardService, MonitorService
 from views import DashboardView, DetailView
+from views.splash import SplashScreen
 
 
 class LumenmonTUI(App):
@@ -38,29 +39,44 @@ class LumenmonTUI(App):
         self._dashboard_view: Optional[DashboardView] = None
         self._detail_container: Optional[Container] = None
         self._current_agent: Optional[str] = None
+        self._splash_complete = False
 
     # Layout -----------------------------------------------------------------
 
     def compose(self) -> ComposeResult:  # type: ignore[override]
         """Compose the application layout."""
 
-        yield Header(show_clock=True)
+        # Start with splash screen
+        yield SplashScreen(id="splash_screen")
+
+    def on_mount(self) -> None:
+        """Initialize the app after widgets are ready."""
+        # Splash screen will trigger the transition
+        pass
+
+    async def on_splash_screen_loading_complete(self, message: SplashScreen.LoadingComplete) -> None:
+        """Handle splash screen completion."""
+        # Remove splash screen
+        splash = self.query_one("#splash_screen")
+        await splash.remove()
+
+        # Add the main UI components
+        await self.mount(Header(show_clock=True))
 
         dashboard_view = DashboardView()
         dashboard_container = Container(dashboard_view, id="dashboard")
         self._dashboard_container = dashboard_container
         self._dashboard_view = dashboard_view
-        yield dashboard_container
+        await self.mount(dashboard_container)
 
         detail_container = Container(id="detail_view")
         self._detail_container = detail_container
-        yield detail_container
+        await self.mount(detail_container)
 
-        yield Footer()
+        await self.mount(Footer())
 
-    def on_mount(self) -> None:
-        """Initialize the app after widgets are ready."""
-
+        # Now initialize the main app
+        self._splash_complete = True
         self.set_interval(REFRESH_RATE, self.refresh_all)
         self.refresh_all()
         self._focus_table()

@@ -19,7 +19,8 @@ SSH_DIR = _resolve_path(DATA_ROOT, "ssh")
 
 # Timing configuration -------------------------------------------------------
 
-REFRESH_RATE = 2  # seconds
+REFRESH_RATE = 1  # seconds - Dashboard refresh rate
+DETAIL_REFRESH_RATE = 0.5  # seconds - Detail view refresh rate for smooth graphs
 
 
 # Display settings -----------------------------------------------------------
