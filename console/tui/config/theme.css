@@ -12,38 +12,10 @@ Screen {
     height: 100%;
     width: 100%;
     background: $background;
-}
-
-#splash-container {
-    layout: vertical;
-    height: 100%;
-    width: 100%;
-    align: center middle;
-    padding: 2 4;
-}
-
-#splash-logo {
-    height: auto;
-    width: 100%;
-    margin-bottom: 2;
+    color: $text;
     text-align: center;
     content-align: center middle;
-}
-
-#splash-tagline {
-    height: auto;
-    width: 100%;
-    margin-bottom: 3;
-    text-align: center;
-    content-align: center middle;
-}
-
-#splash-loader {
-    height: auto;
-    width: 100%;
-    padding: 1;
-    text-align: center;
-    content-align: center middle;
+    padding: 4;
 }
 
 /* ========== Dashboard ========== */

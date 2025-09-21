@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from typing import List, Optional
 
 from textual import on
@@ -39,26 +40,38 @@ class LumenmonTUI(App):
         self._dashboard_view: Optional[DashboardView] = None
         self._detail_container: Optional[Container] = None
         self._current_agent: Optional[str] = None
-        self._splash_complete = False
+        self._showing_splash = True
 
     # Layout -----------------------------------------------------------------
 
     def compose(self) -> ComposeResult:  # type: ignore[override]
         """Compose the application layout."""
-
         # Start with splash screen
         yield SplashScreen(id="splash_screen")
 
-    def on_mount(self) -> None:
+    async def on_mount(self) -> None:
         """Initialize the app after widgets are ready."""
-        # Splash screen will trigger the transition
-        pass
-
-    async def on_splash_screen_loading_complete(self, message: SplashScreen.LoadingComplete) -> None:
-        """Handle splash screen completion."""
-        # Remove splash screen
+        # Force a refresh to ensure splash is rendered
         splash = self.query_one("#splash_screen")
-        await splash.remove()
+        splash.refresh()
+
+        # Wait to ensure splash screen is visible and rendered
+        await asyncio.sleep(0.5)
+
+        # Show splash for a fixed duration
+        await asyncio.sleep(2.5)  # Show splash for total of 3 seconds
+
+        # Now transition to main UI
+        await self.show_main_ui()
+
+    async def show_main_ui(self) -> None:
+        """Transition from splash to main UI."""
+        # Remove splash screen
+        try:
+            splash = self.query_one("#splash_screen")
+            await splash.remove()
+        except:
+            pass
 
         # Add the main UI components
         await self.mount(Header(show_clock=True))
@@ -76,7 +89,7 @@ class LumenmonTUI(App):
         await self.mount(Footer())
 
         # Now initialize the main app
-        self._splash_complete = True
+        self._showing_splash = False
         self.set_interval(REFRESH_RATE, self.refresh_all)
         self.refresh_all()
         self._focus_table()
@@ -85,6 +98,8 @@ class LumenmonTUI(App):
 
     def refresh_all(self) -> None:
         """Refresh dashboard data for agents and invites."""
+        if self._showing_splash:
+            return
 
         agents = self.monitor.get_agents_data()
         invites = self.monitor.get_invites_data()
