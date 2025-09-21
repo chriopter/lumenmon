@@ -1,4 +1,6 @@
-# ANGETS.md
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview
 
@@ -6,9 +8,25 @@ Lumenmon is a lightweight system monitoring solution with SSH transport and TUI 
 - **Console**: Central monitoring dashboard with SSH server and TUI interface
 - **Agent**: Metrics collector that sends data to console via SSH
 
-## Development Commands
+## CLI Commands
 
-### Quick Start (Development)
+### Production Commands (`lumenmon`)
+```bash
+lumenmon              # Open TUI (or show status if not running)
+lumenmon status       # Show comprehensive system status
+lumenmon logs         # Stream logs from all containers
+lumenmon invite       # Generate agent enrollment invite
+lumenmon update       # Update from git repository
+lumenmon uninstall    # Remove all containers and data
+
+# Short aliases available: s (status), l (logs), i (invite), u (update), h (help)
+```
+
+### Status Output
+- **Console**: Shows SSH key, service port, authorized keys, active invites, connected agents, active agents
+- **Agent**: Shows SSH key, agent ID, console config, network connectivity, host fingerprint, SSH connection, metrics flow
+
+### Development Commands
 ```bash
 # Full auto-setup: reset, start containers, register agent, and launch TUI
 ./dev/auto
@@ -43,6 +61,29 @@ pip install rich textual plotext pyperclip
 # GitHub Actions uses: black, isort, flake8, pylint, mypy
 ```
 
+## Installation
+
+### Quick Install
+```bash
+# Console installation
+curl -sSL https://lumenmon.run | bash
+
+# Agent installation with invite (one-line)
+curl -sSL https://lumenmon.run | LUMENMON_INVITE="<invite_url>" bash
+
+# Manual agent installation
+curl -sSL https://lumenmon.run | bash -s agent
+```
+
+### Installer Scripts
+- `install.sh`: Main entry point, checks requirements, routes to appropriate installer
+- `installer/console.sh`: Console-specific installation
+- `installer/agent.sh`: Agent-specific installation
+- `installer/menu.sh`: Interactive menu for installation options
+- `installer/cli.sh`: Sets up `lumenmon` command symlink
+- `installer/status.sh`: Shared status output functions
+- `installer/uninstall.sh`: Complete removal script
+
 ## Architecture
 
 ### Data Flow
@@ -59,12 +100,23 @@ pip install rich textual plotext pyperclip
     - `services/`: Monitor and clipboard services
     - `config/`: Settings and theme CSS
   - `core/`: Shell scripts for SSH, enrollment, ingress
+    - `status.sh`: Comprehensive console status checks
   - `data/`: Persistent agent data and SSH keys (gitignored)
 
 - `agent/`: Metrics collector container
   - `collectors/`: Metric collection scripts (CPU, memory, disk)
   - `core/`: Registration and connection scripts
+    - `status.sh`: Comprehensive agent status with connectivity checks
   - `data/`: SSH keys and config (gitignored)
+
+- `installer/`: Installation and setup scripts
+  - Modular, self-contained installers following KISS principles
+  - Consistent status output format across all scripts
+
+- `lumenmon.sh`: Main CLI script in repo root
+  - Smart defaults: no args opens TUI or shows status
+  - Single-letter aliases for common commands
+  - 57 lines of clean, maintainable bash
 
 ### Security Model
 - SSH key-based authentication only (no passwords)
@@ -92,6 +144,12 @@ pip install rich textual plotext pyperclip
 - Files: `cpu.tsv`, `memory.tsv`, `disk.tsv`, `meta.tsv`
 - Format: TSV with timestamp, agent_id, metric_name, type, value, interval
 
+### Status Scripts
+Both `console/core/status.sh` and `agent/core/status.sh` provide comprehensive checks:
+- **Agent**: SSH key, agent ID, console config, network ping, host fingerprint, SSH connection, metrics flow
+- **Console**: Host key, SSH service, authorized keys, active invites, connected agents, active agents (< 60s data)
+- Compact output format with clear status indicators: ✓ (success), ✗ (failure), ⚠ (warning), ○ (neutral)
+
 ## Common Tasks
 
 ### Adding New Metrics
@@ -107,7 +165,8 @@ pip install rich textual plotext pyperclip
 - Keybindings: Edit `BINDINGS` in `console/tui/main.py`
 
 ### Debugging
-- Container logs: `docker logs lumenmon-console` or `./dev/logs`
+- Container logs: `docker logs lumenmon-console` or `lumenmon logs`
 - Agent debug output: Check `agent/data/debug/`
 - SSH issues: Verify keys in `console/data/ssh/` and `agent/data/ssh/`
 - TUI issues: Run directly with `docker exec -it lumenmon-console python3 /app/tui/main.py`
+- Status check: `lumenmon status` for comprehensive system state
