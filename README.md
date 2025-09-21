@@ -11,7 +11,7 @@
 
 Lightweight, KISS system monitoring that just works. No databases to configure, no dashboards to set up, no custom endpoints to manage.
 
-Lumenmon connects agents via standard SSH and pipes metrics as TSV files. Everything is shell scripts, except the TUI for navigating data.
+Lumenmon connects agents via standard SSH and pipes metrics as TSV files. Everything is stupidly simple shell scripts, except the TUI for navigating data.
 
 <img width="400" alt="screenshot-2025-09-21_20-57-00" src="https://github.com/user-attachments/assets/99c6eefa-8d93-4874-9ec6-0c9674d31f2b" />
 <img width="400" alt="screenshot-2025-09-21_20-57-39" src="https://github.com/user-attachments/assets/a900ed9c-d519-4c1c-8268-2d2417807aed" />
@@ -19,12 +19,21 @@ Lumenmon connects agents via standard SSH and pipes metrics as TSV files. Everyt
 ## Install
 
 ```bash
-curl -sSL https://lumenmon.run | bash
+curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/install.sh | bash
 ```
+Just install the console once, the console will generate an invitation for new agents as well.
 
-## Key Features
+<img width="1324" height="644" alt="image" src="https://github.com/user-attachments/assets/66e8d653-bd2e-4fc7-8f66-4233dcec360a" />
+<img width="1324" height="644" alt="image" src="https://github.com/user-attachments/assets/2b215f82-b6d4-4cc4-9034-9502f101556e" />
 
-Lumenmon is a minimalist monitoring solution that collects system metrics from multiple agents and displays them in a beautiful terminal UI. Built on the KISS principle - it uses SSH for transport, TSV files for data, and shell scripts for collection.
+This invitation command will immediately connect the new agent to a temporary user account, registers the agent ssh key and then establishes a permanent connection.
+
+Done 
+## How It Works
+
+
+Lumenmon Console is a Docker container that runs an ssh deamon with one user per agent to connect.
+Lumenmon Agent is a Docker container that connects to the Console and Pipes infos in from Collector Scripts.
 
 **Key Features:**
 - 🚀 **Instant setup** - One-line installation. Lumenmon generates Install-links for Agents 
@@ -33,51 +42,21 @@ Lumenmon is a minimalist monitoring solution that collects system metrics from m
 - 🪶 **Lightweight** - No databases or web servers
 - 🐳 **Docker-powered** - Consistent deployment everywhere
 - 🔑 **Zero passwords** - SSH key authentication only
-
-## Quick Start
-
-### Install Console (Monitoring Server)
-
-```bash
-curl -sSL https://lumenmon.run | bash
-```
-
-This installs the console and creates the `lumenmon` command. The installer will ask for:
-1. **Console host**: Where agents can reach this server (auto-detects your IP)
-2. **Docker image**: Stable (recommended), Dev, or build locally
-
-### Install Agent (On Monitored Systems)
-
-First, generate an invite on the console:
-
-```bash
-lumenmon invite
-```
-
-Then on the agent machine, use the invite URL:
-
-```bash
-curl -sSL https://lumenmon.run | LUMENMON_INVITE="<invite_url>" bash
-```
-
-The agent automatically registers and starts sending metrics.
-
-## How It Works
-
+- 
 ```
 ┌─────────────┐  SSH Tunnel   ┌─────────────┐
 │   Agent 1   │──────────────►│             │
 ├─────────────┤               │   Console   │◄──── TUI Dashboard
 │ Collectors  │               │             │
-└─────────────┘               ├─────────────┤
+└─────────────┘               │             │
                               │ SSH Server  │
-┌─────────────┐               │   Port 22   │
+┌─────────────┐               │   Port 2345 │
 │   Agent 2   │──────────────►│             │
 ├─────────────┤               └─────────────┘
 │ Collectors  │                     │
 └─────────────┘                     ▼
-                              TSV Storage
-                            (/var/lib/lumenmon)
+                              Permanent TSV Storage
+                            (/data/lumenmon)
 ```
 
 ### Architecture
