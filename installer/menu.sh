@@ -15,13 +15,36 @@ ask_console_host() {
     CONSOLE_HOST="${USER_HOST:-$DETECTED_HOST}"
 }
 
+ask_version() {
+    echo ""
+    echo "  Select version:"
+    echo "  1) Stable (recommended)"
+    echo "  2) Dev (latest features)"
+    echo "  3) Local (build from source)"
+    echo -n "  Version [1]: "
+    read -r VERSION_CHOICE < /dev/tty
+    VERSION_CHOICE="${VERSION_CHOICE:-1}"
+
+    case $VERSION_CHOICE in
+        2)
+            IMAGE="ghcr.io/chriopter/lumenmon-$1:dev"
+            ;;
+        3)
+            IMAGE=""
+            ;;
+        *)
+            IMAGE="ghcr.io/chriopter/lumenmon-$1:latest"
+            ;;
+    esac
+}
+
 show_menu() {
     clear
     show_logo
     echo ""
 
     echo "  1) Install Console"
-    echo "  2) Advanced"
+    echo "  2) Install Agent"
     echo "  3) Uninstall"
     echo "  4) Exit"
     echo ""
@@ -31,12 +54,14 @@ show_menu() {
     case $choice in
         1)
             ask_console_host
-            IMAGE="ghcr.io/chriopter/lumenmon-console:latest"
+            ask_version "console"
             export CONSOLE_HOST IMAGE
             source installer/console.sh
             ;;
         2)
-            show_advanced
+            ask_version "agent"
+            export IMAGE
+            source installer/agent.sh
             ;;
         3)
             source installer/uninstall.sh
@@ -52,68 +77,3 @@ show_menu() {
     esac
 }
 
-show_advanced() {
-    clear
-    show_logo
-    echo ""
-    echo -e "  \033[1mAdvanced Options:\033[0m"
-    echo ""
-    echo "  Console:"
-    echo "  1) Stable (latest release)"
-    echo "  2) Dev (continuous builds)"
-    echo "  3) Local (build from source)"
-    echo ""
-    echo "  Agent:"
-    echo "  4) Stable (latest release)"
-    echo "  5) Dev (continuous builds)"
-    echo "  6) Local (build from source)"
-    echo ""
-    echo "  7) Back"
-    echo ""
-
-    read -r -p "  Select [1-7]: " choice < /dev/tty
-
-    case $choice in
-        1)
-            ask_console_host
-            IMAGE="ghcr.io/chriopter/lumenmon-console:latest"
-            export CONSOLE_HOST IMAGE
-            source installer/console.sh
-            ;;
-        2)
-            ask_console_host
-            IMAGE="ghcr.io/chriopter/lumenmon-console:dev"
-            export CONSOLE_HOST IMAGE
-            source installer/console.sh
-            ;;
-        3)
-            ask_console_host
-            IMAGE=""
-            export CONSOLE_HOST IMAGE
-            source installer/console.sh
-            ;;
-        4)
-            IMAGE="ghcr.io/chriopter/lumenmon-agent:latest"
-            export IMAGE
-            source installer/agent.sh
-            ;;
-        5)
-            IMAGE="ghcr.io/chriopter/lumenmon-agent:dev"
-            export IMAGE
-            source installer/agent.sh
-            ;;
-        6)
-            IMAGE=""
-            export IMAGE
-            source installer/agent.sh
-            ;;
-        7)
-            show_menu
-            ;;
-        *)
-            status_error "Invalid choice"
-            sleep 1
-            show_advanced
-            ;;
-    esac
-}
