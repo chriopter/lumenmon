@@ -3,12 +3,9 @@
 
 Lumenmon is a one-command monitoring stack for Linux hosts.
 
-- **Instant install** – Run `install.sh` and the console is ready.
-- **Magic invites** – Enroll every agent with a single SSH URL.
-- **SSH transport** – Metrics stay on port 2345 under ForceCommand.
-- **Live TUI** – Textual shows CPU, memory, disk, and invite states.
-- **Tiny footprint** – Shell collectors and tmpfs hot data, no database.
-- **Docker workflow** – Console and agent ship via Docker Compose.
+- **Magic invites** – Enroll every agent with a single SSH URL. No manual config.
+- **Standard tools** – Everything is built from standard Linux tools. SSH Transport, TSV Files, Bash scripts.
+- **Live TUI** – Shows CPU, memory, disk, and invite states.
 
 <img width="500" alt="screenshot-2025-09-21_20-57-39" src="https://github.com/user-attachments/assets/a900ed9c-d519-4c1c-8268-2d2417807aed" />
 
