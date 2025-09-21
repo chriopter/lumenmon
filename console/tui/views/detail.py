@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import math
+import statistics
 from typing import List, Optional, Tuple
 
 import plotext as plt
+from rich.text import Text
 from textual.containers import Container, Horizontal, Vertical
 from textual.widgets import Button, Label, ListItem, ListView, Static
 
@@ -117,8 +119,8 @@ class DetailView(Container):
             panel.update(no_data_message)
             return
 
-        sample_width = max(GRAPH_MIN_WIDTH, min(width - 2, 80))
-        sample_height = max(GRAPH_MIN_HEIGHT, min(height, 24))
+        sample_width = max(GRAPH_MIN_WIDTH, min(width - 4, 80))
+        sample_height = max(GRAPH_MIN_HEIGHT, min(height - 2, 24))
         sample_count = min(len(history), max(sample_width * 2, GRAPH_MIN_WIDTH * 2))
         series = history[-sample_count:]
 
@@ -135,11 +137,28 @@ class DetailView(Container):
         except Exception:
             plt.plotsize(sample_width, GRAPH_MIN_HEIGHT)
 
-        theme = "dark" if getattr(self.app, "theme", "textual-dark").endswith("dark") else "clear"
+        dark_mode = getattr(self.app, "theme", "textual-dark").endswith("dark")
         try:
-            plt.theme(theme)
+            plt.theme("dark" if dark_mode else "clear")
         except Exception:
             pass
+
+        canvas_color = "black" if dark_mode else "white"
+        axis_color = "grey" if dark_mode else "black"
+        line_color = "cyan" if dark_mode else "blue"
+        grid_color = "grey" if dark_mode else "lightgrey"
+
+        for setter, value in (
+            (getattr(plt, "canvas_color", None), canvas_color),
+            (getattr(plt, "axes_color", None), axis_color),
+            (getattr(plt, "ticks_color", None), axis_color),
+            (getattr(plt, "grid_color", None), grid_color),
+        ):
+            if callable(setter):
+                try:
+                    setter(value)
+                except Exception:
+                    pass
 
         if y_limits:
             plt.ylim(*y_limits)
@@ -153,20 +172,26 @@ class DetailView(Container):
             plt.ylim(min_val, max_val)
 
         try:
-            plt.grid(False)
-        except Exception:
-            pass
-        try:
-            plt.ticks_color("grey")
-        except Exception:
-            pass
-        try:
-            plt.axes_color("grey")
+            plt.grid(True)
         except Exception:
             pass
 
-        plt.plot(series, marker="braille")
-        plt.title(title)
+        plt.plot(series, color=line_color, marker="braille")
 
-        plot_output = plt.build()
-        panel.update(plot_output)
+        latest = series[-1]
+        minimum = min(series)
+        maximum = max(series)
+        average = statistics.fmean(series)
+
+        plt.title("")
+        plot_output = plt.build().rstrip()
+
+        rendered = Text()
+        rendered.append(f"{title}\n", style="bold cyan")
+        rendered.append(plot_output)
+        rendered.append("\n")
+        rendered.append(
+            f"Latest: {latest:.1f}  •  Min: {minimum:.1f}  •  Avg: {average:.1f}  •  Max: {maximum:.1f}",
+            style="dim",
+        )
+        panel.update(rendered)
