@@ -5,38 +5,38 @@ Lumenmon is a one-command monitoring stack for Linux hosts.
 
 - **One command install** – Pipe `install.sh`; the console is ready in seconds.
 - **Copy/paste invites** – Every agent joins with a single SSH URL.
-- **Standard tools** – SSH transport, TSV files, and Bash scripts. Very simple.
+- **Standard tools** – SSH transport, TSV files, Bash scripts. Nothing exotic.
 - **Live terminal view** – Textual TUI shows CPU, memory, disk, and invites.
 - **Nothing extra** – No database, no cert dance, no dashboards to configure.
 
 <img width="500" alt="screenshot-2025-09-21_20-57-39" src="https://github.com/user-attachments/assets/a900ed9c-d519-4c1c-8268-2d2417807aed" />
 
+Pure Bash piping metrics over SSH. No YAML. No web UI. No surprises.
+
 ## Install
 
-Run central installer to setup the Console Container:
+Get the console running, enroll an agent, open the dashboard—each step is one command.
 
-```bash
-curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/install.sh | bash
-```
-After installation, the console generates a magic link to setup your first agent. This is just a temporary ssh user, the servers fingerprint is encoded in it. 
+1. **Install the console**
+   ```bash
+   curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/install.sh | bash
+   ```
 
-''' example
-   curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/install.sh | LUMENMON_INVITE='ssh://reg_1758482881441:b71f0da33953@localhost:2345/#ssh-ed25519_AAAAC3NzaC1lZDI1NTE5AAAAIImZwbLPoVLRJpPPh6xjpTqILLbBYfwv7603ommQh0Fg' bash
-'''
+2. **Enroll an agent** (copy the invite URL printed by step 1)
+   ```bash
+   curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/install.sh | LUMENMON_INVITE='<invite_url>' bash
+   ```
 
-Run lumenmon to see the TUI
-
-'''
-lumenmon
-'''
+3. **Open the TUI**
+   ```bash
+   lumenmon
+   ```
 
 ## Architecture
 
-**Console**: Runs an SSH Server to receive data from agents.
-**Agent**: Delievers data from 
-
-
-
+- **Console** – Listens on SSH, stores hot metrics in `/var/lib/lumenmon/hot`, and serves the TUI.
+- **Agent** – Runs shell collectors and ships TSV metrics over SSH at tight intervals.
+- **Transport** – A ForceCommand pipeline on the console receives the stream and writes files.
 
 ```
 ┌─────────────┐  SSH Tunnel   ┌─────────────┐
@@ -53,14 +53,11 @@ lumenmon
                               TSV Storage
                             (/data/agents)
 ```
-Agent
-> Collectors collect metrics at intervals (CPU: 0.1s, Memory: 1s, Disk: 60s)
-> tunnel transports metrics as TSV lines
-console
-> ingress receives data via SSH ForceCommand
-> enrollment
-> storage   uses tmpfs for hot data, disk for persistence
-> tui reads TSV files and renders real-time graphs
+
+**Data flow**
+- Collectors send CPU (100 ms), memory (1 s), and disk (60 s) samples as TSV rows.
+- SSH ForceCommand drops each line into the agent’s tmpfs directory.
+- The TUI reads those files and renders live tables and graphs.
 
 
 ### Security
