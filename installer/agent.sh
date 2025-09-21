@@ -28,6 +28,7 @@ else
     status_warn "Cannot verify console at $HOST:$PORT"
 fi
 
+# Confirm installation
 echo ""
 status_prompt "Install agent and connect? [Y/n]: "
 read -r -n 1 REPLY
@@ -35,6 +36,7 @@ echo ""
 
 [[ $REPLY =~ ^[Nn]$ ]] && exit 0
 
+# Save configuration
 echo ""
 status_progress "Configuring agent..."
 cd "$DIR/agent"
@@ -42,6 +44,7 @@ echo "CONSOLE_HOST=$HOST" > .env
 echo "CONSOLE_PORT=$PORT" >> .env
 status_ok "Configuration saved"
 
+# Deploy container
 status_progress "Starting container..."
 docker compose down 2>/dev/null
 if [ -n "$IMAGE" ]; then
@@ -51,10 +54,12 @@ else
 fi
 status_ok "Container started"
 
+# Register with console
 status_progress "Registering with console..."
 docker exec lumenmon-agent /app/core/setup/register.sh "$URL" || die "Registration failed"
 status_ok "Registration successful"
 
+# Verify metrics flow
 status_progress "Verifying connection..."
 sleep 3
 
