@@ -1,93 +1,90 @@
 #!/bin/bash
 # Agent installer with invite
 
-source installer/deploy.sh
+source installer/logo.sh
+source installer/status.sh
 
-# Parse host and port from invite
-INVITE_HOST_PORT="${LUMENMON_INVITE#*@}"
-INVITE_HOST_PORT="${INVITE_HOST_PORT%%/#*}"
+# Parse invite URL components
+parse_invite() {
+    local url="$1"
+    # ssh://reg_123:pass@host:port/#key
+    HOST_PORT="${url#*@}"
+    HOST_PORT="${HOST_PORT%%/#*}"
+    HOST="${HOST_PORT%%:*}"
+    PORT="${HOST_PORT##*:}"
+    USER="${url#ssh://}"
+    USER="${USER%%:*}"
+}
 
-# Parse username from invite
-INVITE_USER="${LUMENMON_INVITE#ssh://}"
-INVITE_USER="${INVITE_USER%%:*}"
-
+# Main installation
 clear
-echo -e "\033[0;36m"
-echo "  ██╗     ██╗   ██╗███╗   ███╗███████╗███╗   ██╗███╗   ███╗ ██████╗ ███╗   ██╗"
-echo "  ██║     ██║   ██║████╗ ████║██╔════╝████╗  ██║████╗ ████║██╔═══██╗████╗  ██║"
-echo "  ██║     ██║   ██║██╔████╔██║█████╗  ██╔██╗ ██║██╔████╔██║██║   ██║██╔██╗ ██║"
-echo "  ██║     ██║   ██║██║╚██╔╝██║██╔══╝  ██║╚██╗██║██║╚██╔╝██║██║   ██║██║╚██╗██║"
-echo "  ███████╗╚██████╔╝██║ ╚═╝ ██║███████╗██║ ╚████║██║ ╚═╝ ██║╚██████╔╝██║ ╚████║"
-echo "  ╚══════╝ ╚═════╝ ╚═╝     ╚═╝╚══════╝╚═╝  ╚═══╝╚═╝     ╚═╝ ╚═════╝ ╚═╝  ╚═══╝"
-echo -e "\033[0m"
+show_logo
 echo -e "  \033[1mAgent Installation\033[0m"
 echo ""
-echo "  Found invite: $INVITE_USER@$INVITE_HOST_PORT"
-echo "  Console: $INVITE_HOST_PORT"
-echo ""
 
-# Test connectivity
-echo "  Testing connection to console..."
-CONSOLE_HOST="${INVITE_HOST_PORT%%:*}"
-CONSOLE_PORT="${INVITE_HOST_PORT##*:}"
+status_progress "Parsing invite URL..."
+parse_invite "$LUMENMON_INVITE"
+status_ok "Found invite for $USER@$HOST:$PORT"
 
-if timeout 2 bash -c "echo > /dev/tcp/$CONSOLE_HOST/$CONSOLE_PORT" 2>/dev/null; then
-    echo -e "  \033[1;32m✓\033[0m Can reach console at $INVITE_HOST_PORT"
+# Test connection
+status_progress "Testing console connection..."
+if timeout 2 bash -c "echo > /dev/tcp/$HOST/$PORT" 2>/dev/null; then
+    status_ok "Console reachable at $HOST:$PORT"
 else
-    echo -e "  \033[1;33m⚠\033[0m Cannot verify console at $INVITE_HOST_PORT"
+    status_warn "Cannot verify console at $HOST:$PORT"
 fi
 
 echo ""
-echo -n "  Install agent and connect? [Y/n]: "
-read -n 1 -r REPLY < /dev/tty 2>/dev/null || read -n 1 -r REPLY
+status_prompt "Install agent and connect? [Y/n]: "
+read -r -n 1 REPLY
 echo ""
 
 if [[ $REPLY =~ ^[Nn]$ ]]; then
     echo ""
-    echo "  Installation cancelled"
+    status_warn "Installation cancelled"
     exit 0
 fi
 
 echo ""
+status_progress "Preparing configuration..."
+echo "CONSOLE_HOST=$HOST" > "$DIR/agent/.env"
+echo "CONSOLE_PORT=$PORT" >> "$DIR/agent/.env"
+status_ok "Configuration saved"
 
-# Parse and save connection details BEFORE starting container
-echo "  Preparing connection configuration..."
-echo "CONSOLE_HOST=$CONSOLE_HOST" > "$DIR/agent/.env"
-echo "CONSOLE_PORT=$CONSOLE_PORT" >> "$DIR/agent/.env"
+status_progress "Installing agent container..."
+cd "$DIR/agent"
 
-echo "  Installing agent container..."
+# Stop existing container
+docker compose down 2>/dev/null
 
-# Install agent
-COMPONENT="agent"
-IMAGE=""
-deploy_component
+# Deploy container
+if [ -n "$IMAGE" ]; then
+    export LUMENMON_IMAGE="$IMAGE"
+    docker compose up -d
+else
+    docker compose up -d --build
+fi
+status_ok "Container started"
 
-echo ""
-echo "  Registering with console..."
+status_progress "Registering with console..."
+if docker exec lumenmon-agent /app/core/setup/register.sh "$LUMENMON_INVITE"; then
+    status_ok "Registration successful"
+else
+    die "Registration failed - check invite URL"
+fi
 
-# Register with invite
-docker exec lumenmon-agent /app/core/setup/register.sh "$LUMENMON_INVITE"
-
-echo ""
-echo "  Waiting for metrics transmission..."
+status_progress "Verifying metrics transmission..."
 sleep 3
 
-# Check if agent is sending data
 if docker ps | grep -q lumenmon-agent; then
-    echo -e "  \033[1;32m✓\033[0m Agent is running and sending metrics"
+    status_ok "Agent connected and sending metrics"
     echo ""
-
-    # Show saved connection details for debugging
-    echo "  Connection details saved to agent/.env:"
-    cat "$DIR/agent/.env" 2>/dev/null | sed 's/^/    /'
-
-    echo ""
-    echo -e "  \033[1;32m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
-    echo -e "  \033[1;32m✓ Agent successfully installed and connected!\033[0m"
-    echo -e "  \033[1;32m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+    echo -e "  \033[1;32m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+    echo -e "  \033[1;32m✓ Agent successfully installed!\033[0m"
+    echo -e "  \033[1;32m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
 else
-    echo -e "  \033[1;33m⚠\033[0m Agent installed but not running"
-    echo "  Check logs: docker logs lumenmon-agent"
+    status_error "Agent not running"
+    echo "  Debug with: docker logs lumenmon-agent"
 fi
 
 echo ""
