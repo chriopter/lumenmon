@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-import asyncio
 from typing import List, Optional
 
 from textual import on
@@ -15,7 +14,7 @@ from config import REFRESH_RATE
 from models import AgentSnapshot, Invite
 from services import ClipboardService, MonitorService
 from views import DashboardView, DetailView
-from views.splash import SplashScreen
+from views.splash import SplashModal
 
 
 class LumenmonTUI(App):
@@ -40,66 +39,43 @@ class LumenmonTUI(App):
         self._dashboard_view: Optional[DashboardView] = None
         self._detail_container: Optional[Container] = None
         self._current_agent: Optional[str] = None
-        self._showing_splash = True
 
     # Layout -----------------------------------------------------------------
 
     def compose(self) -> ComposeResult:  # type: ignore[override]
         """Compose the application layout."""
-        # Start with splash screen
-        yield SplashScreen(id="splash_screen")
 
-    async def on_mount(self) -> None:
-        """Initialize the app after widgets are ready."""
-        # Force a refresh to ensure splash is rendered
-        splash = self.query_one("#splash_screen")
-        splash.refresh()
-
-        # Wait to ensure splash screen is visible and rendered
-        await asyncio.sleep(0.5)
-
-        # Show splash for a fixed duration
-        await asyncio.sleep(2.5)  # Show splash for total of 3 seconds
-
-        # Now transition to main UI
-        await self.show_main_ui()
-
-    async def show_main_ui(self) -> None:
-        """Transition from splash to main UI."""
-        # Remove splash screen
-        try:
-            splash = self.query_one("#splash_screen")
-            await splash.remove()
-        except:
-            pass
-
-        # Add the main UI components
-        await self.mount(Header(show_clock=True))
+        yield Header(show_clock=True)
 
         dashboard_view = DashboardView()
         dashboard_container = Container(dashboard_view, id="dashboard")
         self._dashboard_container = dashboard_container
         self._dashboard_view = dashboard_view
-        await self.mount(dashboard_container)
+        yield dashboard_container
 
         detail_container = Container(id="detail_view")
         self._detail_container = detail_container
-        await self.mount(detail_container)
+        yield detail_container
 
-        await self.mount(Footer())
+        yield Footer()
 
-        # Now initialize the main app
-        self._showing_splash = False
+    def on_mount(self) -> None:
+        """Initialize the app after widgets are ready."""
+
+        # Start the refresh cycle
         self.set_interval(REFRESH_RATE, self.refresh_all)
         self.refresh_all()
-        self._focus_table()
+
+        # Show the splash modal
+        self.push_screen(SplashModal())
+
+        # Focus will be set after splash disappears
+        self.call_later(self._focus_table, 3.5)
 
     # Refresh cycle ----------------------------------------------------------
 
     def refresh_all(self) -> None:
         """Refresh dashboard data for agents and invites."""
-        if self._showing_splash:
-            return
 
         agents = self.monitor.get_agents_data()
         invites = self.monitor.get_invites_data()
