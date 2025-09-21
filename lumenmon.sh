@@ -20,8 +20,16 @@ case "$1" in
     status|s)
         echo "Lumenmon Status"
         echo "━━━━━━━━━━━━━━━"
-        is_running console && echo "✓ $(docker exec lumenmon-console /app/core/status.sh 2>/dev/null)" || echo "✗ Console stopped"
-        is_running agent && echo "✓ $(docker exec lumenmon-agent /app/core/status.sh 2>/dev/null)" || echo "✗ Agent stopped"
+        if is_running console; then
+            docker exec lumenmon-console /app/core/status.sh 2>/dev/null
+        else
+            echo "Console: ✗ Container stopped"
+        fi
+        if is_running agent; then
+            docker exec lumenmon-agent /app/core/status.sh 2>/dev/null
+        else
+            echo "Agent: ✗ Container stopped"
+        fi
         ;;
 
     logs|l)
@@ -43,12 +51,12 @@ case "$1" in
         ;;
 
     help|h)
-        echo "lumenmon              - Open TUI (or status if not running)"
-        echo "lumenmon status       - Show system status"
-        echo "lumenmon logs        - View logs"
-        echo "lumenmon invite      - Generate agent invite"
-        echo "lumenmon update      - Update from git"
-        echo "lumenmon uninstall   - Remove everything"
+        echo "lumenmon           - Open TUI (or status if not running)"
+        echo "lumenmon status    - Show system status"
+        echo "lumenmon logs     - View logs"
+        echo "lumenmon invite   - Generate agent invite"
+        echo "lumenmon update   - Update from git"
+        echo "lumenmon uninstall - Remove everything"
         ;;
 
     *)
