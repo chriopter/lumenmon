@@ -7,17 +7,6 @@ Screen {
     color: $text;
 }
 
-/* ========== Splash Screen ========== */
-#splash_screen {
-    height: 100%;
-    width: 100%;
-    background: $background;
-    color: $text;
-    text-align: center;
-    content-align: center middle;
-    padding: 4;
-}
-
 /* ========== Dashboard ========== */
 #dashboard {
     height: 1fr;
@@ -208,6 +197,30 @@ Toast {
     background: $surface;
     border: solid $primary;
     margin: 1 2;
+}
+
+/* ========== Splash Modal ========== */
+SplashModal {
+    background: $background 90%;
+}
+
+#splash-box {
+    width: auto;
+    height: auto;
+    padding: 3 5;
+    background: $surface;
+    border: double $primary;
+}
+
+#splash-box Label {
+    width: auto;
+    text-align: center;
+    margin: 0;
+    padding: 0;
+}
+
+#status-label {
+    margin-top: 2;
 }
 
 /* ========== Color Variables (Dark Theme) ========== */
