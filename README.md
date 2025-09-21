@@ -16,20 +16,7 @@ Lumenmon is a one-command monitoring stack for Linux hosts.
 ```bash
 curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/install.sh | bash
 ```
-
-## Add Agents
-
-The console prints an invite URL—copy/paste it on your agent host:
-
-```bash
-curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/install.sh | LUMENMON_INVITE='<invite_url>' bash
-```
-
-Open the Textual dashboard anytime with:
-
-```bash
-lumenmon
-```
+Agents can be added with the magic ssh link the installer will output for you.
 
 ## Architecture
 
