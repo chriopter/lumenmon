@@ -18,7 +18,7 @@ Monitor all your servers from a single terminal. Based on bash, ssh and file sto
 
 ## Quick Start
 
-Install the console, copy the invite link to your servers, watch the metrics flow.
+Install the console. The installer gives you an invite link to add servers.
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/install.sh | bash
@@ -47,9 +47,9 @@ curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/install.sh |
                                   └── disk.tsv
 ```
 
-- **Agents** collect metrics (CPU/memory/disk) and stream TSV data through persistent SSH connections
-- **Console** creates isolated Linux users per agent, routes data to `/data/agents/<id>/*.tsv` files
-- **Security** uses SSH keys only, temporary invite passwords expire in 5 minutes, host key pinning from first connect
+- **Agents** collect metrics (CPU/memory/disk) and push TSV data through persistent SSH connections
+- **Console** creates isolated Linux users per agent, routes incoming data to `/data/agents/<id>/*.tsv` files
+- **Security** all SSH-based, all data pushed (never pulled): invites are temporary SSH accounts for enrollment, then certificates only
 
 ## Commands
 
