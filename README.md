@@ -9,7 +9,7 @@ Lumenmon is a one-command monitoring stack for Linux hosts.
 - **Nothing extra** – No database, no cert dance, no dashboards to configure.
 
 
-<img width="500" alt="screenshot-2025-09-21_20-57-39" src="https://github.com/user-attachments/assets/a900ed9c-d519-4c1c-8268-2d2417807aed" />
+<img width="650" alt="screenshot-2025-09-21_20-57-39" src="https://github.com/user-attachments/assets/a900ed9c-d519-4c1c-8268-2d2417807aed" />
 
 
 ## Install
