@@ -33,6 +33,7 @@ else
     log "Checking requirements..."
     command -v git >/dev/null 2>&1 || err "Git not found - please install git"
     command -v docker >/dev/null 2>&1 || err "Docker not found - please install docker"
+    docker compose version >/dev/null 2>&1 || err "'docker compose' not available - please install Docker Compose v2"
     log "✓ Requirements met"
 
     DIR="$DEFAULT_DIR"
