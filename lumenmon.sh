@@ -75,7 +75,9 @@ case "$1" in
             else
                 echo "Console: Building locally from source"
                 echo "  → Building new image..."
-                docker compose down && docker compose up -d --build
+                docker compose build
+                echo "  → Restarting container..."
+                docker compose down && docker compose up -d
             fi
             echo "  ✓ Console updated"
             echo ""
@@ -97,7 +99,9 @@ case "$1" in
             else
                 echo "Agent: Building locally from source"
                 echo "  → Building new image..."
-                docker compose down && docker compose up -d --build
+                docker compose build
+                echo "  → Restarting container..."
+                docker compose down && docker compose up -d
             fi
             echo "  ✓ Agent updated"
             echo ""
