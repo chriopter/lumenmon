@@ -31,7 +31,7 @@ show_menu() {
     case $choice in
         1)
             ask_console_host
-            IMAGE=""
+            IMAGE="ghcr.io/chriopter/lumenmon-console:latest"
             export CONSOLE_HOST IMAGE
             source installer/console.sh
             ;;

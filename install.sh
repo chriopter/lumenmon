@@ -61,6 +61,8 @@ cd "$DIR"
 # Launch installer
 if [ -n "$LUMENMON_INVITE" ]; then
     status_progress "Launching agent installer..."
+    IMAGE="ghcr.io/chriopter/lumenmon-agent:latest"
+    export IMAGE
     source installer/agent.sh
 else
     status_progress "Launching installer menu..."
