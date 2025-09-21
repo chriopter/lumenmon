@@ -6,10 +6,10 @@ set -e
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Source all installer modules
-source "${REPO_ROOT}/installer/core/check.sh"
-source "${REPO_ROOT}/installer/core/ask.sh"
-source "${REPO_ROOT}/installer/core/fetch.sh"
-source "${REPO_ROOT}/installer/core/deploy.sh"
+source "${REPO_ROOT}/installer/check.sh"
+source "${REPO_ROOT}/installer/ask.sh"
+source "${REPO_ROOT}/installer/fetch.sh"
+source "${REPO_ROOT}/installer/deploy.sh"
 
 # Main installation flow
 check_prerequisites
