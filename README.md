@@ -30,6 +30,9 @@ lumenmon
 
 That's it. Data flows.
 
+<img width="650" height="870" alt="image" src="https://github.com/user-attachments/assets/281a5b74-908e-400b-b311-64e4a654a324" />
+
+
 ## How It Works
 
 ```
