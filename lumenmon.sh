@@ -8,7 +8,7 @@ cd "$DIR"
 is_running() { docker ps | grep -q "lumenmon-$1"; }
 
 case "$1" in
-    # Default without args - open TUI or show status
+    # Default: open TUI or show status
     "")
         if is_running console; then
             docker exec -it lumenmon-console python3 /app/tui/main.py
@@ -20,16 +20,8 @@ case "$1" in
     status|s)
         echo "Lumenmon Status"
         echo "━━━━━━━━━━━━━━━"
-        if is_running console; then
-            docker exec lumenmon-console /app/core/status.sh 2>/dev/null
-        else
-            echo "Console: ✗ Container stopped"
-        fi
-        if is_running agent; then
-            docker exec lumenmon-agent /app/core/status.sh 2>/dev/null
-        else
-            echo "Agent: ✗ Container stopped"
-        fi
+        is_running console && docker exec lumenmon-console /app/core/status.sh 2>/dev/null || echo "Console: ✗ Container stopped"
+        is_running agent && docker exec lumenmon-agent /app/core/status.sh 2>/dev/null || echo "Agent: ✗ Container stopped"
         ;;
 
     logs|l)
@@ -42,8 +34,49 @@ case "$1" in
         docker exec lumenmon-console /app/core/enrollment/invite_create.sh
         ;;
 
+    # Update: respects installation method (local build vs remote image)
     update|u)
-        git pull && echo "✓ Updated"
+        echo "Updating Lumenmon..."
+        git pull
+
+        # Update console if running
+        if is_running console; then
+            echo "Updating console..."
+            cd "$DIR/console"
+
+            # Check if remote image in .env
+            if [ -f .env ] && grep -q "^LUMENMON_IMAGE=." .env 2>/dev/null; then
+                IMAGE=$(grep "^LUMENMON_IMAGE=" .env | cut -d= -f2)
+                echo "Pulling $IMAGE..."
+                docker pull "$IMAGE"
+                docker compose down && docker compose up -d
+            else
+                echo "Building from source..."
+                docker compose down && docker compose up -d --build
+            fi
+
+            echo "✓ Console updated"
+        fi
+
+        # Update agent if running
+        if is_running agent; then
+            echo "Updating agent..."
+            cd "$DIR/agent"
+
+            if [ -f .env ] && grep -q "^LUMENMON_IMAGE=." .env 2>/dev/null; then
+                IMAGE=$(grep "^LUMENMON_IMAGE=" .env | cut -d= -f2)
+                echo "Pulling $IMAGE..."
+                docker pull "$IMAGE"
+                docker compose down && docker compose up -d
+            else
+                echo "Building from source..."
+                docker compose down && docker compose up -d --build
+            fi
+
+            echo "✓ Agent updated"
+        fi
+
+        echo "✓ Update complete"
         ;;
 
     uninstall)
@@ -55,7 +88,7 @@ case "$1" in
         echo "lumenmon status    - Show system status"
         echo "lumenmon logs     - View logs"
         echo "lumenmon invite   - Generate agent invite"
-        echo "lumenmon update   - Update from git"
+        echo "lumenmon update   - Pull latest containers and restart"
         echo "lumenmon uninstall - Remove everything"
         ;;
 
