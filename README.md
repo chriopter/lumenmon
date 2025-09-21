@@ -20,23 +20,11 @@ Monitor all your servers from a single terminal. Based on bash, ssh and file sto
 
 ## Quick Start
 
-Install the console:
+Install the console, copy the invite link to your servers, watch the metrics flow.
+
 ```bash
 curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/install.sh | bash
 ```
-
-You'll see an invite link like this, just paste it on each server to connect the agent.
-```
-curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/install.sh | \
-  LUMENMON_INVITE='ssh://invite:xK3mP9Qw@your-server.com:2345' bash
-```
-
-Watch everything live:
-```bash
-lumenmon
-```
-
-That's it. Data flows.
 
 <img width="650" height="870" alt="image" src="https://github.com/user-attachments/assets/281a5b74-908e-400b-b311-64e4a654a324" />
 
@@ -61,20 +49,9 @@ That's it. Data flows.
                                   └── disk.tsv
 ```
 
-**Agent**
-- Bash collector scripts for CPU (100ms), memory (1s), disk (60s)
-- SSH client multiplexes all metrics through single persistent connection
-- Metrics streamed as TSV rows, one file per metric type
-
-**Console**
-- SSH server on port 2345, each agent gets dedicated Linux user
-- ForceCommand gateway script routes metrics to `/data/agents/<id>/`
-- Textual TUI reads live TSV files for real-time display
-
-**Security**
-- SSH keys only, no passwords, no shell access via ForceCommand
-- Invites are temporary password accounts, expire after 5 minutes or enrollment
-- Host key included in invite URL for secure first connection
+- **Agents** collect metrics (CPU/memory/disk) and stream TSV data through persistent SSH connections
+- **Console** creates isolated Linux users per agent, routes data to `/data/agents/<id>/*.tsv` files
+- **Security** uses SSH keys only, temporary invite passwords expire in 5 minutes, host key pinning from first connect
 
 ## Commands
 
