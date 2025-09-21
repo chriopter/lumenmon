@@ -59,8 +59,12 @@ deploy_component
 echo ""
 echo "  Registering with console..."
 
-# Register with invite
-docker exec lumenmon-agent /app/core/setup/register.sh "$LUMENMON_INVITE"
+# Register with invite and capture ENV output
+REGISTER_OUTPUT=$(docker exec lumenmon-agent /app/core/setup/register.sh "$LUMENMON_INVITE")
+echo "$REGISTER_OUTPUT" | grep -v "^ENV:"
+
+# Save connection details to .env
+echo "$REGISTER_OUTPUT" | grep "^ENV:" | sed 's/^ENV://' > "$DIR/agent/.env"
 
 echo ""
 echo "  Waiting for metrics transmission..."
@@ -69,6 +73,12 @@ sleep 3
 # Check if agent is sending data
 if docker ps | grep -q lumenmon-agent; then
     echo -e "  \033[1;32m✓\033[0m Agent is running and sending metrics"
+    echo ""
+
+    # Show saved connection details for debugging
+    echo "  Connection details saved to agent/.env:"
+    cat "$DIR/agent/.env" 2>/dev/null | sed 's/^/    /'
+
     echo ""
     echo -e "  \033[1;32m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
     echo -e "  \033[1;32m✓ Agent successfully installed and connected!\033[0m"
