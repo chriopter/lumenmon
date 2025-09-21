@@ -31,10 +31,10 @@ echo "  Testing connection to console..."
 CONSOLE_HOST="${INVITE_HOST_PORT%%:*}"
 CONSOLE_PORT="${INVITE_HOST_PORT##*:}"
 
-if nc -z -w 2 "$CONSOLE_HOST" "$CONSOLE_PORT" 2>/dev/null; then
+if timeout 2 bash -c "echo > /dev/tcp/$CONSOLE_HOST/$CONSOLE_PORT" 2>/dev/null; then
     echo -e "  \033[1;32m✓\033[0m Can reach console at $INVITE_HOST_PORT"
 else
-    echo -e "  \033[1;33m⚠\033[0m Cannot reach console at $INVITE_HOST_PORT"
+    echo -e "  \033[1;33m⚠\033[0m Cannot verify console at $INVITE_HOST_PORT"
 fi
 
 echo ""
