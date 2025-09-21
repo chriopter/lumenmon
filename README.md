@@ -53,10 +53,10 @@ That's it. Data flows.
                                   └── disk.tsv
 ```
 
-**Agent**: Bash collectors stream metrics as TSV rows through SSH
-**Console**: Each agent gets its own Linux user, ForceCommand routes data to storage
-**Storage**: Simple TSV files, no database needed
-**Security**: SSH keys only, no passwords, no shell access
+- **Agent**: Bash collectors stream metrics as TSV rows through SSH
+- **Console**: Each agent gets its own Linux user, ForceCommand routes data to storage
+- **Storage**: Simple TSV files, no database needed
+- **Security**: SSH keys only, no passwords, no shell access. Invites are temporary password accounts that are deleted by the server. host key is part of invitation link for pinning from first moment on.
 
 ## Commands
 
