@@ -16,17 +16,17 @@ Just Bash scripts, piping to a central server via SSH. No Database, no dashboard
 
 ## Install
 
+Run central installer to setup the Console Container:
+
 ```bash
 curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/install.sh | bash
 ```
-
-This installs the console and generates invites for agents. Once installed, run `lumenmon invite` to get a one-line agent installer.
-
-<img width="600" alt="image" src="https://github.com/user-attachments/assets/3389a70a-2bf6-460c-908c-198184dd21ec" />
-<img width="1384" height="864" alt="image" src="https://github.com/user-attachments/assets/7c53ed47-cc74-42d9-9e37-dd1f44e65917" />
+<img width="400" height="864" alt="image" src="https://github.com/user-attachments/assets/7c53ed47-cc74-42d9-9e37-dd1f44e65917" />
 
 
-The invite command creates a temporary SSH account, registers the agent's key, and establishes a permanent connection - all automatically.
+After installation, the console generates a magic link to setup your first agent. This is just a temporary ssh user, the servers fingerprint is encoded in it. 
+
+<img width="400" alt="image" src="https://github.com/user-attachments/assets/3389a70a-2bf6-460c-908c-198184dd21ec" />
 
 ## How It Works
 
