@@ -7,6 +7,15 @@ Screen {
     color: $text;
 }
 
+/* ========== Splash Screen ========== */
+SplashWidget {
+    height: 100%;
+    width: 100%;
+    align: center middle;
+    text-align: center;
+    padding: 2;
+}
+
 /* ========== Dashboard ========== */
 #dashboard {
     height: 1fr;
@@ -199,32 +208,7 @@ Toast {
     margin: 1 2;
 }
 
-/* ========== Splash Modal ========== */
-SplashModal {
-    background: $background 90%;
-}
-
-#splash-box {
-    width: auto;
-    height: auto;
-    padding: 3 5;
-    background: $surface;
-    border: double $primary;
-}
-
-#splash-box Label {
-    width: auto;
-    text-align: center;
-    margin: 0;
-    padding: 0;
-}
-
-#status-label {
-    margin-top: 2;
-}
-
 /* ========== Color Variables (Dark Theme) ========== */
-/* These are implicitly used by Textual's theming system */
 $background: #0c0c0c;
 $surface: #1a1a1a;
 $primary: #00bcd4;  /* Cyan */

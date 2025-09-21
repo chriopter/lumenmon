@@ -7,20 +7,43 @@ from typing import List, Optional
 
 from textual import on
 from textual.app import App, ComposeResult
+from textual.binding import Binding
 from textual.containers import Container
-from textual.widgets import Button, DataTable, Footer, Header
+from textual.reactive import reactive
+from textual.widgets import Button, DataTable, Footer, Header, Static
 
 from config import REFRESH_RATE
 from models import AgentSnapshot, Invite
 from services import ClipboardService, MonitorService
 from views import DashboardView, DetailView
-from views.splash import SplashModal
+
+
+LUMENMON_LOGO = """
+  ██╗     ██╗   ██╗███╗   ███╗███████╗███╗   ██╗███╗   ███╗ ██████╗ ███╗   ██╗
+  ██║     ██║   ██║████╗ ████║██╔════╝████╗  ██║████╗ ████║██╔═══██╗████╗  ██║
+  ██║     ██║   ██║██╔████╔██║█████╗  ██╔██╗ ██║██╔████╔██║██║   ██║██╔██╗ ██║
+  ██║     ██║   ██║██║╚██╔╝██║██╔══╝  ██║╚██╗██║██║╚██╔╝██║██║   ██║██║╚██╗██║
+  ███████╗╚██████╔╝██║ ╚═╝ ██║███████╗██║ ╚████║██║ ╚═╝ ██║╚██████╔╝██║ ╚████║
+  ╚══════╝ ╚═════╝ ╚═╝     ╚═╝╚══════╝╚═╝  ╚═══╝╚═╝     ╚═╝ ╚═════╝ ╚═╝  ╚═══╝
+
+[bold]LUMENMON[/bold] - Lightweight System Monitoring Solution
+Version 1.0
+
+[bright_green]Press ENTER to continue[/bright_green]"""
+
+
+class SplashWidget(Static):
+    """Simple splash screen widget."""
+
+    def __init__(self):
+        super().__init__(f"[bold bright_cyan]{LUMENMON_LOGO}[/bold bright_cyan]")
 
 
 class LumenmonTUI(App):
     """Interactive terminal interface for monitoring Lumenmon agents."""
 
     BINDINGS = [
+        Binding("enter", "continue_app", "Continue", show=False),
         ("q", "quit", "Quit"),
         ("r", "refresh", "Refresh"),
         ("i", "create_invite", "Create Invite"),
@@ -29,6 +52,8 @@ class LumenmonTUI(App):
     ]
 
     CSS_PATH = "config/theme.css"
+
+    showing_splash = reactive(True)
 
     def __init__(self) -> None:
         super().__init__()
@@ -45,37 +70,65 @@ class LumenmonTUI(App):
     def compose(self) -> ComposeResult:  # type: ignore[override]
         """Compose the application layout."""
 
-        yield Header(show_clock=True)
+        if self.showing_splash:
+            # Just show the splash
+            yield SplashWidget()
+        else:
+            # Show the main app
+            yield Header(show_clock=True)
 
-        dashboard_view = DashboardView()
-        dashboard_container = Container(dashboard_view, id="dashboard")
-        self._dashboard_container = dashboard_container
-        self._dashboard_view = dashboard_view
-        yield dashboard_container
+            dashboard_view = DashboardView()
+            dashboard_container = Container(dashboard_view, id="dashboard")
+            self._dashboard_container = dashboard_container
+            self._dashboard_view = dashboard_view
+            yield dashboard_container
 
-        detail_container = Container(id="detail_view")
-        self._detail_container = detail_container
-        yield detail_container
+            detail_container = Container(id="detail_view")
+            self._detail_container = detail_container
+            yield detail_container
 
-        yield Footer()
+            yield Footer()
 
     def on_mount(self) -> None:
         """Initialize the app after widgets are ready."""
+        if not self.showing_splash:
+            self.set_interval(REFRESH_RATE, self.refresh_all)
+            self.refresh_all()
+            self._focus_table()
 
-        # Start the refresh cycle
-        self.set_interval(REFRESH_RATE, self.refresh_all)
-        self.refresh_all()
+    async def action_continue_app(self) -> None:
+        """Continue from splash to main app."""
+        if self.showing_splash:
+            self.showing_splash = False
+            # Clear and recompose
+            await self.query("*").remove()
 
-        # Show the splash modal
-        self.push_screen(SplashModal())
+            # Mount the main app components
+            await self.mount(Header(show_clock=True))
 
-        # Focus will be set after splash disappears
-        self.call_later(self._focus_table, 3.5)
+            dashboard_view = DashboardView()
+            dashboard_container = Container(dashboard_view, id="dashboard")
+            self._dashboard_container = dashboard_container
+            self._dashboard_view = dashboard_view
+            await self.mount(dashboard_container)
+
+            detail_container = Container(id="detail_view")
+            self._detail_container = detail_container
+            await self.mount(detail_container)
+
+            await self.mount(Footer())
+
+            # Now everything is mounted, start the refresh
+            self.set_interval(REFRESH_RATE, self.refresh_all)
+            self.refresh_all()
+            self._focus_table()
 
     # Refresh cycle ----------------------------------------------------------
 
     def refresh_all(self) -> None:
         """Refresh dashboard data for agents and invites."""
+        if self.showing_splash:
+            return
 
         agents = self.monitor.get_agents_data()
         invites = self.monitor.get_invites_data()
@@ -89,8 +142,11 @@ class LumenmonTUI(App):
     def _focus_table(self) -> None:
         if not self._dashboard_view:
             return
-        table = self._dashboard_view.query_one(DataTable)
-        table.focus()
+        try:
+            table = self._dashboard_view.query_one(DataTable)
+            table.focus()
+        except:
+            pass
 
     def _show_detail(self, agent_id: str) -> None:
         if not self._detail_container:
@@ -112,6 +168,8 @@ class LumenmonTUI(App):
     @on(DataTable.RowSelected)
     def on_row_selected(self, event: DataTable.RowSelected) -> None:
         """Open the detail view when an agent row is selected."""
+        if self.showing_splash:
+            return
 
         table = event.control
         if event.cursor_row >= len(table.rows):
@@ -141,9 +199,13 @@ class LumenmonTUI(App):
     # Actions -----------------------------------------------------------------
 
     def action_refresh(self) -> None:
-        self.refresh_all()
+        if not self.showing_splash:
+            self.refresh_all()
 
     def action_copy_invite(self) -> None:
+        if self.showing_splash:
+            return
+
         if not self.invite_urls:
             self.notify("No active invites to copy. Press 'i' to create one.", severity="warning")
             return
@@ -163,6 +225,9 @@ class LumenmonTUI(App):
             )
 
     def action_create_invite(self) -> None:
+        if self.showing_splash:
+            return
+
         invite_url = Invite.create()
         if not invite_url:
             self.notify("Failed to create invite", severity="error")
