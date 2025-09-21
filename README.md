@@ -8,7 +8,9 @@
 ```
 
 
-Monitor all your servers from a single terminal. Based on bash, ssh and file storage - no setup of databases, dashboards or thousand of services.
+Its too damn complicated to quickly setup a system monitoring for a few servers.
+
+Lumenmon fixes that. Monitor all your servers from a single terminal. Based on bash, ssh and file storage - no setup of databases, dashboards or thousand of services.
 
 - **30 seconds to monitoring** – One command, and you're watching live metrics
 - **Add servers with a magic link** – Copy, paste, done. Each agent gets its own SSH invite
