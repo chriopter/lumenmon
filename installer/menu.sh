@@ -29,10 +29,11 @@ show_menu() {
 
     echo "  1) Install Console"
     echo "  2) Advanced"
-    echo "  3) Exit"
+    echo "  3) Uninstall"
+    echo "  4) Exit"
     echo ""
 
-    read -r -p "  Select [1-3]: " choice
+    read -r -p "  Select [1-4]: " choice
 
     case $choice in
         1)
@@ -43,6 +44,9 @@ show_menu() {
             show_advanced
             ;;
         3)
+            source installer/uninstall.sh
+            ;;
+        4)
             exit 0
             ;;
         *)
