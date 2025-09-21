@@ -25,7 +25,7 @@ else
     echo "• Set up monitoring containers"
     echo ""
     echo -n "Continue? [Y/n]: "
-    read -r -n 1 CONFIRM
+    read -r -n 1 CONFIRM < /dev/tty
     echo ""
 
     [[ $CONFIRM =~ ^[Nn]$ ]] && exit 0
