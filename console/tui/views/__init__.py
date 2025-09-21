@@ -2,5 +2,6 @@
 
 from .dashboard import DashboardView
 from .detail import DetailView
+from .boot_splash import RetroBootSplash
 
-__all__ = ['DashboardView', 'DetailView']
+__all__ = ['DashboardView', 'DetailView', 'RetroBootSplash']

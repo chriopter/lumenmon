@@ -16,27 +16,7 @@ from config import REFRESH_RATE
 from models import AgentSnapshot, Invite
 from services import ClipboardService, MonitorService
 from views import DashboardView, DetailView
-
-
-LUMENMON_LOGO = """
-  ██╗     ██╗   ██╗███╗   ███╗███████╗███╗   ██╗███╗   ███╗ ██████╗ ███╗   ██╗
-  ██║     ██║   ██║████╗ ████║██╔════╝████╗  ██║████╗ ████║██╔═══██╗████╗  ██║
-  ██║     ██║   ██║██╔████╔██║█████╗  ██╔██╗ ██║██╔████╔██║██║   ██║██╔██╗ ██║
-  ██║     ██║   ██║██║╚██╔╝██║██╔══╝  ██║╚██╗██║██║╚██╔╝██║██║   ██║██║╚██╗██║
-  ███████╗╚██████╔╝██║ ╚═╝ ██║███████╗██║ ╚████║██║ ╚═╝ ██║╚██████╔╝██║ ╚████║
-  ╚══════╝ ╚═════╝ ╚═╝     ╚═╝╚══════╝╚═╝  ╚═══╝╚═╝     ╚═╝ ╚═════╝ ╚═╝  ╚═══╝
-
-[bold]LUMENMON[/bold] - Lightweight System Monitoring Solution
-Version 1.0
-
-[bright_green]Press ENTER to continue[/bright_green]"""
-
-
-class SplashWidget(Static):
-    """Simple splash screen widget."""
-
-    def __init__(self):
-        super().__init__(f"[bold bright_cyan]{LUMENMON_LOGO}[/bold bright_cyan]")
+from views.boot_splash import RetroBootSplash
 
 
 class LumenmonTUI(App):
@@ -71,8 +51,8 @@ class LumenmonTUI(App):
         """Compose the application layout."""
 
         if self.showing_splash:
-            # Just show the splash
-            yield SplashWidget()
+            # Show the retro boot splash
+            yield RetroBootSplash()
         else:
             # Show the main app
             yield Header(show_clock=True)
