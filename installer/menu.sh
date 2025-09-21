@@ -1,10 +1,15 @@
 #!/bin/bash
-# Interactive installer
+# Interactive menu with arrow keys
 
-show_menu() {
+# Menu drawing function
+draw_menu() {
+    local selected=$1
+    shift
+    local options=("$@")
+
     clear
 
-    # Show logo in cyan
+    # Logo
     echo -e "\033[0;36m"
     echo "  ██╗     ██╗   ██╗███╗   ███╗███████╗███╗   ██╗███╗   ███╗ ██████╗ ███╗   ██╗"
     echo "  ██║     ██║   ██║████╗ ████║██╔════╝████╗  ██║████╗ ████║██╔═══██╗████╗  ██║"
@@ -15,75 +20,145 @@ show_menu() {
     echo -e "\033[0m"
     echo ""
 
-    # Check if console is already installed
-    if docker ps -a --format "{{.Names}}" 2>/dev/null | grep -q "^lumenmon-console$"; then
-        if docker ps --format "{{.Names}}" 2>/dev/null | grep -q "^lumenmon-console$"; then
-            echo -e "  \033[0;32m✓ Console is running\033[0m"
+    # Menu items
+    for i in "${!options[@]}"; do
+        if [ $i -eq $selected ]; then
+            echo -e "  \033[1;36m→ ${options[$i]}\033[0m"
         else
-            echo -e "  \033[0;33m⚠ Console is stopped\033[0m"
+            echo -e "    ${options[$i]}"
         fi
-        echo ""
-        echo -n "  Reinstall console? [y/N/a]: "
-    else
-        echo "  Welcome to Lumenmon installer!"
-        echo ""
-        echo -n "  Install console? [Y/n/a]: "
-    fi
+    done
 
-    read -r choice < /dev/tty 2>/dev/null || read -r choice
-
-    # Check for advanced
-    if [[ "$choice" =~ ^[Aa]$ ]]; then
-        show_advanced
-        return
-    fi
-
-    # Check the response based on context
-    if docker ps -a --format "{{.Names}}" 2>/dev/null | grep -q "^lumenmon-console$"; then
-        # Already installed - default is NO
-        if [[ "$choice" =~ ^[Yy]$ ]]; then
-            COMPONENT="console"
-        else
-            exit 0
-        fi
-    else
-        # Not installed - default is YES
-        if [[ "$choice" =~ ^[Nn]$ ]]; then
-            exit 0
-        else
-            COMPONENT="console"
-        fi
-    fi
-
-    export COMPONENT
+    echo ""
+    echo -e "  \033[0;90m[↑↓ Navigate, Enter Select, q Quit]\033[0m"
 }
 
+# Get single keypress
+get_key() {
+    local key
+    IFS= read -rsn1 key 2>/dev/null >&2
+    if [[ $key = $'\x1b' ]]; then
+        read -rsn2 key 2>/dev/null >&2
+        case $key in
+            '[A') echo UP ;;
+            '[B') echo DOWN ;;
+        esac
+    else
+        echo "$key"
+    fi
+}
+
+# Main menu
+show_menu() {
+    local options=("Install Console" "Advanced" "Exit")
+    local selected=0
+
+    while true; do
+        draw_menu $selected "${options[@]}"
+
+        key=$(get_key)
+        case $key in
+            UP)
+                ((selected--))
+                [ $selected -lt 0 ] && selected=$((${#options[@]} - 1))
+                ;;
+            DOWN)
+                ((selected++))
+                [ $selected -ge ${#options[@]} ] && selected=0
+                ;;
+            q|Q)
+                exit 0
+                ;;
+            '')  # Enter key
+                case $selected in
+                    0)  # Install Console
+                        COMPONENT="console"
+                        IMAGE=""
+                        return
+                        ;;
+                    1)  # Advanced
+                        show_advanced
+                        return
+                        ;;
+                    2)  # Exit
+                        exit 0
+                        ;;
+                esac
+                ;;
+        esac
+    done
+}
+
+# Advanced menu
 show_advanced() {
-    echo ""
-    echo "  Advanced options:"
-    echo "    1) Agent latest"
-    echo "    2) Agent dev"
-    echo "    3) Console dev"
-    echo "    4) Build from source"
-    echo ""
-    read -p "  Choice [1-4]: " choice
+    local options=(
+        "Console - Latest"
+        "Console - Dev"
+        "Console - Build local"
+        "Agent - Latest"
+        "Agent - Dev"
+        "Agent - Build local"
+        "Back"
+    )
+    local selected=0
 
-    case $choice in
-        1) COMPONENT="agent"; IMAGE="ghcr.io/chriopter/lumenmon-agent:latest" ;;
-        2) COMPONENT="agent"; IMAGE="ghcr.io/chriopter/lumenmon-agent:main" ;;
-        3) COMPONENT="console"; IMAGE="ghcr.io/chriopter/lumenmon-console:main" ;;
-        4)
-            echo -n "  Build console or agent? [c/a]: "
-            read -r comp
-            if [[ "$comp" =~ ^[Aa]$ ]]; then
-                COMPONENT="agent"
-            else
-                COMPONENT="console"
-            fi
-            IMAGE=""
-            ;;
-        *) exit 1 ;;
-    esac
+    while true; do
+        draw_menu $selected "${options[@]}"
 
-    export COMPONENT IMAGE
+        key=$(get_key)
+        case $key in
+            UP)
+                ((selected--))
+                [ $selected -lt 0 ] && selected=$((${#options[@]} - 1))
+                ;;
+            DOWN)
+                ((selected++))
+                [ $selected -ge ${#options[@]} ] && selected=0
+                ;;
+            q|Q)
+                exit 0
+                ;;
+            '')  # Enter key
+                case $selected in
+                    0)  # Console - Latest
+                        COMPONENT="console"
+                        IMAGE="ghcr.io/chriopter/lumenmon-console:latest"
+                        return
+                        ;;
+                    1)  # Console - Dev
+                        COMPONENT="console"
+                        IMAGE="ghcr.io/chriopter/lumenmon-console:main"
+                        return
+                        ;;
+                    2)  # Console - Build local
+                        COMPONENT="console"
+                        IMAGE=""
+                        return
+                        ;;
+                    3)  # Agent - Latest
+                        COMPONENT="agent"
+                        IMAGE="ghcr.io/chriopter/lumenmon-agent:latest"
+                        return
+                        ;;
+                    4)  # Agent - Dev
+                        COMPONENT="agent"
+                        IMAGE="ghcr.io/chriopter/lumenmon-agent:main"
+                        return
+                        ;;
+                    5)  # Agent - Build local
+                        COMPONENT="agent"
+                        IMAGE=""
+                        return
+                        ;;
+                    6)  # Back
+                        show_menu
+                        return
+                        ;;
+                esac
+                ;;
+        esac
+    done
 }
+
+# Export variables for deploy script
+export COMPONENT IMAGE
