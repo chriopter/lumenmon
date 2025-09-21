@@ -29,9 +29,9 @@ fi
 echo ""
 cd "$DIR/agent"
 
-# Pre-create SSH directory with secure permissions
+# Pre-create SSH directory with write permissions for container
 mkdir -p data/ssh
-chmod -R 755 data
+chmod 777 data/ssh  # Allow container to write SSH keys
 
 # Write config
 echo "CONSOLE_HOST=${HOST:-localhost}" > .env
