@@ -34,7 +34,7 @@ case "$1" in
         docker exec lumenmon-console /app/core/enrollment/invite_create.sh
         ;;
 
-    # Update: respects installation method (local build vs remote image)
+    # Update: respects installation method via docker-compose.override.yml
     update|u)
         echo "Updating Lumenmon..."
         git pull
@@ -44,16 +44,11 @@ case "$1" in
             echo "Updating console..."
             cd "$DIR/console"
 
-            # Check if remote image in .env
-            if [ -f .env ] && grep -q "^LUMENMON_IMAGE=." .env 2>/dev/null; then
-                IMAGE=$(grep "^LUMENMON_IMAGE=" .env | cut -d= -f2)
-                echo "Pulling $IMAGE..."
-                docker pull "$IMAGE"
-                docker compose down && docker compose up -d
-            else
-                echo "Building from source..."
-                docker compose down && docker compose up -d --build
-            fi
+            # Pull if using remote image (has override file)
+            [ -f docker-compose.override.yml ] && docker compose pull
+
+            # Restart (builds if needed, uses image if specified)
+            docker compose down && docker compose up -d --build
 
             echo "✓ Console updated"
         fi
@@ -63,15 +58,11 @@ case "$1" in
             echo "Updating agent..."
             cd "$DIR/agent"
 
-            if [ -f .env ] && grep -q "^LUMENMON_IMAGE=." .env 2>/dev/null; then
-                IMAGE=$(grep "^LUMENMON_IMAGE=" .env | cut -d= -f2)
-                echo "Pulling $IMAGE..."
-                docker pull "$IMAGE"
-                docker compose down && docker compose up -d
-            else
-                echo "Building from source..."
-                docker compose down && docker compose up -d --build
-            fi
+            # Pull if using remote image (has override file)
+            [ -f docker-compose.override.yml ] && docker compose pull
+
+            # Restart (builds if needed, uses image if specified)
+            docker compose down && docker compose up -d --build
 
             echo "✓ Agent updated"
         fi

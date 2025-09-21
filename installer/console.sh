@@ -14,25 +14,24 @@ if [ -n "$CONSOLE_HOST" ]; then
     status_ok "Configuration saved"
 fi
 
-# Save image choice for future updates
-# This tells 'lumenmon update' how to update this installation
+# Create override file for remote images
 if [ -n "$IMAGE" ]; then
-    # Remote image - save it so updates know to pull from registry
-    echo "LUMENMON_IMAGE=$IMAGE" >> .env
+    # Remote image - create override to disable build
+    cat > docker-compose.override.yml <<EOF
+services:
+  console:
+    image: $IMAGE
+EOF
+    status_ok "Remote image configured"
 else
-    # Local build - save empty value so updates know to build from source
-    echo "LUMENMON_IMAGE=" >> .env
+    # Local build - remove any override file
+    rm -f docker-compose.override.yml
 fi
 
 # Deploy container
 status_progress "Restarting container..."
 docker compose down 2>/dev/null
-
-if [ -n "$IMAGE" ]; then
-    LUMENMON_IMAGE="$IMAGE" docker compose up -d
-else
-    docker compose up -d --build
-fi
+docker compose up -d --build
 status_ok "Console started"
 
 # Initialize and generate invite
