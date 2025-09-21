@@ -16,10 +16,21 @@ err() {
 
 # Check requirements first
 log "Checking requirements..."
-command -v git >/dev/null 2>&1 || err "Git not found - please install git"
-command -v docker >/dev/null 2>&1 || err "Docker not found - please install docker"
-docker compose version >/dev/null 2>&1 || err "'docker compose' not available - please install Docker Compose v2"
-log "✓ Requirements met"
+if command -v git >/dev/null 2>&1; then
+    log "✓ Git installed"
+else
+    err "Git not found - please install git"
+fi
+if command -v docker >/dev/null 2>&1; then
+    log "✓ Docker installed"
+else
+    err "Docker not found - please install docker"
+fi
+if docker compose version >/dev/null 2>&1; then
+    log "✓ Docker Compose installed"
+else
+    err "'docker compose' not available - please install Docker Compose v2"
+fi
 
 # Update existing or install new
 if [ -d "$DEFAULT_DIR/.git" ]; then
