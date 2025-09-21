@@ -1,10 +1,15 @@
-"""Detailed agent view with graphs and metrics"""
+"""Detailed agent view with graphs and metrics."""
 
-from textual import on
-from textual.widgets import Button, Static, Label, ListView, ListItem
-from textual.containers import Container, Horizontal, Vertical
+from __future__ import annotations
+
+import math
+from typing import List, Optional, Tuple
+
 import plotext as plt
+from textual.containers import Container, Horizontal, Vertical
+from textual.widgets import Button, Label, ListItem, ListView, Static
 
+from config import GRAPH_MIN_HEIGHT, GRAPH_MIN_WIDTH, GRAPH_POINTS
 from models import Agent, MetricsReader
 
 
@@ -16,24 +21,24 @@ class DetailView(Container):
         self.agent_id = agent_id
         self.agent = Agent(agent_id)
         self.metrics = MetricsReader()
-        self.all_metrics = self.metrics.get_all_metrics(agent_id)
+        self.all_metrics: List[str] = []
 
     def compose(self):
-        with Vertical():
+        with Vertical(id="detail_layout"):
             yield Label(f"[bold cyan]══════ Agent Details: {self.agent_id} ══════[/bold cyan]")
 
-            # Large graphs section
-            with Horizontal():
-                yield Static(id="cpu_graph_large")
-                yield Static(id="mem_graph_large")
+            with Horizontal(id="graphs_top"):
+                yield Static(id="cpu_graph_large", classes="graph-panel")
+                yield Static(id="mem_graph_large", classes="graph-panel")
 
-            with Horizontal():
-                yield Static(id="disk_graph_large")
-                yield Static(id="custom_graph_large")
+            with Horizontal(id="graphs_bottom"):
+                yield Static(id="disk_graph_large", classes="graph-panel")
+                yield Static(id="custom_graph_large", classes="graph-panel")
 
-            # Metrics list section
-            yield Label("[bold]Available Metrics:[/bold]")
-            yield ListView(id="metrics_list")
+            yield Label("[bold]Available Metrics:[/bold]", id="metrics_header")
+
+            with Container(id="metrics_container"):
+                yield ListView(id="metrics_list")
 
             yield Button("Back to Dashboard", id="back_button")
 
@@ -46,6 +51,8 @@ class DetailView(Container):
 
     def update_metrics_list(self):
         """Update the metrics list"""
+        self.all_metrics = self.metrics.get_all_metrics(self.agent_id)
+
         metrics_list = self.query_one("#metrics_list")
         metrics_list.clear()
 
@@ -60,65 +67,106 @@ class DetailView(Container):
                 metrics_list.append(ListItem(Label(f"⚪ {metric}: No data")))
 
     def update_graphs(self):
-        """Update all graph displays with larger dimensions"""
-        from ..config import GRAPH_POINTS, GRAPH_WIDTH, GRAPH_HEIGHT
+        """Update all graph displays with dimensions based on terminal size"""
+        width, height = self._compute_graph_size()
 
-        # CPU Graph - Large
         cpu_history = self.metrics.get_history(self.agent_id, "generic_cpu.tsv", GRAPH_POINTS)
-        if cpu_history:
-            plt.clf()
-            plt.theme('dark')
-            plt.plot(cpu_history, marker="braille")
-            plt.title("CPU Usage (%)")
-            plt.ylim(0, 100)
-            plt.plotsize(GRAPH_WIDTH, GRAPH_HEIGHT)
-            cpu_plot = plt.build()
-            self.query_one("#cpu_graph_large").update(cpu_plot)
+        self._render_graph("#cpu_graph_large", cpu_history, "CPU Usage (%)", width, height, (0, 100))
 
-        # Memory Graph - Large
         mem_history = self.metrics.get_history(self.agent_id, "generic_mem.tsv", GRAPH_POINTS)
-        if mem_history:
-            plt.clf()
-            plt.theme('dark')
-            plt.plot(mem_history, marker="braille")
-            plt.title("Memory Usage (%)")
-            plt.ylim(0, 100)
-            plt.plotsize(GRAPH_WIDTH, GRAPH_HEIGHT)
-            mem_plot = plt.build()
-            self.query_one("#mem_graph_large").update(mem_plot)
+        self._render_graph("#mem_graph_large", mem_history, "Memory Usage (%)", width, height, (0, 100))
 
-        # Disk Graph - Large
         disk_history = self.metrics.get_history(self.agent_id, "generic_disk.tsv", GRAPH_POINTS)
-        if disk_history:
-            plt.clf()
-            plt.theme('dark')
-            plt.plot(disk_history, marker="braille")
-            plt.title("Disk Usage (%)")
-            plt.ylim(0, 100)
-            plt.plotsize(GRAPH_WIDTH, GRAPH_HEIGHT)
-            disk_plot = plt.build()
-            self.query_one("#disk_graph_large").update(disk_plot)
-        else:
-            self.query_one("#disk_graph_large").update("[dim]No disk data available[/dim]")
+        self._render_graph("#disk_graph_large", disk_history, "Disk Usage (%)", width, height, (0, 100), no_data_message="[dim]No disk data available[/dim]")
 
-        # Custom/Other metrics graph
-        other_metric = None
-        for metric in self.all_metrics:
-            if not metric.startswith("generic_"):
-                other_metric = metric
-                break
-
+        other_metric = next((metric for metric in self.all_metrics if not metric.startswith("generic_")), None)
         if other_metric:
             other_history = self.metrics.get_history(self.agent_id, other_metric, GRAPH_POINTS)
-            if other_history:
-                plt.clf()
-                plt.theme('dark')
-                plt.plot(other_history, marker="braille")
-                plt.title(f"{other_metric.replace('.tsv', '').replace('_', ' ').title()}")
-                plt.plotsize(GRAPH_WIDTH, GRAPH_HEIGHT)
-                other_plot = plt.build()
-                self.query_one("#custom_graph_large").update(other_plot)
-            else:
-                self.query_one("#custom_graph_large").update(f"[dim]No data for {other_metric}[/dim]")
+            title = other_metric.replace('.tsv', '').replace('_', ' ').title()
+            self._render_graph("#custom_graph_large", other_history, title, width, height)
         else:
             self.query_one("#custom_graph_large").update("[dim]No additional metrics[/dim]")
+
+    def _compute_graph_size(self) -> Tuple[int, int]:
+        """Derive plot dimensions from the current terminal size"""
+        app_size = getattr(self.app, "size", None)
+        if app_size:
+            # Split available width across two columns with padding
+            width = max(GRAPH_MIN_WIDTH, (app_size.width - 10) // 2)
+            usable_height = max(GRAPH_MIN_HEIGHT * 2, app_size.height - 12)
+            height = max(GRAPH_MIN_HEIGHT, usable_height // 2)
+        else:
+            width, height = GRAPH_MIN_WIDTH * 3, GRAPH_MIN_HEIGHT * 2
+        return width, height
+
+    def _render_graph(
+        self,
+        selector: str,
+        history: List[float],
+        title: str,
+        width: int,
+        height: int,
+        y_limits: Optional[Tuple[int, int]] = None,
+        no_data_message: str = "[dim]No data available[/dim]",
+    ) -> None:
+        """Render a single history list into the target graph panel."""
+
+        panel = self.query_one(selector, Static)
+
+        if not history:
+            panel.update(no_data_message)
+            return
+
+        sample_width = max(GRAPH_MIN_WIDTH, min(width - 2, 80))
+        sample_height = max(GRAPH_MIN_HEIGHT, min(height, 24))
+        sample_count = min(len(history), max(sample_width * 2, GRAPH_MIN_WIDTH * 2))
+        series = history[-sample_count:]
+
+        plt.clf()
+        clear_plot = getattr(plt, "clear_plot", None)
+        if callable(clear_plot):
+            clear_plot()
+        clear_data = getattr(plt, "clear_data", None)
+        if callable(clear_data):
+            clear_data()
+
+        try:
+            plt.plotsize(sample_width, sample_height)
+        except Exception:
+            plt.plotsize(sample_width, GRAPH_MIN_HEIGHT)
+
+        theme = "dark" if getattr(self.app, "theme", "textual-dark").endswith("dark") else "clear"
+        try:
+            plt.theme(theme)
+        except Exception:
+            pass
+
+        if y_limits:
+            plt.ylim(*y_limits)
+        else:
+            min_val = min(series)
+            max_val = max(series)
+            if math.isclose(min_val, max_val):
+                delta = max(abs(min_val) * 0.1, 1.0)
+                min_val -= delta
+                max_val += delta
+            plt.ylim(min_val, max_val)
+
+        try:
+            plt.grid(False)
+        except Exception:
+            pass
+        try:
+            plt.ticks_color("grey")
+        except Exception:
+            pass
+        try:
+            plt.axes_color("grey")
+        except Exception:
+            pass
+
+        plt.plot(series, marker="braille")
+        plt.title(title)
+
+        plot_output = plt.build()
+        panel.update(plot_output)

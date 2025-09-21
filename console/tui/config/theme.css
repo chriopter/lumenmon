@@ -1,21 +1,29 @@
 /* Lumenmon TUI Theme */
 
+Screen {
+    layout: vertical;
+}
+
 DataTable {
-    height: 95%;
+    height: 1fr;
     width: 100%;
 }
 
-#detail_view {
-    display: none;
-}
-
-#detail_view.visible {
-    display: block;
-    height: 100%;
+#dashboard {
+    height: 1fr;
 }
 
 #dashboard.hidden {
     display: none;
+}
+
+#detail_view {
+    display: none;
+    height: 1fr;
+}
+
+#detail_view.visible {
+    display: block;
 }
 
 Static {
@@ -23,15 +31,49 @@ Static {
     padding: 1;
 }
 
-#metrics_list {
-    height: 10;
-    border: solid #444444;
+#detail_layout {
+    height: 100%;
+    layout: vertical;
     padding: 1;
+    overflow: hidden;
 }
 
-#cpu_graph_large, #mem_graph_large, #disk_graph_large, #custom_graph_large {
-    width: 50%;
-    height: 25;
+#detail_layout > Label {
+    padding-bottom: 1;
+}
+
+#graphs_top,
+#graphs_bottom {
+    layout: horizontal;
+    height: 1fr;
+    min-height: 8;
+}
+
+.graph-panel {
     border: solid #444444;
     padding: 1;
+    min-width: 20;
+    min-height: 8;
+    height: 1fr;
+    width: 1fr;
+}
+
+#metrics_header {
+    padding-top: 1;
+}
+
+#metrics_container {
+    height: 1fr;
+    min-height: 6;
+}
+
+#metrics_list {
+    border: solid #444444;
+    padding: 1;
+    height: 100%;
+    overflow-y: auto;
+}
+
+#back_button {
+    margin-top: 1;
 }
