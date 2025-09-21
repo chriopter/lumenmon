@@ -36,9 +36,20 @@ draw_menu() {
 # Get single keypress
 get_key() {
     local key
-    IFS= read -rsn1 key 2>/dev/null >&2
+    # Read from /dev/tty if available (for piped execution)
+    if [ -t 0 ]; then
+        IFS= read -rsn1 key
+    else
+        IFS= read -rsn1 key < /dev/tty
+    fi
+
     if [[ $key = $'\x1b' ]]; then
-        read -rsn2 key 2>/dev/null >&2
+        # Read arrow key sequence
+        if [ -t 0 ]; then
+            read -rsn2 key
+        else
+            read -rsn2 key < /dev/tty
+        fi
         case $key in
             '[A') echo UP ;;
             '[B') echo DOWN ;;
@@ -74,11 +85,11 @@ show_menu() {
                     0)  # Install Console
                         COMPONENT="console"
                         IMAGE=""
-                        return
+                        break
                         ;;
                     1)  # Advanced
                         show_advanced
-                        return
+                        break
                         ;;
                     2)  # Exit
                         exit 0
@@ -123,36 +134,36 @@ show_advanced() {
                     0)  # Console - Latest
                         COMPONENT="console"
                         IMAGE="ghcr.io/chriopter/lumenmon-console:latest"
-                        return
+                        break
                         ;;
                     1)  # Console - Dev
                         COMPONENT="console"
                         IMAGE="ghcr.io/chriopter/lumenmon-console:main"
-                        return
+                        break
                         ;;
                     2)  # Console - Build local
                         COMPONENT="console"
                         IMAGE=""
-                        return
+                        break
                         ;;
                     3)  # Agent - Latest
                         COMPONENT="agent"
                         IMAGE="ghcr.io/chriopter/lumenmon-agent:latest"
-                        return
+                        break
                         ;;
                     4)  # Agent - Dev
                         COMPONENT="agent"
                         IMAGE="ghcr.io/chriopter/lumenmon-agent:main"
-                        return
+                        break
                         ;;
                     5)  # Agent - Build local
                         COMPONENT="agent"
                         IMAGE=""
-                        return
+                        break
                         ;;
                     6)  # Back
                         show_menu
-                        return
+                        break
                         ;;
                 esac
                 ;;
