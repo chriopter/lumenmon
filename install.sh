@@ -19,7 +19,7 @@ echo ""
 echo -e "\033[1;32mLUMENMON\033[0m"
 echo ""
 
-# Check prerequisites
+# Check prerequisites (using log since status.sh isn't loaded yet)
 log "Checking requirements..."
 command -v git >/dev/null 2>&1 && log "✓ Git installed" || err "Git not found - please install git"
 command -v docker >/dev/null 2>&1 && log "✓ Docker installed" || err "Docker not found - please install docker"
@@ -27,20 +27,29 @@ docker compose version >/dev/null 2>&1 && log "✓ Docker Compose installed" || 
 
 echo ""
 
-# Install or update
-if [ -d "$DEFAULT_DIR/.git" ]; then
-    echo "Press Enter to launch installer at $DEFAULT_DIR..."
-    read -r < /dev/tty
-    echo ""
-    cd "$DEFAULT_DIR" && git pull --quiet
-    log "✓ Updated"
+# For agent install with invite - skip prompts
+if [ -n "$LUMENMON_INVITE" ]; then
+    if [ -d "$DEFAULT_DIR/.git" ]; then
+        cd "$DEFAULT_DIR" && git pull --quiet
+    else
+        git clone --quiet "$REPO" "$DEFAULT_DIR"
+    fi
 else
-    echo "Press Enter to clone to $DEFAULT_DIR and launch installer..."
-    read -r < /dev/tty
-    echo ""
-    log "Cloning repository..."
-    git clone --quiet "$REPO" "$DEFAULT_DIR"
-    log "✓ Ready to launch"
+    # Console install - show prompts
+    if [ -d "$DEFAULT_DIR/.git" ]; then
+        echo "Press Enter to launch installer at $DEFAULT_DIR..."
+        read -r < /dev/tty
+        echo ""
+        cd "$DEFAULT_DIR" && git pull --quiet
+        log "✓ Updated"
+    else
+        echo "Press Enter to clone to $DEFAULT_DIR and launch installer..."
+        read -r < /dev/tty
+        echo ""
+        log "Cloning repository..."
+        git clone --quiet "$REPO" "$DEFAULT_DIR"
+        log "✓ Ready to launch"
+    fi
 fi
 
 # Setup environment
