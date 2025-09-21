@@ -14,7 +14,7 @@ Monitor all your servers from a single terminal. No config files, no databases, 
 - **Add servers with a magic link** – Copy, paste, done. Each agent gets its own SSH invite
 - **Just works everywhere** – If you have Docker and SSH, you have monitoring
 - **Live in your terminal** – Beautiful TUI shows everything at a glance
-- **Zero overhead** – Tiny agents, TSV files, no bloat
+- **Stupid simple** – Pure Bash, SSH, TSV files. No database, no bloat, no overhead
 
 <img width="650" alt="screenshot-2025-09-21_20-57-39" src="https://github.com/user-attachments/assets/a900ed9c-d519-4c1c-8268-2d2417807aed" />
 
