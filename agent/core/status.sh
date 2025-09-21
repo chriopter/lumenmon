@@ -10,50 +10,50 @@ NC='\033[0m' # No Color
 echo "Agent:"
 
 # Container
-echo -e "  Container    ${GREEN}✓${NC} Running"
+printf "  Container    ${GREEN}✓${NC} Running\n"
 
 # Configuration
 if [ -n "$CONSOLE_HOST" ]; then
-    echo -e "  Config       ${GREEN}✓${NC} $CONSOLE_HOST:${CONSOLE_PORT:-22}"
+    printf "  Config       ${GREEN}✓${NC} $CONSOLE_HOST:${CONSOLE_PORT:-22}\n"
 else
-    echo -e "  Config       ${RED}✗${NC} Not configured"
+    printf "  Config       ${RED}✗${NC} Not configured\n"
     exit
 fi
 
 # Network test
 if nc -zw1 "$CONSOLE_HOST" "${CONSOLE_PORT:-22}" 2>/dev/null; then
-    echo -e "  Network      ${GREEN}✓${NC} Console reachable"
+    printf "  Network      ${GREEN}✓${NC} Console reachable\n"
 else
-    echo -e "  Network      ${RED}✗${NC} Cannot reach console"
+    printf "  Network      ${RED}✗${NC} Cannot reach console\n"
 fi
 
 # SSH tunnel
 SSH_COUNT=$(pgrep -f "ssh.*$CONSOLE_HOST" | wc -l)
 if [ $SSH_COUNT -gt 0 ]; then
-    echo -e "  SSH Tunnel   ${GREEN}✓${NC} Established"
+    printf "  SSH Tunnel   ${GREEN}✓${NC} Established\n"
 else
-    echo -e "  SSH Tunnel   ${RED}✗${NC} Not connected"
+    printf "  SSH Tunnel   ${RED}✗${NC} Not connected\n"
 fi
 
 # Collector processes
 COLLECTORS=$(pgrep -f "collector" | wc -l)
 if [ $COLLECTORS -gt 0 ]; then
-    echo -e "  Collectors   ${GREEN}✓${NC} $COLLECTORS running"
+    printf "  Collectors   ${GREEN}✓${NC} $COLLECTORS running\n"
 else
-    echo -e "  Collectors   ${YELLOW}⚠${NC} None running"
+    printf "  Collectors   ${YELLOW}⚠${NC} None running\n"
 fi
 
 # Metrics
 if [ -f /tmp/last_metric ]; then
     TIME=$(tail -1 /tmp/last_metric 2>/dev/null | cut -d' ' -f1 | cut -dT -f2 | cut -d. -f1)
     if [ -n "$TIME" ]; then
-        echo -e "  Metrics      ${GREEN}✓${NC} Last sent: $TIME"
+        printf "  Metrics      ${GREEN}✓${NC} Last sent: $TIME\n"
     else
-        echo -e "  Metrics      ${YELLOW}⚠${NC} No timestamp"
+        printf "  Metrics      ${YELLOW}⚠${NC} No timestamp\n"
     fi
 elif ls /tmp/*.tsv 2>/dev/null | head -1 >/dev/null; then
     COUNT=$(ls /tmp/*.tsv 2>/dev/null | wc -l)
-    echo -e "  Metrics      ${YELLOW}⚠${NC} $COUNT files buffered"
+    printf "  Metrics      ${YELLOW}⚠${NC} $COUNT files buffered\n"
 else
-    echo -e "  Metrics      ${RED}✗${NC} No data"
+    printf "  Metrics      ${RED}✗${NC} No data\n"
 fi
