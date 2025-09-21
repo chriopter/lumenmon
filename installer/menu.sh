@@ -17,10 +17,10 @@ ask_console_host() {
 
 ask_version() {
     echo ""
-    echo "  Select version:"
+    echo "  Select Docker image:"
     echo "  1) Stable (recommended)"
-    echo "  2) Dev (latest features)"
-    echo "  3) Local (build from source)"
+    echo "  2) Latest builds"
+    echo "  3) Build locally"
     echo -n "  Version [1]: "
     read -r VERSION_CHOICE < /dev/tty
     VERSION_CHOICE="${VERSION_CHOICE:-1}"
