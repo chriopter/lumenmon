@@ -152,36 +152,6 @@ Add collectors in `agent/collectors/`:
 echo "$(date -Iseconds)\t$(hostname)\tcustom_metric\tgauge\t42\t60"
 ```
 
-## FAQ
-
-### Why SSH instead of HTTP?
-
-SSH provides authentication, encryption, and NAT traversal out of the box. No certificates, no reverse proxies, no firewall rules - just SSH.
-
-### Why TSV instead of JSON?
-
-TSV (Tab-Separated Values) is simple, fast to parse, and human-readable. Each metric is one line, making it perfect for streaming and grep.
-
-### Can I monitor non-Docker hosts?
-
-The agent runs in Docker but monitors the host system through volume mounts. The host just needs Docker - nothing else.
-
-### How much overhead?
-
-Minimal. Agents use ~10MB RAM and <1% CPU. The console uses ~50MB RAM. No databases means no memory bloat.
-
-### Is it production-ready?
-
-Lumenmon is designed for small to medium deployments. For thousands of servers, consider Prometheus or similar.
-
-### How do I add custom metrics?
-
-Drop a shell script in `agent/collectors/` that outputs TSV lines. The agent automatically picks it up.
-
-### Where is data stored?
-
-- Console: `/var/lib/lumenmon/` in container, `./console/data/` on host
-- Agent: `/tmp/` for metrics buffer, `./agent/data/` for keys
 
 ## Contributing
 
