@@ -1,79 +1,60 @@
 #!/bin/bash
-# Renders detailed agent view with CPU and memory graphs, sparklines, and min/avg/max stats.
-# Displays 60-point history sparklines and calculates statistics from metric history. Sourced by tui.sh.
+# Builds detail view as string buffer with agent header and three ASCII line charts for metrics.
+# Returns accumulated buffer showing CPU, memory, and disk usage over time. Sourced by tui.sh.
+
 view_detail() {
     local agent=$1
+    local buf=""
 
     [ -z "$agent" ] && return 1
 
-    clear_screen
-
     # Header
-    draw_header
-    echo -e "${CYAN}│${NC} ${BOLD}Agent:${NC} ${agent}                                                          ${CYAN}│${NC}"
-    draw_divider
+    buf+="${CYAN}${BOLD}┌─ LUMENMON ─────────────────────────────────────────────────────────────────┐${NC}"$'\n'
+    buf+="${CYAN}│${NC} ${BOLD}Agent Detail:${NC} ${agent}                                                 ${CYAN}│${NC}"$'\n'
+    buf+="${CYAN}├────────────────────────────────────────────────────────────────────────────┤${NC}"$'\n'
 
-    # CPU Section
-    echo -e "${CYAN}│${NC} ${BOLD}CPU Usage${NC}                                                                    ${CYAN}│${NC}"
+    # Get metric histories from cache (60 points for good detail)
+    local cpu_history=${HISTORY_CPU[$agent]:-}
+    local mem_history=${HISTORY_MEM[$agent]:-}
+    local disk_history=${HISTORY_DISK[$agent]:-}
 
-    local cpu=$(get_metric "$agent" "generic_cpu.tsv")
-    local cpu_history=$(get_history_line "$agent" "generic_cpu.tsv" 60)
-
+    # CPU Chart
     if [ -n "$cpu_history" ]; then
-        local cpu_spark=$(sparkline "$cpu_history")
-        echo -e "${CYAN}│${NC}   ${cpu_spark}   ${NC}"
-
-        # Calculate stats
-        local values=($cpu_history)
-        local sum=0
-        local min=${values[0]}
-        local max=${values[0]}
-
-        for val in "${values[@]}"; do
-            sum=$(echo "$sum + $val" | bc -l)
-            (($(echo "$val < $min" | bc -l))) && min=$val
-            (($(echo "$val > $max" | bc -l))) && max=$val
-        done
-
-        local avg=$(echo "scale=1; $sum / ${#values[@]}" | bc -l)
-        local current=${cpu:-0}
-
-        echo -e "${CYAN}│${NC}   Current: ${GREEN}${current}%${NC}  Min: ${min}%  Avg: ${avg}%  Max: ${max}%              ${CYAN}│${NC}"
+        buf+="$(plot_line "CPU Usage (last 60 samples)" "$cpu_history" 8)"$'\n'
     else
-        echo -e "${CYAN}│${NC}   ${DIM}No data available${NC}                                                         ${CYAN}│${NC}"
+        buf+="┌─ CPU Usage ─ No Data ─────────────────┐"$'\n'
+        buf+="│ No CPU data available                 │"$'\n'
+        buf+="└────────────────────────────────────────┘"$'\n'
     fi
 
-    draw_divider
+    buf+=$'\n'
 
-    # Memory Section
-    echo -e "${CYAN}│${NC} ${BOLD}Memory Usage${NC}                                                                 ${CYAN}│${NC}"
-
-    local mem=$(get_metric "$agent" "generic_mem.tsv")
-    local mem_history=$(get_history_line "$agent" "generic_mem.tsv" 60)
-
+    # Memory Chart
     if [ -n "$mem_history" ]; then
-        local mem_spark=$(sparkline "$mem_history")
-        echo -e "${CYAN}│${NC}   ${mem_spark}   ${NC}"
-
-        local values=($mem_history)
-        local sum=0
-        local min=${values[0]}
-        local max=${values[0]}
-
-        for val in "${values[@]}"; do
-            sum=$(echo "$sum + $val" | bc -l)
-            (($(echo "$val < $min" | bc -l))) && min=$val
-            (($(echo "$val > $max" | bc -l))) && max=$val
-        done
-
-        local avg=$(echo "scale=1; $sum / ${#values[@]}" | bc -l)
-        local current=${mem:-0}
-
-        echo -e "${CYAN}│${NC}   Current: ${GREEN}${current}%${NC}  Min: ${min}%  Avg: ${avg}%  Max: ${max}%              ${CYAN}│${NC}"
+        buf+="$(plot_line "Memory Usage (last 60 samples)" "$mem_history" 8)"$'\n'
     else
-        echo -e "${CYAN}│${NC}   ${DIM}No data available${NC}                                                         ${CYAN}│${NC}"
+        buf+="┌─ Memory Usage ─ No Data ───────────────┐"$'\n'
+        buf+="│ No memory data available               │"$'\n'
+        buf+="└────────────────────────────────────────┘"$'\n'
     fi
+
+    buf+=$'\n'
+
+    # Disk Chart
+    if [ -n "$disk_history" ]; then
+        buf+="$(plot_line "Disk Usage (last 60 samples)" "$disk_history" 8)"$'\n'
+    else
+        buf+="┌─ Disk Usage ─ No Data ─────────────────┐"$'\n'
+        buf+="│ No disk data available                 │"$'\n'
+        buf+="└────────────────────────────────────────┘"$'\n'
+    fi
+
+    buf+=$'\n'
 
     # Footer
-    draw_footer "detail"
+    buf+="${CYAN}└────────────────────────────────────────────────────────────────────────────┘${NC}"$'\n'
+    buf+="${DIM}[ESC] Back to Dashboard  [r] Refresh  [q] Quit${NC}"$'\n'
+
+    # Return buffer
+    echo -n "$buf"
 }

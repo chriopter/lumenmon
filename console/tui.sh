@@ -1,48 +1,45 @@
 #!/bin/bash
-# Pure bash TUI dashboard that displays agent status, metrics, and sparklines in real-time.
-# Sources modular components (readers, render, views, input) and runs main event loop with 2s refresh.
+# Pure bash TUI with double-buffering, event loop, and file caching for responsive monitoring dashboard.
+# Sources modular components and runs event loop with 10ms input polling and 2s refresh rate.
+
 set -u
 
 # Source all modules
 TUI_DIR="/app/tui"
 
+# Core modules (state, caching)
+for script in "$TUI_DIR/core"/*.sh; do
+    [ -f "$script" ] && source "$script"
+done
+
+# Other modules (readers, render, views, input)
 for module in readers render views input; do
     for script in "$TUI_DIR/$module"/*.sh; do
         [ -f "$script" ] && source "$script"
     done
 done
 
-# Global state
-STATE="dashboard"
-SELECTED_ROW=0
-SELECTED_AGENT=""
+# Initialize state
+init_state
 
-# Cleanup on exit
+# Cleanup on exit - restore terminal properly
 cleanup() {
     show_cursor
-    clear_screen
+    restore_terminal
+    exit_alt_screen
     exit 0
 }
-trap cleanup INT TERM
+trap cleanup INT TERM EXIT
 
-# Initialize
+# Initialize terminal
+enter_alt_screen
 hide_cursor
-full_clear  # Clear once at startup
+setup_terminal
+clear_screen
 
-# Main loop
-while true; do
-    case "$STATE" in
-        dashboard)
-            view_dashboard
-            ;;
-        detail)
-            view_detail "$SELECTED_AGENT"
-            ;;
-    esac
+# Initial render
+NEEDS_REFRESH=1
+NEEDS_RENDER=1
 
-    # Handle input
-    handle_input
-
-    # Refresh rate (reduce from 1s to 2s for less flicker)
-    sleep 2
-done
+# Run event loop with 2-second refresh interval
+run_event_loop 2
