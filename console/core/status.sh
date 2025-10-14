@@ -1,5 +1,6 @@
 #!/bin/sh
-# Console status - detailed with colors
+# Displays console health status with color-coded checks for SSH, keys, agents, and data flow.
+# Shows host key, registered agents, active connections, and recent metric activity.
 
 # Colors
 GREEN='\033[0;32m'

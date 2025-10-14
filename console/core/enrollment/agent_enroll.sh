@@ -1,7 +1,6 @@
 #!/bin/bash
-# Process enrollment queue and create agent users
-# Handles both queue processing and user creation
-
+# Processes registration queue and creates permanent agent Linux users with SSH access.
+# Validates public keys, generates agent IDs from fingerprints, creates users and home directories.
 set -euo pipefail
 
 QUEUE_DIR="/data/registration_queue"

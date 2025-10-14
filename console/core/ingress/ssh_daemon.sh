@@ -1,6 +1,6 @@
 #!/bin/bash
-# Start SSH daemon with custom config
-
+# Generates persistent SSH host keys and starts SSH daemon for agent connections.
+# Creates RSA and ED25519 keys in /data/ssh and displays fingerprints on startup.
 set -euo pipefail
 
 # Generate SSH host keys if needed in persistent storage

@@ -1,5 +1,6 @@
 #!/bin/bash
-# Restore agent users from persistent directories
+# Recreates Linux users for existing agent directories after container restart.
+# Scans /data/agents/id_* directories and creates matching users with proper ownership.
 set -euo pipefail
 
 echo "[console] Restoring agent users from /data/agents/..."
