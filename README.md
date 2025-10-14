@@ -66,6 +66,21 @@ lumenmon uninstall  # Remove everything
 lumenmon help       # Show help (alias: h)
 ```
 
+## Development Commands
+
+```bash
+# Full auto-setup: reset, start containers, register agent, and launch TUI
+./dev/auto
+
+# Individual commands
+./dev/start      # Start console and agent containers
+./dev/stop       # Stop all containers
+./dev/reset      # Clean everything and restart fresh
+./dev/register   # Register agent with console (requires invite URL)
+./dev/tui        # Launch TUI dashboard
+./dev/logs       # Show container logs
+```
+
 ## Current State
 
 The structure, installer, and lumenmon command are v0.1. TUI and collectors will be polished next.
