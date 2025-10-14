@@ -1,5 +1,6 @@
 #!/bin/bash
-# CPU collector - Sends usage percentage at PULSE rhythm (10Hz)
+# Collects CPU usage percentage from /proc/stat and sends via SSH every PULSE interval (0.1s).
+# Outputs to generic_cpu.tsv on console with timestamp, interval, and usage value.
 
 # Config
 RHYTHM="PULSE"   # Uses PULSE timing from agent.sh

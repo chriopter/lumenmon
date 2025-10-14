@@ -1,6 +1,6 @@
 #!/bin/bash
-# Generate SSH key and calculate fingerprint
-
+# Generates or loads agent SSH keypair and derives unique agent ID from key fingerprint.
+# Sets SSH_KEY (private key path) and AGENT_USER (agent ID) variables. Sourced by agent.sh during startup.
 set -euo pipefail
 
 # Check for SSH key - generate if needed

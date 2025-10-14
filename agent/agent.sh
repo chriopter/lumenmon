@@ -1,5 +1,6 @@
 #!/bin/bash
-# Lumenmon Agent - Ultra KISS Edition
+# Main agent entry point that establishes SSH tunnel and starts metric collectors.
+# Runs identity setup, tunnel connection, collectors, and watchdog. Sourced by Docker CMD.
 set -euo pipefail
 
 # Handle show-key

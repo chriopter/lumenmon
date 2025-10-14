@@ -1,5 +1,6 @@
 #!/bin/sh
-# Register agent with invite URL
+# Registers agent with console using invite URL (ssh://user:pass@host:port/#hostkey).
+# Parses invite, sends agent's public key to console, saves host key for future connections.
 [ $# -ne 1 ] && echo "Usage: $0 URL" && exit 1
 
 echo "[REGISTER] Processing invite" >&2

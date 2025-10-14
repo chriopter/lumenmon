@@ -1,5 +1,6 @@
 #!/bin/sh
-# Agent status - detailed with colors
+# Displays agent health status with color-coded checks for config, network, SSH, and collectors.
+# Shows container state, console connectivity, SSH tunnel status, and running collector count.
 
 # Colors
 GREEN='\033[0;32m'

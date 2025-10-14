@@ -1,5 +1,6 @@
 #!/bin/bash
-# Memory collector - Sends usage percentage at BREATHE rhythm (1Hz)
+# Collects memory usage percentage from /proc/meminfo and sends via SSH every BREATHE interval (1s).
+# Outputs to generic_mem.tsv on console with timestamp, interval, and usage value.
 
 # Config
 RHYTHM="BREATHE"  # Uses BREATHE timing from agent.sh
