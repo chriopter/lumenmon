@@ -1,6 +1,6 @@
 #!/bin/bash
-# Draw footer with keybindings
-
+# Renders TUI footer showing available keyboard shortcuts for dashboard and detail views.
+# Displays context-sensitive keybindings (navigation, invite, copy, refresh, quit). Sourced by tui.sh.
 draw_footer() {
     local view=${1:-dashboard}
 

@@ -1,7 +1,6 @@
 #!/bin/bash
-# Lumenmon TUI - Terminal Dashboard
-# Pure bash monitoring interface
-
+# Pure bash TUI dashboard that displays agent status, metrics, and sparklines in real-time.
+# Sources modular components (readers, render, views, input) and runs main event loop with 2s refresh.
 set -u
 
 # Source all modules

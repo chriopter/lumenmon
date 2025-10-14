@@ -1,6 +1,6 @@
 #!/bin/bash
-# Draw dashboard header
-
+# Renders TUI header, section headers, dividers, and bottom border with box-drawing characters.
+# Provides draw_header(), draw_section_header(), draw_divider(), draw_bottom(). Sourced by tui.sh.
 draw_header() {
     local width=${1:-80}
 

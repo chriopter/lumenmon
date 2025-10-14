@@ -1,6 +1,6 @@
 #!/bin/bash
-# Generate sparklines from metric values
-# Inspired by github.com/holman/spark (MIT License)
+# Generates ASCII sparklines from space-separated metric values using block characters.
+# Normalizes values to 0-7 range and renders with ▁▂▃▄▅▆▇█ characters. Sourced by tui.sh.
 
 # Generate sparkline from space-separated values
 # Usage: sparkline "10 20 30 40 50"

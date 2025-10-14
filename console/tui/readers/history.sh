@@ -1,6 +1,6 @@
 #!/bin/bash
-# Read metric history for sparklines/graphs
-
+# Reads metric history from TSV files for sparkline and graph generation.
+# Provides get_history() and get_history_line() to extract multiple time-series points. Sourced by tui.sh.
 # Get last N values from a metric file
 # Usage: get_history <agent_id> <metric_file> <points>
 get_history() {

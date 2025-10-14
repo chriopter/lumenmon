@@ -1,6 +1,6 @@
 #!/bin/bash
-# Agent detail view with graphs
-
+# Renders detailed agent view with CPU and memory graphs, sparklines, and min/avg/max stats.
+# Displays 60-point history sparklines and calculates statistics from metric history. Sourced by tui.sh.
 view_detail() {
     local agent=$1
 
