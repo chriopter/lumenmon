@@ -1,5 +1,6 @@
 #!/bin/bash
-# Stop lumenmon containers
+# Stops console and/or agent containers without removing data or configuration.
+# Usage: ./stop [console|agent|all] - gracefully stops specified containers.
 
 case "${1:-all}" in
     console)

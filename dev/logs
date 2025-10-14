@@ -1,5 +1,6 @@
 #!/bin/bash
-# Show lumenmon logs
+# Streams live logs from console or agent container for debugging.
+# Usage: ./logs [console|agent] - follows container logs in real-time.
 
 case "${1:-console}" in
     console)

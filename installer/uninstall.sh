@@ -1,6 +1,6 @@
 #!/bin/bash
-# Uninstall Lumenmon
-
+# Removes all Lumenmon containers, networks, CLI command, and installation directory.
+# Prompts for confirmation before stopping containers and cleaning up all data.
 source installer/status.sh
 
 echo ""

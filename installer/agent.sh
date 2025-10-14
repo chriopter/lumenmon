@@ -1,6 +1,6 @@
 #!/bin/bash
-# Agent installer
-
+# Installs agent container with optional invite-based auto-registration.
+# Configures Docker container, sets console host/port, and connects to console if invite provided.
 source installer/logo.sh
 source installer/status.sh
 

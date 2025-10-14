@@ -1,6 +1,6 @@
 #!/bin/bash
-# Setup lumenmon CLI command
-
+# Creates symlink for 'lumenmon' command in system path for easy CLI access.
+# Tries /usr/local/bin first, falls back to ~/.local/bin. Sourced by installer scripts.
 source "$DIR/installer/status.sh"
 
 # Check if already installed
