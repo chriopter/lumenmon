@@ -1,7 +1,6 @@
 #!/bin/bash
-# Create invite - user, password, URL
-# Usage: invite_create.sh [--full]
-#   --full: Output full install command instead of just URL
+# Creates temporary registration account and generates invite URL with credentials and host key.
+# Outputs ssh:// URL or full install command. User auto-expires after 5 minutes.
 
 echo "[INVITE] Creating registration invite" >&2
 

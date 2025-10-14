@@ -1,6 +1,6 @@
 #!/bin/bash
-# Create required data directories
-
+# Creates required data directories for agents and registration queue.
+# Sets up /data/agents for metrics storage and /data/registration_queue with restricted permissions.
 set -euo pipefail
 
 echo "[console] Setting up data storage..."

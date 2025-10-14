@@ -1,5 +1,6 @@
 #!/bin/bash
-# Delete expired registration users (older than 5 minutes)
+# Deletes temporary registration users that are older than 5 minutes.
+# Scans all reg_* users and removes those with expired timestamps.
 CUTOFF=$(($(date +%s%3N) - 300000))
 for user in $(getent passwd | grep ^reg_ | cut -d: -f1); do
     TIMESTAMP=${user#reg_}
