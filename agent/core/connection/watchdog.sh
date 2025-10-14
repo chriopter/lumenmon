@@ -1,6 +1,6 @@
 #!/bin/bash
-# Monitor SSH tunnel and reconnect if needed
-
+# Monitors SSH tunnel health every 30s and reconnects if connection fails.
+# Kills and restarts collectors when reconnection occurs to maintain data flow.
 set -euo pipefail
 
 echo "[agent] Starting connection monitor"

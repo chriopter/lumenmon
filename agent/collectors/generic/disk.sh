@@ -1,5 +1,6 @@
 #!/bin/bash
-# Disk collector - Sends root filesystem usage at CYCLE rhythm (1/min)
+# Collects root filesystem usage percentage from df and sends via SSH every CYCLE interval (60s).
+# Outputs to generic_disk.tsv on console with timestamp, interval, and usage value.
 
 # Config
 RHYTHM="CYCLE"    # Uses CYCLE timing from agent.sh

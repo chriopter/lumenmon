@@ -1,6 +1,6 @@
 #!/bin/bash
-# Establish SSH tunnel to console
-
+# Establishes persistent SSH control socket connection to console with retry logic.
+# Waits for registration (known_hosts file), then connects using agent's SSH key.
 set -euo pipefail
 
 # Clean up any existing socket

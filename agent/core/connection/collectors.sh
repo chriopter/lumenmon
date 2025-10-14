@@ -1,6 +1,6 @@
 #!/bin/bash
-# Start all collectors
-
+# Starts all metric collector scripts in collectors/ directory as background processes.
+# Each collector runs independently and sends data through the established SSH tunnel.
 set -euo pipefail
 
 # Start collectors

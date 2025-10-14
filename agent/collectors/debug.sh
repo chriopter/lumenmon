@@ -1,5 +1,6 @@
 #!/bin/bash
-# Ultra-KISS debug: list collectors, run one, show live output
+# Development tool to test collectors locally without SSH connection.
+# Lists available collectors, runs selected one with fake SSH to display output.
 
 # Setup environment for collectors
 export PULSE=1 BREATHE=1 CYCLE=1 REPORT=1

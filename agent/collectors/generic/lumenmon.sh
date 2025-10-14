@@ -1,5 +1,6 @@
 #!/bin/bash
-# System info collector - Sends OS/kernel/uptime at REPORT rhythm (1/hr)
+# Collects system information (OS, kernel, uptime) and sends via SSH every REPORT interval (1hr).
+# Outputs to generic_sys_*.tsv files on console with OS name, kernel version, and uptime seconds.
 
 # Config
 RHYTHM="REPORT"   # Uses REPORT timing from agent.sh
