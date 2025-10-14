@@ -1,5 +1,6 @@
 #!/bin/bash
-# Structured output helpers for consistent status messages
+# Provides color-coded status output functions (ok, error, warn, progress, prompt) for installer.
+# Used by all installer scripts for consistent user feedback. Sourced, not executed directly.
 
 # Status indicators with colors
 status_ok() {

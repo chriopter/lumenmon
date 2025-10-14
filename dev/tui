@@ -1,3 +1,4 @@
 #!/bin/bash
-# Open Lumenmon TUI dashboard
-docker exec -it lumenmon-console python3 /app/tui/main.py
+# Opens the Lumenmon TUI dashboard in the console container.
+# Launches interactive bash TUI showing agent status and metrics.
+docker exec -it lumenmon-console /app/tui.sh

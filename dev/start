@@ -1,5 +1,6 @@
 #!/bin/bash
-# Start lumenmon containers
+# Starts console and/or agent containers for local development with localhost config.
+# Usage: ./start [console|agent|all] - builds and starts specified containers.
 
 case "${1:-all}" in
     console)

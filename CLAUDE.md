@@ -124,6 +124,27 @@ curl -sSL https://lumenmon.run | bash -s agent
 - ForceCommand prevents shell access
 - Agent data isolated by user permissions
 
+## Code Style Guidelines
+
+### File Header Comments
+Every shell script must start with a concise 2-line comment after the shebang:
+- **Line 1**: What the script does (purpose and high-level function)
+- **Line 2**: Key details (inputs/outputs, usage, or how it's invoked)
+
+Example:
+```bash
+#!/bin/bash
+# Generates or loads agent SSH keypair and derives unique agent ID from key fingerprint.
+# Sets SSH_KEY (private key path) and AGENT_USER (agent ID) variables. Sourced by agent.sh during startup.
+```
+
+Guidelines:
+- Keep it to 2 lines maximum
+- Be specific and descriptive
+- Mention what variables are set/exported if applicable
+- Note if the script is sourced vs executed directly
+- Focus on what users need to understand, not implementation details
+
 ## Key Implementation Details
 
 ### Console TUI (`console/tui/`)

@@ -1,6 +1,6 @@
 #!/bin/bash
-# Shared logo display
-
+# Displays ASCII art Lumenmon logo for installer screens.
+# Provides show_logo() function that prints cyan-colored banner. Sourced by installer scripts.
 show_logo() {
     echo -e "\033[0;36m"
     echo "  ██╗     ██╗   ██╗███╗   ███╗███████╗███╗   ██╗███╗   ███╗ ██████╗ ███╗   ██╗"

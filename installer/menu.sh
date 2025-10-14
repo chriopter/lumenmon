@@ -1,6 +1,6 @@
 #!/bin/bash
-# Interactive menu
-
+# Interactive installation menu for console, agent, or uninstall options.
+# Prompts for configuration (host, version) and routes to appropriate installer script.
 source installer/logo.sh
 source installer/status.sh
 

@@ -1,6 +1,6 @@
 #!/bin/bash
-# Console installer
-
+# Installs console container and generates first agent invite for easy enrollment.
+# Deploys Docker container, creates invite URL, and sets up lumenmon CLI command.
 source installer/status.sh
 
 echo ""
