@@ -1,14 +1,13 @@
-FROM python:3.13-slim
+FROM debian:bookworm-slim
 
 # Install minimal dependencies
 RUN apt-get update && apt-get install -y \
+    bash \
+    bc \
     openssh-server \
     netcat-traditional \
-    xclip \
+    coreutils \
     && rm -rf /var/lib/apt/lists/*
-
-# Install Python packages for TUI
-RUN pip install --no-cache-dir rich textual plotext pyperclip
 
 # Create groups for agent and registration users
 RUN groupadd agents && \
@@ -33,11 +32,12 @@ RUN mkdir -p /data/agents && \
 # Copy ultra-KISS console files
 WORKDIR /app
 COPY console.sh .
+COPY tui.sh .
 COPY core/ ./core/
 COPY tui/ ./tui/
 
 # Make scripts executable
-RUN chmod +x console.sh core/*.sh core/*/*.sh tui/*.py
+RUN chmod +x console.sh tui.sh core/*.sh core/*/*.sh tui/*/*.sh
 
 # Mount point for persistent data
 VOLUME /data

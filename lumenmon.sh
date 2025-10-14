@@ -11,7 +11,7 @@ case "$1" in
     # Default: open TUI or show status
     "")
         if is_running console; then
-            docker exec -it lumenmon-console python3 /app/tui/main.py
+            docker exec -it lumenmon-console /app/tui.sh
         else
             "$0" status
         fi

@@ -1,5 +1,6 @@
 #!/bin/bash
-# Lumenmon Console - Ultra KISS Edition
+# Main console entry point that initializes directories, restores agents, and starts SSH server.
+# Runs enrollment processor in background and displays console info. Sourced by Docker CMD.
 set -euo pipefail
 
 echo "[console] Starting Lumenmon Console"
