@@ -1,6 +1,6 @@
 #!/bin/bash
-# Draw a single agent row in the dashboard
-
+# Renders single agent row with status indicator, sparkline, metrics, and highlight for selected row.
+# Formats CPU/memory/disk values, generates sparkline, applies reverse video for selection. Sourced by tui.sh.
 draw_agent_row() {
     local agent=$1
     local selected=${2:-0}
@@ -33,10 +33,6 @@ draw_agent_row() {
         fi
     fi
 
-    # Selection indicator
-    local arrow=" "
-    [ "$selected" = "1" ] && arrow="▶"
-
     # Format values
     local cpu_display="${cpu:--}"
     local mem_display="${mem:--}"
@@ -46,7 +42,15 @@ draw_agent_row() {
     [ "$mem" != "-" ] && mem_display=$(printf "%.1f%%" "$mem")
     [ "$disk" != "-" ] && disk_display=$(printf "%.1f%%" "$disk")
 
-    # Print row
-    printf "${CYAN}│${NC} %s %b %-20s %s %8s %8s %8s %4ds ${CYAN}│${NC}\n" \
-        "$arrow" "$status" "$agent" "$cpu_spark" "$cpu_display" "$mem_display" "$disk_display" "$age"
+    # Print row with highlighting if selected
+    if [ "$selected" = "1" ]; then
+        # Reverse video for selected row
+        printf "${CYAN}│${REVERSE} %b %-20s %s %8s %8s %8s %4ds ${NC}${CYAN}│${NC}" \
+            "$status" "$agent" "$cpu_spark" "$cpu_display" "$mem_display" "$disk_display" "$age"
+    else
+        printf "${CYAN}│${NC}   %b %-20s %s %8s %8s %8s %4ds ${CYAN}│${NC}" \
+            "$status" "$agent" "$cpu_spark" "$cpu_display" "$mem_display" "$disk_display" "$age"
+    fi
+    clear_line  # Clear rest of line to avoid artifacts
+    echo  # Newline
 }

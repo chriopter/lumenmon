@@ -1,6 +1,6 @@
 #!/bin/bash
-# Read metric values from TSV files
-
+# Reads latest metric values and ages from agent TSV files for real-time display.
+# Provides get_metric() and get_metric_age() to extract current values and timestamps. Sourced by tui.sh.
 # Read latest value from a metric file
 # Usage: get_metric <agent_id> <metric_file>
 get_metric() {

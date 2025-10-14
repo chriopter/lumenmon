@@ -1,6 +1,6 @@
 #!/bin/bash
-# Handle keyboard input and update state
-
+# Processes keyboard input and updates TUI state (navigation, view switching, actions).
+# Handles dashboard navigation (↑↓), detail view (Enter/ESC), invites (i/c), refresh (r), quit (q). Sourced by tui.sh.
 handle_input() {
     local key=$(read_key)
 

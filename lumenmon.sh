@@ -1,6 +1,6 @@
 #!/bin/bash
-# Lumenmon CLI
-
+# Main CLI command that provides shortcuts for common operations (status, logs, invite, update).
+# Detects container state and runs appropriate commands. Supports single-letter aliases (s, l, i, u, h).
 DIR="$(dirname "$(readlink -f "$0")")"
 cd "$DIR"
 

@@ -1,5 +1,6 @@
 #!/bin/bash
-# Lumenmon Installer
+# Main installer entry point that clones repository and routes to console or agent installation.
+# Checks prerequisites (git, docker), handles LUMENMON_INVITE for automated agent setup, or shows menu.
 set -e
 
 REPO="https://github.com/chriopter/lumenmon.git"
