@@ -1,42 +1,73 @@
 #!/bin/bash
-# Provides ANSI escape code functions for cursor control, screen clearing, and color codes.
-# Exports color codes and functions: clear_screen(), hide_cursor(), show_cursor(), move_to(), clear_line(). Sourced by tui.sh.
-# Clear entire screen and move to top-left
-clear_screen() {
-    printf '\033[H'  # Just move to top-left, don't clear (smoother)
+# Terminal control functions using tput and stty for screen management and raw input mode.
+# Provides alt screen, cursor control, colors, and raw terminal setup for responsive input. Sourced by tui.sh.
+
+# Enter alternate screen buffer (saves terminal state)
+enter_alt_screen() {
+    tput smcup
 }
 
-# Full clear (for initial setup)
-full_clear() {
-    printf '\033[2J\033[H'
+# Exit alternate screen buffer (restores terminal)
+exit_alt_screen() {
+    tput rmcup
+}
+
+# Clear entire screen and move to top-left
+clear_screen() {
+    tput clear
+}
+
+# Move to home position (top-left)
+move_home() {
+    tput cup 0 0
 }
 
 # Hide cursor
 hide_cursor() {
-    printf '\033[?25l'
+    tput civis
 }
 
 # Show cursor
 show_cursor() {
-    printf '\033[?25h'
+    tput cnorm
 }
 
 # Move cursor to position (row, col)
 move_to() {
-    printf '\033[%d;%dH' "$1" "$2"
+    tput cup "$1" "$2"
 }
 
 # Clear from cursor to end of line
 clear_line() {
-    printf '\033[K'
+    tput el
 }
 
-# Color codes
-export RED='\033[31m'
-export GREEN='\033[32m'
-export YELLOW='\033[33m'
-export CYAN='\033[36m'
-export DIM='\033[2m'
-export BOLD='\033[1m'
-export REVERSE='\033[7m'  # Reverse video (highlight)
-export NC='\033[0m'  # No Color / Reset
+# Setup raw terminal mode for responsive non-blocking input
+setup_terminal() {
+    stty -echo -icanon time 0 min 0 2>/dev/null || true
+}
+
+# Restore normal terminal mode
+restore_terminal() {
+    stty sane 2>/dev/null || true
+}
+
+# Color functions using tput
+color_red() { tput setaf 1; }
+color_green() { tput setaf 2; }
+color_yellow() { tput setaf 3; }
+color_cyan() { tput setaf 6; }
+color_dim() { tput dim; }
+color_bold() { tput bold; }
+color_reverse() { tput rev; }
+color_reset() { tput sgr0; }
+
+# Export color codes (for use in echo -e)
+export RED=$(tput setaf 1)
+export GREEN=$(tput setaf 2)
+export YELLOW=$(tput setaf 3)
+export CYAN=$(tput setaf 6)
+export DIM=$(tput dim)
+export BOLD=$(tput bold)
+export REVERSE=$(tput rev)
+export NC=$(tput sgr0)

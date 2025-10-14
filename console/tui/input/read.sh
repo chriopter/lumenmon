@@ -1,13 +1,13 @@
 #!/bin/bash
-# Non-blocking keyboard input reader that handles single keys and arrow escape sequences.
-# Provides read_key() with 0.1s timeout that detects arrow keys (ESC [ A/B/C/D) and regular keys. Sourced by tui.sh.
+# Non-blocking keyboard input reader with fast polling for responsive arrow key navigation.
+# Provides read_key() with 0.01s timeout that detects arrow keys (ESC [ A/B/C/D) and regular keys. Sourced by tui.sh.
 # Read a single key with timeout
 # Returns the key pressed or empty string if timeout
 read_key() {
     local key key2 key3
 
-    # Read with 0.1s timeout, single character
-    IFS= read -rsn1 -t 0.1 key 2>/dev/null || true
+    # Read with 0.01s (10ms) timeout for responsive input
+    IFS= read -rsn1 -t 0.01 key 2>/dev/null || true
 
     # Handle escape sequences (arrow keys, etc)
     if [ "$key" = $'\x1b' ]; then
