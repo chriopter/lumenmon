@@ -7,6 +7,7 @@ RUN apt-get update && apt-get install -y \
     openssh-server \
     netcat-traditional \
     coreutils \
+    openssl \
     && rm -rf /var/lib/apt/lists/*
 
 # Create groups for agent and registration users
@@ -18,9 +19,8 @@ RUN useradd -m -s /bin/bash collector && \
     mkdir -p /home/collector/.ssh && \
     chmod 700 /home/collector/.ssh
 
-# Setup SSH config - Key-based auth only, no strict modes
+# Setup SSH config - Uses custom config at /app/core/ingress/ssh_config
 RUN mkdir -p /var/run/sshd && \
-    echo "PasswordAuthentication no" >> /etc/ssh/sshd_config && \
     echo "PubkeyAuthentication yes" >> /etc/ssh/sshd_config && \
     echo "PermitRootLogin no" >> /etc/ssh/sshd_config && \
     echo "StrictModes no" >> /etc/ssh/sshd_config
