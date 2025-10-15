@@ -8,7 +8,7 @@ USERNAME="reg_$(date +%s%3N)"
 PASSWORD=$(openssl rand -hex 6)
 
 # Create user (groups already exist from Docker build)
-useradd -M -s /bin/sh -G registration "$USERNAME"
+useradd -m -s /bin/sh -G registration "$USERNAME"
 echo "${USERNAME}:${PASSWORD}" | chpasswd
 echo "$PASSWORD" > "/tmp/.invite_${USERNAME}"
 

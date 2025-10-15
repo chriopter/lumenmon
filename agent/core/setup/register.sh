@@ -35,6 +35,7 @@ echo "[$HOST]:$PORT ${HOSTKEY//_/ }" > "$KNOWN_HOSTS"
 echo "[REGISTER] Sending key to console..." >&2
 if echo "$PUBLIC_KEY" | sshpass -p "$PASSWORD" \
     ssh -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$KNOWN_HOSTS" \
+    -o PreferredAuthentications=password -o PubkeyAuthentication=no \
     -p "$PORT" "${USERNAME}@${HOST}" 2>&1; then
     mkdir -p /home/metrics/.ssh
     mv "$KNOWN_HOSTS" /home/metrics/.ssh/known_hosts
