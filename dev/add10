@@ -10,6 +10,12 @@ if ! docker ps | grep -q lumenmon-console; then
     exit 1
 fi
 
+# Clean up any existing test agents
+echo "🧹 Cleaning up existing test agents..."
+docker stop $(docker ps -q --filter name=lumenmon-agent-) 2>/dev/null || true
+docker rm $(docker ps -aq --filter name=lumenmon-agent-) 2>/dev/null || true
+rm -rf agent/data/agents/agent-* 2>/dev/null || true
+
 # Create 10 agents
 for i in $(seq 1 10); do
     AGENT_NAME="agent-$i"

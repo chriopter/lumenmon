@@ -27,6 +27,6 @@ trap cleanup SIGTERM SIGINT EXIT
 # Run components
 source core/setup/identity.sh        # Sets AGENT_USER and SSH_KEY
 source core/connection/tunnel.sh     # Establishes connection
-source core/connection/collectors.sh # Starts collectors
-exec core/connection/watchdog.sh     # Monitor and reconnect
+source core/connection/collectors.sh # Starts collectors (background jobs)
+core/connection/watchdog.sh          # Monitor and reconnect (blocks forever)
 
