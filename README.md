@@ -74,6 +74,9 @@ lumenmon help       # Show help (alias: h)
 # Full auto-setup: reset, start containers, register agent, and launch TUI
 ./dev/auto
 
+# Testing with multiple agents
+./dev/add10      # Spawn 10 agents for testing (requires console running)
+
 # Individual commands
 ./dev/start      # Start console and agent containers
 ./dev/stop       # Stop all containers
