@@ -1,8 +1,8 @@
 #!/bin/bash
-# Pure bash TSV file readers using circular buffers to minimize memory usage.
-# Reads files sequentially, keeping only last N lines in memory instead of entire file. Sourced by tui.sh.
+# Fast TSV file readers using tail for efficient last-line access.
+# Reads only needed lines instead of entire files. Sourced by tui.sh.
 
-# Read last line of a file (sequential read, minimal memory)
+# Read last line of a file
 # Usage: read_last_line <file> <var_name>
 read_last_line() {
     local file=$1
@@ -10,16 +10,10 @@ read_last_line() {
 
     [ -f "$file" ] || { result=""; return 1; }
 
-    # Read entire file but only keep last line in memory
-    local line=""
-    while IFS= read -r line; do
-        :  # Discard all but last
-    done < "$file"
-
-    result="$line"
+    result=$(tail -n 1 "$file" 2>/dev/null)
 }
 
-# Read last N lines using circular buffer (only N lines in memory)
+# Read last N lines using tail
 # Usage: read_last_n_lines <file> <n> <array_var_name>
 read_last_n_lines() {
     local file=$1
@@ -28,24 +22,7 @@ read_last_n_lines() {
 
     [ -f "$file" ] || { arr_ref=(); return 1; }
 
-    # Circular buffer: only keep last N lines in memory
-    local -a buffer
-    local idx=0
-    local line
-
-    while IFS= read -r line; do
-        buffer[$((idx % n))]="$line"
-        ((idx++))
-    done < "$file"
-
-    # Extract lines in correct order
-    arr_ref=()
-    local total=$((idx < n ? idx : n))
-    local start=$((idx >= n ? idx % n : 0))
-
-    for ((i=0; i<total; i++)); do
-        arr_ref+=("${buffer[$(( (start + i) % n ))]}")
-    done
+    mapfile -t arr_ref < <(tail -n "$n" "$file" 2>/dev/null)
 }
 
 # Parse TSV line into fields (no awk process)
