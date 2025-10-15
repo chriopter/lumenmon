@@ -12,3 +12,5 @@ if [[ "$filename" =~ ^[a-zA-Z0-9_-]+\.tsv$ ]]; then
     line_count=$(wc -l < "$filepath" 2>/dev/null || echo 0)
     [ "$line_count" -gt 3600 ] && sed -i '1d' "$filepath"
 fi
+
+exit 0
