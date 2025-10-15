@@ -18,8 +18,10 @@ view_dashboard() {
         buf+="${CYAN}│${NC} ${DIM}No agents registered yet${NC}                                                  ${CYAN}│${NC}"$'\n'
         buf+="${CYAN}│${NC} ${DIM}Use 'lumenmon invite' to create an enrollment invite${NC}                    ${CYAN}│${NC}"$'\n'
     else
-        # Table header
-        buf+="${CYAN}│${NC} ${DIM}   Status  Name                 Trend    CPU      Memory   Disk     Age ${CYAN}│${NC}"$'\n'
+        # Table header (format must match: │   ● %-20s %-8s %8s %8s %8s %4ds │)
+        printf -v header_line "${CYAN}│${NC}   ${DIM}● %-20s %-8s %8s %8s %8s %5s ${NC}${CYAN}│${NC}" \
+            "Name" "Trend" "CPU" "Memory" "Disk" "Age"
+        buf+="$header_line"$'\n'
         buf+="${CYAN}├────────────────────────────────────────────────────────────────────────────┤${NC}"$'\n'
 
         # Calculate pagination (show max 20 agents at a time)

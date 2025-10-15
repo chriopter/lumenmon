@@ -8,11 +8,11 @@
 ```
 
 
-Its too damn complicated to quickly setup a system monitoring for a few servers.
+Its too damn complicated to quickly setup system monitoring for a few servers.
 
-Lumenmon fixes that. Monitor all your servers from a single terminal. Based on bash, ssh and file storage - no setup of databases, dashboards or thousand of services.
+Lumenmon fixes that. Monitor all your servers from a single terminal. Pure Bash, SSH, and TSV files — no databases, no heavyweight dashboards, no sprawling services.
 
-**Current State:** The structure, installer, and lumenmon command are v0.1. TUI and collectors will be polished next.
+**Current State:** The structure, installer, Bash TUI, and collectors are v0.1 and evolving.
 
 - **30 seconds to monitoring** – One command, and you're watching live metrics
 - **Add servers with a magic link** – Copy, paste, done. Each agent gets its own SSH invite
@@ -37,8 +37,8 @@ curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/install.sh |
 ┌─────────────┐  SSH Tunnel   ┌─────────────┐
 │   Agent     │──────────────►│   Console   │
 ├─────────────┤   Port 2345   ├─────────────┤
-│ • CPU 100ms │               │ • SSH Server│──► TUI Dashboard
-│ • Mem 1s    │  TSV Stream   │ • Per-agent │    (Textual)
+│ • CPU 100ms │               │ • SSH Server│──► TUI Dashboard (Bash)
+│ • Mem 1s    │  TSV Stream   │ • Per-agent │
 │ • Disk 60s  │──────────────►│   Linux user│
 └─────────────┘               │ • TSV files │
                               └─────────────┘
@@ -46,14 +46,14 @@ curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/install.sh |
                                     ▼
                               /data/agents/
                               └── <agent-id>/
-                                  ├── cpu.tsv
-                                  ├── memory.tsv
-                                  └── disk.tsv
+                                  ├── generic_cpu.tsv
+                                  ├── generic_mem.tsv
+                                  └── generic_disk.tsv
 ```
 
-- **Agents** collect metrics (CPU/memory/disk) and push TSV data through persistent SSH connections
-- **Console** creates isolated Linux users per agent, routes incoming data to `/data/agents/<id>/*.tsv` files
-- **Security** all SSH-based, push-only: invites are temporary SSH accounts (password + host fingerprint), exchanged for certificates on enrollment. Agent and Console are docker containers.
+- **Agents** collect metrics (CPU/memory/disk) and push TSV data through a persistent SSH connection.
+- **Console** creates isolated Linux users per agent and appends incoming data to `/data/agents/<id>/*.tsv`.
+- **Security** is SSH-based and push-only. Invites are temporary SSH accounts (password + host fingerprint), exchanged for key-based access on enrollment. Agent and Console run as Docker containers.
 
 ## Commands
 
@@ -88,4 +88,4 @@ lumenmon help       # Show help (alias: h)
 
 ---
 
-Thanks to Textual, plotext, Docker, and OpenSSH for the heavy lifting.
+Thanks to Docker and OpenSSH for the heavy lifting.
