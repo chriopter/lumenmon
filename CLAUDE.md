@@ -48,18 +48,15 @@ docker compose -f console/docker-compose.yml up -d --build
 # Build and run agent (with local console)
 CONSOLE_HOST=localhost CONSOLE_PORT=2345 docker compose -f agent/docker-compose.yml up -d --build
 
-# Access TUI directly
-docker exec -it lumenmon-console python3 /app/tui/main.py
+# Access TUI directly (Bash TUI)
+docker exec -it lumenmon-console /app/tui.sh
 ```
 
-### Python Development (TUI)
-```bash
-# Python dependencies (installed in Docker, but for reference)
-pip install rich textual plotext pyperclip
-
-# No specific linting/testing commands defined yet
-# GitHub Actions uses: black, isort, flake8, pylint, mypy
-```
+### Bash TUI Development
+- TUI is implemented in Bash under `console/tui/` with modular scripts.
+- No Python/Textual dependencies.
+- CI currently validates shell syntax (`bash -n`) and builds Docker images.
+- Optional: add `shellcheck` locally or in CI for stricter linting.
 
 ## Installation
 
@@ -88,17 +85,18 @@ curl -sSL https://lumenmon.run | bash -s agent
 
 ### Data Flow
 1. Agents collect metrics at intervals (CPU: 0.1s, Memory: 1s, Disk: 60s)
-2. Metrics sent as TSV through SSH: `timestamp\tagent_id\tmetric\ttype\tvalue\tinterval`
-3. Console SSH ForceCommand routes to gateway script → storage in `/var/lib/lumenmon/hot/`
-4. TUI reads from tmpfs-mounted directories for real-time display
+2. Metrics sent as TSV through SSH (ForceCommand gateway).
+3. Console gateway appends to `/data/agents/<agent_id>/*.tsv` files.
+4. Bash TUI reads from `/data/agents/` for real-time display
 
 ### Directory Structure
 - `console/`: Dashboard container
-  - `tui/`: Python Textual-based TUI application
-    - `views/`: Dashboard and detail views
-    - `models/`: Agent, metrics, invite data models
-    - `services/`: Monitor and clipboard services
-    - `config/`: Settings and theme CSS
+  - `tui/`: Bash TUI
+    - `core/`: state and cache helpers
+    - `readers/`: agents, invites, metrics/history
+    - `render/`: buffer, header/footer, rows, plots, sparklines
+    - `views/`: dashboard and detail views
+    - `input/`: input handling and event loop
   - `core/`: Shell scripts for SSH, enrollment, ingress
     - `status.sh`: Comprehensive console status checks
   - `data/`: Persistent agent data and SSH keys (gitignored)
@@ -148,11 +146,11 @@ Guidelines:
 ## Key Implementation Details
 
 ### Console TUI (`console/tui/`)
-- Built with Python Textual framework
-- Main entry: `main.py` - handles app lifecycle and routing
-- Dashboard view shows agents table and invites
-- Detail view shows real-time graphs using plotext
-- Refresh rate configurable in `config/settings.py`
+- Implemented in Bash.
+- Main entry: `tui.sh` (sources modules and runs event loop).
+- Dashboard lists agents with current metrics and invites.
+- Detail view renders simple plots/sparklines from TSV history.
+- Event loop refresh interval defined in `tui.sh` (default ~2s).
 
 ### SSH Enrollment Flow
 1. Console creates invite: `/app/core/enrollment/invite_create.sh`
@@ -161,9 +159,8 @@ Guidelines:
 4. Agent connects and starts streaming metrics
 
 ### Metric Storage
-- Hot data: `/var/lib/lumenmon/hot/<agent_id>/` (tmpfs)
-- Files: `cpu.tsv`, `memory.tsv`, `disk.tsv`, `meta.tsv`
-- Format: TSV with timestamp, agent_id, metric_name, type, value, interval
+- Files under `/data/agents/<agent_id>/`: `generic_cpu.tsv`, `generic_mem.tsv`, `generic_disk.tsv`, etc.
+- Format: simple TSV lines: `timestamp interval value`.
 
 ### Status Scripts
 Both `console/core/status.sh` and `agent/core/status.sh` provide comprehensive checks:
@@ -174,20 +171,20 @@ Both `console/core/status.sh` and `agent/core/status.sh` provide comprehensive c
 ## Common Tasks
 
 ### Adding New Metrics
-1. Create collector script in `agent/collectors/`
-2. Add to agent's main loop in `agent/agent.sh`
-3. Update TUI models in `console/tui/models/metrics.py`
-4. Add visualization in `console/tui/views/detail.py`
+1. Create collector script in `agent/collectors/` (or `agent/collectors/generic/`).
+2. Ensure it is started by `agent/core/connection/collectors.sh`.
+3. Verify TUI readers pick up the new TSV filename.
+4. Adjust `console/tui/render/plot.sh` or views if needed.
 
 ### Modifying TUI
-- Theme: Edit `console/tui/config/theme.css`
-- Layout: Modify views in `console/tui/views/`
-- Data models: Update `console/tui/models/`
-- Keybindings: Edit `BINDINGS` in `console/tui/main.py`
+- Layout: modify `console/tui/views/` and table rows in `console/tui/render/`.
+- Rendering: adjust `console/tui/render/*` (header, footer, plot, sparkline).
+- Input/keys: edit `console/tui/input/handle.sh` and event loop in `input/loop.sh`.
+- State/cache: tweak `console/tui/core/state.sh` and `console/tui/core/cache.sh`.
 
 ### Debugging
 - Container logs: `docker logs lumenmon-console` or `lumenmon logs`
 - Agent debug output: Check `agent/data/debug/`
 - SSH issues: Verify keys in `console/data/ssh/` and `agent/data/ssh/`
-- TUI issues: Run directly with `docker exec -it lumenmon-console python3 /app/tui/main.py`
+- TUI issues: Run directly with `docker exec -it lumenmon-console /app/tui.sh`
 - Status check: `lumenmon status` for comprehensive system state

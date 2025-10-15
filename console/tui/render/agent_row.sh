@@ -45,10 +45,10 @@ draw_agent_row() {
     # Print row with highlighting if selected
     if [ "$selected" = "1" ]; then
         # Reverse video for selected row
-        printf "${CYAN}│${REVERSE} %b %-20s %s %8s %8s %8s %4ds ${NC}${CYAN}│${NC}" \
+        printf "${CYAN}│${REVERSE} %b %-20s %-8s %8s %8s %8s %4ds ${NC}${CYAN}│${NC}" \
             "$status" "$agent" "$cpu_spark" "$cpu_display" "$mem_display" "$disk_display" "$age"
     else
-        printf "${CYAN}│${NC}   %b %-20s %s %8s %8s %8s %4ds ${CYAN}│${NC}" \
+        printf "${CYAN}│${NC}   %b %-20s %-8s %8s %8s %8s %4ds ${CYAN}│${NC}" \
             "$status" "$agent" "$cpu_spark" "$cpu_display" "$mem_display" "$disk_display" "$age"
     fi
     clear_line  # Clear rest of line to avoid artifacts
@@ -93,10 +93,10 @@ build_agent_row() {
 
     # Build row with highlighting if selected (write directly to ROW_BUFFER)
     if [ "$selected" = "1" ]; then
-        printf -v ROW_BUFFER "${CYAN}│${REVERSE} %b %-20s %s %8s %8s %8s %4ds ${NC}${CYAN}│${NC}" \
+        printf -v ROW_BUFFER "${CYAN}│${REVERSE} %b %-20s %-8s %8s %8s %8s %4ds ${NC}${CYAN}│${NC}" \
             "$status" "$agent" "$cpu_spark" "$cpu_display" "$mem_display" "$disk_display" "$age"
     else
-        printf -v ROW_BUFFER "${CYAN}│${NC}   %b %-20s %s %8s %8s %8s %4ds ${CYAN}│${NC}" \
+        printf -v ROW_BUFFER "${CYAN}│${NC}   %b %-20s %-8s %8s %8s %8s %4ds ${CYAN}│${NC}" \
             "$status" "$agent" "$cpu_spark" "$cpu_display" "$mem_display" "$disk_display" "$age"
     fi
 }

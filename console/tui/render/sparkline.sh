@@ -37,7 +37,8 @@ sparkline() {
         result="${result}${ticks[$idx]}"
     done
 
-    echo "$result"
+    # Pad to 8 characters with spaces
+    printf "%-8s" "$result"
 }
 
 # Generate sparkline and store in variable (no subshell needed)
@@ -79,5 +80,6 @@ sparkline_to_var() {
         result="${result}${ticks[$idx]}"
     done
 
-    output="$result"
+    # Pad to 8 characters with spaces
+    printf -v output "%-8s" "$result"
 }
