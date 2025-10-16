@@ -4,222 +4,88 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lumenmon Console</title>
+    <link rel="stylesheet" href="/css/webtui.css">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
         body {
-            font-family: 'Courier New', monospace;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 1rem;
+            font-family: 'Courier New', 'Consolas', monospace;
+            background: var(--base, #1e1e2e);
+            color: var(--text, #cdd6f4);
             min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #fff;
         }
 
         .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
             text-align: center;
-            padding: 2rem;
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 10px;
-            backdrop-filter: blur(10px);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-            max-width: 900px;
-            width: 90%;
+            margin-bottom: 2rem;
         }
 
         h1 {
-            font-size: 3rem;
-            margin-bottom: 1rem;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            color: var(--mauve, #cba6f7);
+            font-size: 2rem;
+            margin: 0.5rem 0;
         }
 
         .subtitle {
-            font-size: 1.2rem;
-            margin-bottom: 2rem;
-            opacity: 0.9;
+            color: var(--subtext0, #a6adc8);
+            font-size: 0.9rem;
         }
 
-        .status {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 1rem;
-            border-radius: 5px;
-            margin-top: 2rem;
-            border-left: 4px solid #4ade80;
+        section {
+            margin-bottom: 1.5rem;
+        }
+
+        h2 {
+            color: var(--blue, #89b4fa);
+            font-size: 1.2rem;
+            margin-bottom: 0.75rem;
+            border-bottom: 1px solid var(--surface0, #313244);
+            padding-bottom: 0.25rem;
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 0.5rem;
+            margin-bottom: 1rem;
         }
 
         .status-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 0.5rem 0;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .status-item:last-child {
-            border-bottom: none;
-        }
-
-        .label {
-            opacity: 0.7;
-        }
-
-        .value {
-            font-weight: bold;
-        }
-
-        .pulse {
-            display: inline-block;
-            width: 10px;
-            height: 10px;
-            background: #4ade80;
-            border-radius: 50%;
-            margin-right: 8px;
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% {
-                opacity: 1;
-            }
-            50% {
-                opacity: 0.5;
-            }
-        }
-
-        .footer {
-            margin-top: 2rem;
-            opacity: 0.6;
-            font-size: 0.9rem;
-        }
-
-        .code {
-            background: rgba(0, 0, 0, 0.4);
-            padding: 0.2rem 0.5rem;
+            padding: 0.5rem;
+            background: var(--surface0, #313244);
+            border-left: 3px solid var(--green, #a6e3a1);
             border-radius: 3px;
-            font-family: 'Courier New', monospace;
         }
 
-        .agents-section {
-            margin-top: 2rem;
-            text-align: left;
+        .status-label {
+            color: var(--subtext1, #bac2de);
+            font-size: 0.85rem;
         }
 
-        .agents-header {
-            font-size: 1.5rem;
-            margin-bottom: 1rem;
-            text-align: center;
-        }
-
-        .agents-table {
-            width: 100%;
-            border-collapse: collapse;
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: 5px;
-            overflow: hidden;
-        }
-
-        .agents-table th {
-            background: rgba(0, 0, 0, 0.3);
-            padding: 0.75rem;
-            text-align: left;
+        .status-value {
+            color: var(--text, #cdd6f4);
             font-weight: bold;
-            border-bottom: 2px solid rgba(255, 255, 255, 0.2);
-        }
-
-        .agents-table td {
-            padding: 0.75rem;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .agents-table tr:last-child td {
-            border-bottom: none;
-        }
-
-        .agents-table tr:hover {
-            background: rgba(255, 255, 255, 0.05);
-        }
-
-        .status-badge {
-            display: inline-block;
-            padding: 0.2rem 0.6rem;
-            border-radius: 12px;
-            font-size: 0.8rem;
-            font-weight: bold;
-        }
-
-        .status-online {
-            background: #4ade80;
-            color: #000;
-        }
-
-        .status-stale {
-            background: #fbbf24;
-            color: #000;
-        }
-
-        .status-offline {
-            background: #ef4444;
-            color: #fff;
-        }
-
-        .metric-bar {
-            background: rgba(255, 255, 255, 0.2);
-            height: 20px;
-            border-radius: 10px;
-            overflow: hidden;
-            position: relative;
-        }
-
-        .metric-fill {
-            height: 100%;
-            border-radius: 10px;
-            transition: width 0.3s ease;
-        }
-
-        .metric-cpu { background: #3b82f6; }
-        .metric-mem { background: #8b5cf6; }
-        .metric-disk { background: #ec4899; }
-
-        .metric-text {
-            position: absolute;
-            width: 100%;
-            text-align: center;
-            line-height: 20px;
-            font-size: 0.75rem;
-            color: #fff;
-            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
-        }
-
-        .no-agents {
-            text-align: center;
-            padding: 2rem;
-            opacity: 0.6;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 2rem;
-            opacity: 0.6;
         }
 
         .btn {
-            background: rgba(255, 255, 255, 0.2);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            color: #fff;
+            background: var(--blue, #89b4fa);
+            color: var(--crust, #11111b);
+            border: none;
             padding: 0.6rem 1.2rem;
-            border-radius: 5px;
-            cursor: pointer;
             font-family: 'Courier New', monospace;
             font-size: 0.9rem;
+            cursor: pointer;
+            border-radius: 3px;
             transition: all 0.2s;
         }
 
         .btn:hover {
-            background: rgba(255, 255, 255, 0.3);
+            background: var(--sapphire, #74c7ec);
             transform: translateY(-1px);
         }
 
@@ -227,98 +93,164 @@
             transform: translateY(0);
         }
 
-        .btn-primary {
-            background: #4ade80;
-            border-color: #4ade80;
-            color: #000;
-        }
-
-        .btn-primary:hover {
-            background: #22c55e;
-            border-color: #22c55e;
-        }
-
-        .invite-section {
-            margin-top: 2rem;
-            text-align: center;
-        }
-
         .invite-box {
-            background: rgba(0, 0, 0, 0.3);
+            background: var(--surface0, #313244);
             padding: 1rem;
-            border-radius: 5px;
+            border-radius: 3px;
             margin-top: 1rem;
-            border-left: 4px solid #8b5cf6;
+            border-left: 3px solid var(--mauve, #cba6f7);
         }
 
         .invite-url {
-            background: rgba(0, 0, 0, 0.4);
+            background: var(--mantle, #181825);
             padding: 0.75rem;
             border-radius: 3px;
-            font-family: 'Courier New', monospace;
             font-size: 0.85rem;
             word-break: break-all;
             margin: 0.5rem 0;
             cursor: pointer;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--surface1, #45475a);
         }
 
         .invite-url:hover {
-            background: rgba(0, 0, 0, 0.5);
-            border-color: rgba(255, 255, 255, 0.3);
+            background: var(--crust, #11111b);
+            border-color: var(--mauve, #cba6f7);
         }
 
-        .success-message {
-            color: #4ade80;
+        .message {
             margin-top: 0.5rem;
             font-size: 0.9rem;
         }
 
-        .error-message {
-            color: #ef4444;
-            margin-top: 0.5rem;
-            font-size: 0.9rem;
+        .success { color: var(--green, #a6e3a1); }
+        .error { color: var(--red, #f38ba8); }
+        .loading { color: var(--yellow, #f9e2af); }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--surface0, #313244);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        thead {
+            background: var(--surface1, #45475a);
+        }
+
+        th {
+            padding: 0.75rem;
+            text-align: left;
+            font-weight: bold;
+            color: var(--text, #cdd6f4);
+            border-bottom: 2px solid var(--surface2, #585b70);
+        }
+
+        td {
+            padding: 0.75rem;
+            border-bottom: 1px solid var(--surface1, #45475a);
+        }
+
+        tbody tr:hover {
+            background: var(--surface1, #45475a);
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.2rem 0.6rem;
+            border-radius: 3px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .badge-online {
+            background: var(--green, #a6e3a1);
+            color: var(--crust, #11111b);
+        }
+
+        .badge-stale {
+            background: var(--yellow, #f9e2af);
+            color: var(--crust, #11111b);
+        }
+
+        .badge-offline {
+            background: var(--red, #f38ba8);
+            color: var(--crust, #11111b);
+        }
+
+        .metric {
+            font-family: 'Courier New', monospace;
+            color: var(--text, #cdd6f4);
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 2rem;
+            color: var(--subtext0, #a6adc8);
+        }
+
+        code {
+            background: var(--mantle, #181825);
+            padding: 0.2rem 0.4rem;
+            border-radius: 2px;
+            color: var(--rosewater, #f5e0dc);
+        }
+
+        footer {
+            margin-top: 2rem;
+            text-align: center;
+            color: var(--subtext0, #a6adc8);
+            font-size: 0.85rem;
+            padding: 1rem 0;
+            border-top: 1px solid var(--surface0, #313244);
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Lumenmon</h1>
-        <p class="subtitle">Lightweight System Monitoring</p>
+        <header>
+            <h1>┌─ Lumenmon Console ─┐</h1>
+            <p class="subtitle">Lightweight System Monitoring</p>
+        </header>
 
-        <div class="status">
-            <div class="status-item">
-                <span class="label">Console Status</span>
-                <span class="value"><span class="pulse"></span>Online</span>
+        <section>
+            <h2>│ System Status</h2>
+            <div class="status-grid">
+                <div class="status-item">
+                    <div class="status-label">Console</div>
+                    <div class="status-value">● Online</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-label">SSH Server</div>
+                    <div class="status-value">Port 2345</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-label">Web Server</div>
+                    <div class="status-value">Caddy</div>
+                </div>
             </div>
-            <div class="status-item">
-                <span class="label">Web Server</span>
-                <span class="value">Caddy</span>
-            </div>
-            <div class="status-item">
-                <span class="label">SSH Server</span>
-                <span class="value">Port 2345</span>
-            </div>
-        </div>
+        </section>
 
-        <!-- Invite Section -->
-        <div class="invite-section">
-            <button class="btn btn-primary" onclick="createInvite()">Create Agent Invite</button>
+        <section>
+            <h2>│ Agent Enrollment</h2>
+            <button class="btn" onclick="createInvite()">Create Agent Invite</button>
             <div id="invite-container"></div>
-        </div>
+        </section>
 
-        <!-- Agents Section -->
-        <div class="agents-section">
-            <h2 class="agents-header">Connected Agents</h2>
+        <section>
+            <h2>│ Connected Agents</h2>
             <div id="agents-container">
-                <div class="loading">Loading agents...</div>
+                <div class="no-data loading">Loading agents...</div>
             </div>
-        </div>
+        </section>
 
-        <div class="footer">
-            <p>Access the TUI dashboard: <span class="code">lumenmon</span></p>
-            <p style="margin-top: 0.5rem;">Generate agent invite: <span class="code">lumenmon invite</span></p>
-        </div>
+        <footer>
+            <p>└─ Access TUI: <code>lumenmon</code> | Generate invite: <code>lumenmon invite</code> ─┘</p>
+        </footer>
     </div>
 
     <script>
@@ -334,7 +266,7 @@
             } catch (error) {
                 console.error('Error fetching agents:', error);
                 document.getElementById('agents-container').innerHTML =
-                    `<div class="no-agents">Unable to load agent data<br><small>${error.message}</small></div>`;
+                    `<div class="no-data error">Unable to load agent data: ${error.message}</div>`;
             }
         }
 
@@ -343,9 +275,9 @@
 
             if (!data.agents || data.agents.length === 0) {
                 container.innerHTML = `
-                    <div class="no-agents">
+                    <div class="no-data">
                         No agents connected yet<br>
-                        <small>Run <span class="code">lumenmon invite</span> to get started</small>
+                        <small>Run <code>lumenmon invite</code> to get started</small>
                     </div>
                 `;
                 return;
@@ -353,7 +285,7 @@
 
             // Build table
             let html = `
-                <table class="agents-table">
+                <table>
                     <thead>
                         <tr>
                             <th>Agent ID</th>
@@ -368,32 +300,22 @@
             `;
 
             data.agents.forEach(agent => {
-                const statusClass = `status-${agent.status}`;
+                const statusClass = `badge-${agent.status}`;
                 const statusText = agent.status.charAt(0).toUpperCase() + agent.status.slice(1);
                 const age = formatAge(agent.age);
+
+                // Simple bar representation using block characters
+                const cpuBar = generateBar(agent.cpu);
+                const memBar = generateBar(agent.memory);
+                const diskBar = generateBar(agent.disk);
 
                 html += `
                     <tr>
                         <td><code>${agent.id}</code></td>
-                        <td><span class="status-badge ${statusClass}">${statusText}</span></td>
-                        <td>
-                            <div class="metric-bar">
-                                <div class="metric-fill metric-cpu" style="width: ${agent.cpu}%"></div>
-                                <div class="metric-text">${agent.cpu.toFixed(1)}%</div>
-                            </div>
-                        </td>
-                        <td>
-                            <div class="metric-bar">
-                                <div class="metric-fill metric-mem" style="width: ${agent.memory}%"></div>
-                                <div class="metric-text">${agent.memory.toFixed(1)}%</div>
-                            </div>
-                        </td>
-                        <td>
-                            <div class="metric-bar">
-                                <div class="metric-fill metric-disk" style="width: ${agent.disk}%"></div>
-                                <div class="metric-text">${agent.disk.toFixed(1)}%</div>
-                            </div>
-                        </td>
+                        <td><span class="badge ${statusClass}">${statusText}</span></td>
+                        <td class="metric">${agent.cpu.toFixed(1)}% ${cpuBar}</td>
+                        <td class="metric">${agent.memory.toFixed(1)}% ${memBar}</td>
+                        <td class="metric">${agent.disk.toFixed(1)}% ${diskBar}</td>
                         <td>${age}</td>
                     </tr>
                 `;
@@ -407,6 +329,12 @@
             container.innerHTML = html;
         }
 
+        function generateBar(value) {
+            const blocks = Math.floor(value / 10);
+            const chars = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'];
+            return chars[7].repeat(Math.min(blocks, 10));
+        }
+
         function formatAge(seconds) {
             if (seconds < 60) return `${seconds}s`;
             if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
@@ -414,16 +342,10 @@
             return `${Math.floor(seconds / 86400)}d`;
         }
 
-        // Initial fetch
-        fetchAgents();
-
-        // Auto-refresh every 3 seconds
-        setInterval(fetchAgents, 3000);
-
         // Create invite
         async function createInvite() {
             const container = document.getElementById('invite-container');
-            container.innerHTML = '<div class="loading">Creating invite...</div>';
+            container.innerHTML = '<div class="message loading">Creating invite...</div>';
 
             try {
                 const response = await fetch('/api/invites/create', {
@@ -443,15 +365,15 @@
                             <div class="invite-url" onclick="copyToClipboard('${data.invite_url}')" title="Click to copy">
                                 ${data.invite_url}
                             </div>
-                            <p class="success-message">Invite created! Valid for 5 minutes.</p>
+                            <p class="message success">✓ Invite created! Valid for 5 minutes.</p>
                         </div>
                     `;
                 } else {
-                    container.innerHTML = `<p class="error-message">Failed to create invite: ${data.error}</p>`;
+                    container.innerHTML = `<p class="message error">✗ Failed to create invite: ${data.error}</p>`;
                 }
             } catch (error) {
                 console.error('Error creating invite:', error);
-                container.innerHTML = `<p class="error-message">Error: ${error.message}</p>`;
+                container.innerHTML = `<p class="message error">✗ Error: ${error.message}</p>`;
             }
         }
 
@@ -459,11 +381,11 @@
         function copyToClipboard(text) {
             navigator.clipboard.writeText(text).then(() => {
                 const container = document.getElementById('invite-container');
-                const successMsg = container.querySelector('.success-message');
+                const successMsg = container.querySelector('.success');
                 if (successMsg) {
-                    successMsg.textContent = 'Copied to clipboard!';
+                    successMsg.textContent = '✓ Copied to clipboard!';
                     setTimeout(() => {
-                        successMsg.textContent = 'Invite created! Valid for 5 minutes.';
+                        successMsg.textContent = '✓ Invite created! Valid for 5 minutes.';
                     }, 2000);
                 }
             }).catch(err => {
@@ -471,6 +393,12 @@
                 alert('Failed to copy to clipboard');
             });
         }
+
+        // Initial fetch
+        fetchAgents();
+
+        // Auto-refresh every 3 seconds
+        setInterval(fetchAgents, 3000);
     </script>
 </body>
 </html>

@@ -8,21 +8,17 @@
 ```
 
 
-Its too damn complicated to quickly setup system monitoring for a few servers.
+It's too damn complicated to quickly setup system monitoring for a few servers.
 
-Lumenmon fixes that. Monitor all your servers from a single terminal. Pure Bash, SSH, and TSV files — no databases, no heavyweight dashboards, no sprawling services.
+Lumenmon fixes that. It's a simple monitoring tool, that you can install in under 30 seconds.
 
-**Current State:** The structure, installer, Bash TUI, and collectors are v0.1 and evolving.
-
-- **30 seconds to monitoring** – One command, and you're watching live metrics
-- **Add servers with a magic link** – Copy, paste, done. Each agent gets its own SSH invite
-- **Just works everywhere** – If you have Docker and SSH, you have monitoring
-- **Live in your terminal** – Beautiful TUI shows everything at a glance
-- **Stupid simple** – Pure Bash, SSH, TSV files. No database, no bloat, no overhead
+Lumenmon Agent: Stupid simple docker container with just a bunch of bash scripts collecting metrics on each of your servers you want to monitor.
+Lumenmon Console: Accepts client data and just appends it to TSV-Files. A simple WebTUI to view.
+That's it.
 
 ## Quick Start
 
-Install the console. The installer gives you an invite link to add servers.
+Install the console. The installer gives you an invite link to add your first server.
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/install.sh | bash
@@ -33,11 +29,14 @@ curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/install.sh |
 
 ## How It Works
 
+You can invite clients with a magic link (which is just a per-client ssh account), each client just appends its data to a TSV file in a per-client folder on the Console.
+
+
 ```
 ┌─────────────┐  SSH Tunnel   ┌─────────────┐
 │   Agent     │──────────────►│   Console   │
 ├─────────────┤   Port 2345   ├─────────────┤
-│ • CPU 100ms │               │ • SSH Server│──► TUI Dashboard (Bash)
+│ • CPU 100ms │               │ • SSH Server│──► WebTUI Dashboard
 │ • Mem 1s    │  TSV Stream   │ • Per-agent │
 │ • Disk 60s  │──────────────►│   Linux user│
 └─────────────┘               │ • TSV files │
@@ -68,7 +67,7 @@ lumenmon uninstall  # Remove everything
 lumenmon help       # Show help (alias: h)
 ```
 
-## Development Commands
+## Development
 
 ```bash
 # Full auto-setup: reset, start containers, register agent, and launch TUI
@@ -84,6 +83,13 @@ lumenmon help       # Show help (alias: h)
 ./dev/register   # Register agent with console (requires invite URL)
 ./dev/tui        # Launch TUI dashboard
 ./dev/logs       # Show container logs
+```
+
+**Updating WebTUI CSS:**
+WebTUI is automatically downloaded during Docker build using `@latest` versions. Rebuild the container to get the newest versions:
+
+```bash
+docker compose -f console/docker-compose.yml build --no-cache
 ```
 
 ---
