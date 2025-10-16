@@ -88,4 +88,4 @@ lumenmon help       # Show help (alias: h)
 
 ---
 
-Thanks to Docker and OpenSSH for the heavy lifting.
+Based on WebTUI, Flask, Docker, OpenSSH.
