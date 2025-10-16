@@ -22,24 +22,20 @@ Install the console. The installer gives you an invite link to add your first se
 curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/install.sh | bash
 ```
 
-After installation, use the global `lumenmon` command:
-
-```bash
-lumenmon           # Opens WebTUI at http://localhost:8080
-lumenmon status    # Show console & agent status (alias: s)
-lumenmon invite    # Generate agent enrollment invite (alias: i)
-lumenmon update    # Update to latest version (alias: u)
-lumenmon help      # Show all commands (alias: h)
-```
-
-**Updating:** Run `lumenmon update` to pull the latest code from git and update containers:
-- Automatically detects if you're using remote images or local builds
-- Pulls latest images from registry OR rebuilds from source
-- Restarts containers with zero-downtime
-- Updates console and/or agent if running
-
 <img width="650" alt="screenshot-2025-09-21_20-57-39" src="https://github.com/user-attachments/assets/a900ed9c-d519-4c1c-8268-2d2417807aed" />
 
+## Commands
+
+```bash
+lumenmon            # Open dashboard (or show status)
+lumenmon status     # Show system status (alias: s)
+lumenmon logs       # Stream container logs (alias: l)
+lumenmon invite     # Generate agent invite (alias: i)
+lumenmon register   # Register agent with invite
+lumenmon update     # Update to latest version (alias: u)
+lumenmon uninstall  # Remove everything
+lumenmon help       # Show help (alias: h)
+```
 
 ## How It Works
 
@@ -84,19 +80,6 @@ Collectors are bash scripts (`collectors/*/*.sh`) running `while true; do sleep 
 | REPORT | 3600s | CPU-heavy operations (update status) |
 
 Each sends 2-line SSH: `generic_cpu.tsv\n1729123456 1 23.4`. Console ForceCommand appends to `/data/agents/$USER/$filename`, rotates at 3600 lines. WebTUI reads TSV directly.
-
-## Commands
-
-```bash
-lumenmon            # Open dashboard (or show status)
-lumenmon status     # Show system status (alias: s)
-lumenmon logs       # Stream container logs (alias: l)
-lumenmon invite     # Generate agent invite (alias: i)
-lumenmon register   # Register agent with invite
-lumenmon update     # Update to latest version (alias: u)
-lumenmon uninstall  # Remove everything
-lumenmon help       # Show help (alias: h)
-```
 
 ## Development
 
