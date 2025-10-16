@@ -3,7 +3,8 @@
     "allow": [
       "Bash(chmod:*)",
       "WebFetch(domain:webtui.ironclad.sh)",
-      "Bash(docker ps:*)"
+      "Bash(docker ps:*)",
+      "Bash(curl:*)"
     ],
     "deny": [],
     "ask": []

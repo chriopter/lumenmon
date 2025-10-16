@@ -1,0 +1,25 @@
+#!/bin/bash
+# Downloads latest WebTUI CSS, Catppuccin theme, and Chart.js to console/web/public/.
+# Run this to update vendored web dependencies from unpkg.com CDN.
+
+set -e
+
+echo "Updating WebTUI dependencies..."
+
+# Create directories if they don't exist
+mkdir -p console/web/public/css
+mkdir -p console/web/public/js/vendor
+
+# Update WebTUI CSS
+echo "  Downloading WebTUI CSS..."
+curl -sL https://unpkg.com/@webtui/css@latest/dist/full.css -o console/web/public/css/webtui.css
+
+# Update Catppuccin theme
+echo "  Downloading Catppuccin theme..."
+curl -sL https://unpkg.com/@webtui/theme-catppuccin@latest/dist/index.css -o console/web/public/css/catppuccin.css
+
+# Update Chart.js
+echo "  Downloading Chart.js..."
+curl -sL https://unpkg.com/chart.js@latest/dist/chart.umd.js -o console/web/public/js/vendor/chart.js
+
+echo "Done! Dependencies updated successfully."
