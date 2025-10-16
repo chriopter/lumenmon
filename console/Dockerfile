@@ -50,11 +50,12 @@ COPY console.sh .
 COPY core/ ./core/
 COPY web/ ./web/
 
-# Download WebTUI CSS via npm (latest version)
+# Download WebTUI CSS and Catppuccin theme via npm (latest versions)
 RUN cd /tmp && \
-    npm install @webtui/css@latest && \
+    npm install @webtui/css@latest @webtui/theme-catppuccin@latest && \
     mkdir -p /app/web/public/css && \
     cp node_modules/@webtui/css/dist/full.css /app/web/public/css/webtui.css && \
+    find node_modules/@webtui/theme-catppuccin -name "mocha.css" -exec cp {} /app/web/public/css/catppuccin.css \; && \
     rm -rf /tmp/node_modules
 
 # Copy Caddyfile from web config
