@@ -23,6 +23,7 @@ Fetches server-rendered rows every 1s. Provides row selection, navigation functi
 <script>
     let selectedRow = 0;
     let previousAgentCount = 0;
+    let isFirstLoad = true;
 
     async function fetchAgents() {
         try {
@@ -43,6 +44,14 @@ Fetches server-rendered rows every 1s. Provides row selection, navigation functi
                 addLog(`agent disconnected (total: ${currentCount})`, 'error');
             }
             previousAgentCount = currentCount;
+
+            // Auto-open detail view on first load if agents exist
+            if (isFirstLoad && currentCount > 0) {
+                isFirstLoad = false;
+                setTimeout(() => {
+                    openDetailView();
+                }, 100);
+            }
 
         } catch (error) {
             console.error('Error:', error);

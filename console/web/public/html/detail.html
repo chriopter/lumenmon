@@ -95,7 +95,7 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
                 </div>
 
                 <div class="tsv-files-section">
-                    <h3>all tsv files</h3>
+                    <h3>All Values</h3>
                     <div id="tsv-files-list" class="tsv-files-list">
                         <span class="loading-text">Loading TSV files...</span>
                     </div>
@@ -170,6 +170,9 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
             if (statLines.length >= 6) {
                 statLines[5].querySelector('.stat-value').textContent = agent.cpuHistory ? agent.cpuHistory.length : 0;
             }
+
+            // Refresh TSV files data
+            loadTsvFiles(agent.id);
         } catch (error) {
             console.error('Error refreshing detail view:', error);
         }
@@ -297,6 +300,25 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
         }).join('');
     }
 
+    function formatTimestampAge(timestamp) {
+        if (!timestamp || timestamp === '-') return '-';
+
+        const now = Math.floor(Date.now() / 1000);
+        const seconds = now - parseInt(timestamp);
+
+        if (seconds < 0) return 'just now';
+        if (seconds < 60) return `${seconds}s ago`;
+
+        const minutes = Math.floor(seconds / 60);
+        if (minutes < 60) return `${minutes}m ago`;
+
+        const hours = Math.floor(minutes / 60);
+        if (hours < 24) return `${hours}h ago`;
+
+        const days = Math.floor(hours / 24);
+        return `${days}d ago`;
+    }
+
     async function loadTsvFiles(agentId) {
         try {
             const response = await fetch(`/api/agents/${agentId}/tsv`);
@@ -312,15 +334,34 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
                 return;
             }
 
-            // Build the TSV files list
-            let html = '';
+            // Build the TSV files table
+            let html = '<table id="tsv-table"><thead><tr>';
+            html += '<td>NAME</td>';
+            html += '<td>TIMESTAMP</td>';
+            html += '<td>VALUE</td>';
+            html += '<td>CYCLE (S)</td>';
+            html += '<td># VALUES</td>';
+            html += '</tr></thead><tbody>';
+
             data.tsv_files.forEach(file => {
-                html += `<div class="tsv-row">`;
-                html += `<span class="tsv-filename">${file.filename}</span>`;
-                html += `<span class="tsv-lastline">${file.lastLine}</span>`;
-                html += `</div>`;
+                // Parse the TSV line: timestamp interval value
+                const parts = file.lastLine.split(/\s+/);
+                const timestamp = parts[0] || '-';
+                const interval = parts[1] || '-';
+                const value = parts[2] || '-';
+                const lineCount = file.line_count || '-';
+                const timestampAge = formatTimestampAge(timestamp);
+
+                html += `<tr>`;
+                html += `<td class="tsv-filename">${file.filename}</td>`;
+                html += `<td>${timestampAge}</td>`;
+                html += `<td>${value}</td>`;
+                html += `<td>${interval}</td>`;
+                html += `<td>${lineCount}</td>`;
+                html += `</tr>`;
             });
 
+            html += '</tbody></table>';
             tsvFilesList.innerHTML = html;
         } catch (error) {
             console.error('Error loading TSV files:', error);

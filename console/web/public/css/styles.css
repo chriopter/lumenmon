@@ -302,6 +302,7 @@ body {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 0.5rem;
+    margin-bottom: 1rem;
 }
 
 .detail-stats {
@@ -344,13 +345,20 @@ body {
     border: 1px solid var(--foreground2);
     border-radius: 4px;
     padding: 0.5rem;
+    padding-top: 1rem;
+    position: relative;
 }
 
 .chart-section h3 {
-    margin: 0 0 0.5rem 0;
+    position: absolute;
+    top: -0.6rem;
+    left: 0.5rem;
+    margin: 0;
+    padding: 0 0.5rem;
     font-size: 0.7rem;
     text-transform: uppercase;
     color: var(--foreground2);
+    background: var(--background0);
 }
 
 
@@ -510,61 +518,68 @@ footer {
 /* ============================================================ */
 .tsv-files-section {
     margin-top: 1rem;
-    padding-top: 1rem;
+    padding-top: 0;
     border-top: 1px solid var(--foreground2);
+    position: relative;
 }
 
 .tsv-files-section h3 {
-    margin: 0 0 0.5rem 0;
-    font-size: 0.8rem;
+    position: absolute;
+    top: -0.6rem;
+    left: 0.5rem;
+    margin: 0;
+    padding: 0 0.5rem;
+    font-size: 0.75rem;
     text-transform: uppercase;
     color: var(--foreground2);
+    background: var(--background0);
 }
 
 .tsv-files-list {
+    padding-top: 0.75rem;
     font-family: monospace;
     font-size: 0.75rem;
 }
 
-.tsv-table {
+#tsv-table {
     width: 100%;
     border-collapse: collapse;
     border-spacing: 0;
-    border: none;
+    font-family: monospace;
+    border: none !important;
 }
 
-.tsv-table thead th {
-    text-align: left;
+/* Override WebTUI table border system */
+#tsv-table {
+    --table-border-width: 0 !important;
+    --table-border-color: transparent !important;
+}
+
+#tsv-table:before,
+#tsv-table tr th:before,
+#tsv-table tr td:before,
+#tsv-table tr th:after,
+#tsv-table tr td:after {
+    display: none !important;
+}
+
+#tsv-table thead td {
     padding: 0.25rem 0.35rem;
-    font-size: 0.7rem;
     text-transform: uppercase;
+    font-weight: bold;
     color: var(--foreground2);
-    border: none;
+    font-size: 0.7rem;
 }
 
-.tsv-table tbody td {
+#tsv-table tbody td {
     padding: 0.25rem 0.35rem;
     font-size: 0.75rem;
-    border: none;
+    color: var(--foreground1);
 }
 
 .tsv-filename {
     color: var(--accent2);
     font-weight: bold;
-    white-space: nowrap;
-}
-
-.tsv-lastline {
-    color: var(--foreground1);
-    font-family: monospace;
-    font-size: 0.7rem;
-}
-
-.tsv-lastline code {
-    background: var(--background1);
-    padding: 0.1rem 0.3rem;
-    border-radius: 3px;
-    display: inline-block;
 }
 
 .loading-text,
