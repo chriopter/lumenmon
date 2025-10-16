@@ -1,6 +1,6 @@
 FROM debian:bookworm-slim
 
-# Install minimal dependencies
+# Install all system dependencies in one layer
 RUN apt-get update && apt-get install -y \
     bash \
     bc \
@@ -13,21 +13,17 @@ RUN apt-get update && apt-get install -y \
     debian-archive-keyring \
     apt-transport-https \
     gnupg \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install Caddy
-RUN curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg \
+    python3 \
+    python3-pip \
+    npm \
+    && curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg \
     && curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | tee /etc/apt/sources.list.d/caddy-stable.list \
     && apt-get update \
     && apt-get install -y caddy \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python and Flask
-RUN apt-get update && apt-get install -y \
-    python3 \
-    python3-pip \
-    && rm -rf /var/lib/apt/lists/* \
-    && pip3 install --no-cache-dir flask --break-system-packages
+# Install Python packages
+RUN pip3 install --no-cache-dir flask --break-system-packages
 
 # Create groups for agent and registration users
 RUN groupadd agents && \
@@ -51,13 +47,8 @@ RUN mkdir -p /data/agents && \
 # Copy ultra-KISS console files
 WORKDIR /app
 COPY console.sh .
-COPY tui.sh .
 COPY core/ ./core/
-COPY tui/ ./tui/
 COPY web/ ./web/
-
-# Install npm for WebTUI CSS downloads
-RUN apt-get update && apt-get install -y npm && rm -rf /var/lib/apt/lists/*
 
 # Download WebTUI CSS via npm (latest version)
 RUN cd /tmp && \
@@ -70,7 +61,7 @@ RUN cd /tmp && \
 COPY web/config/Caddyfile /etc/caddy/Caddyfile
 
 # Make scripts executable
-RUN chmod +x console.sh tui.sh core/*.sh core/*/*.sh tui/*/*.sh web/readers/*.py
+RUN chmod +x console.sh core/*.sh core/*/*.sh web/readers/*.py
 
 # Mount point for persistent data
 VOLUME /data
