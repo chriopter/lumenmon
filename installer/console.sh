@@ -65,14 +65,15 @@ if [ -n "$FULL_CMD" ]; then
     echo ""
     echo -e "   \033[1;36m$FULL_CMD\033[0m"
     echo ""
-    echo "2. Open dashboard:"
+    echo "2. Open dashboard at \033[1;36mhttp://localhost:8080\033[0m"
     echo ""
     echo -e "   \033[1;36mlumenmon\033[0m"
 else
     echo "1. Generate invite for agent:"
     echo -e "   \033[1;36mdocker exec lumenmon-console /app/core/enrollment/invite_create.sh\033[0m"
     echo ""
-    echo "2. Open dashboard:"
+    echo "2. Open dashboard at \033[1;36mhttp://localhost:8080\033[0m"
+    echo ""
     echo -e "   \033[1;36mlumenmon\033[0m"
 fi
 
