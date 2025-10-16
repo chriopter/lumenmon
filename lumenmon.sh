@@ -66,8 +66,8 @@ case "$1" in
         git pull
         echo ""
 
-        # Update console if running
-        if is_running console; then
+        # Update console if installed
+        if [ -d "$DIR/console/data" ]; then
             cd "$DIR/console"
 
             # Determine update method
@@ -77,21 +77,17 @@ case "$1" in
                 echo "  Image: $IMAGE"
                 echo "  → Pulling from registry..."
                 docker compose pull
-                echo "  → Restarting container..."
-                docker compose down && docker compose up -d
             else
                 echo "Console: Building locally from source"
                 echo "  → Building new image..."
                 docker compose build
-                echo "  → Restarting container..."
-                docker compose down && docker compose up -d
             fi
             echo "  ✓ Console updated"
             echo ""
         fi
 
-        # Update agent if running
-        if is_running agent; then
+        # Update agent if installed
+        if [ -d "$DIR/agent/data" ]; then
             cd "$DIR/agent"
 
             # Determine update method
@@ -101,14 +97,10 @@ case "$1" in
                 echo "  Image: $IMAGE"
                 echo "  → Pulling from registry..."
                 docker compose pull
-                echo "  → Restarting container..."
-                docker compose down && docker compose up -d
             else
                 echo "Agent: Building locally from source"
                 echo "  → Building new image..."
                 docker compose build
-                echo "  → Restarting container..."
-                docker compose down && docker compose up -d
             fi
             echo "  ✓ Agent updated"
             echo ""
@@ -117,6 +109,36 @@ case "$1" in
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
         echo "✓ Update complete"
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo ""
+
+        # Start updated containers
+        "$0" start
+        ;;
+
+    start)
+        echo "Starting Lumenmon..."
+        # Start console if installed (has data directory)
+        if [ -d "$DIR/console/data" ]; then
+            cd "$DIR/console"
+            if ! is_running console; then
+                echo "→ Starting console..."
+                docker compose up -d
+                echo "  ✓ Console started"
+            else
+                echo "  Console already running"
+            fi
+        fi
+        # Start agent if installed (has data directory)
+        if [ -d "$DIR/agent/data" ]; then
+            cd "$DIR/agent"
+            if ! is_running agent; then
+                echo "→ Starting agent..."
+                docker compose up -d
+                echo "  ✓ Agent started"
+            else
+                echo "  Agent already running"
+            fi
+        fi
         ;;
 
     uninstall)
@@ -125,6 +147,7 @@ case "$1" in
 
     help|h)
         echo "lumenmon           - Open WebTUI (or status if not running)"
+        echo "lumenmon start     - Start console and/or agent"
         echo "lumenmon status    - Show system status"
         echo "lumenmon logs     - View logs"
         echo "lumenmon invite   - Generate agent invite"
