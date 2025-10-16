@@ -5,7 +5,6 @@ Uses Catppuccin Mocha CSS variables from catppuccin.css. Defines log box, table,
 
 body {
     margin: 0.5rem;
-    max-width: 1400px;
     overflow: hidden;
     height: calc(100vh - 1rem);
     display: flex;
