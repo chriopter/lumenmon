@@ -12,6 +12,11 @@ source core/setup/restore_users.sh  # Restore agent users
 # Start services
 source core/ingress/ssh_daemon.sh   # Start SSH daemon
 
+# Start Flask API server
+echo "[console] Starting Flask API server..."
+cd /app/web/readers && python3 app.py 2>&1 | sed 's/^/[flask] /' &
+sleep 1
+
 # Start Caddy web server
 echo "[console] Starting Caddy web server..."
 caddy start --config /etc/caddy/Caddyfile 2>&1 | sed 's/^/[caddy] /' &
