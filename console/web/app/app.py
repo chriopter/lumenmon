@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-# Main Flask application for Lumenmon web interface.
-# Imports and registers all reader modules (agents, invites).
+# Main Flask application entry point that configures templates, static files, and registers blueprints.
+# Serves dashboard HTML and proxies API requests. Run directly on port 5000, or via Caddy reverse proxy.
 
 from flask import Flask, jsonify, render_template
 from agents import agents_bp

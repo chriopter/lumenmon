@@ -53,7 +53,7 @@ COPY web/ ./web/
 COPY web/config/Caddyfile /etc/caddy/Caddyfile
 
 # Make scripts executable
-RUN chmod +x console.sh core/*.sh core/*/*.sh web/readers/*.py
+RUN chmod +x console.sh core/*.sh core/*/*.sh web/app/*.py
 
 # Mount point for persistent data
 VOLUME /data

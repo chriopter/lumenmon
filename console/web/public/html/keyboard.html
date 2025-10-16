@@ -1,4 +1,7 @@
-<!-- Keyboard Navigation Component -->
+<!--
+Keyboard navigation event handler for TUI-style shortcuts.
+Binds ↑/↓/j/k (navigation), Enter (detail), Esc (close), i (invite), r (refresh), h/? (help).
+-->
 <script>
     document.addEventListener('keydown', (e) => {
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
