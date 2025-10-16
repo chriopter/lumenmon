@@ -56,6 +56,16 @@ COPY core/ ./core/
 COPY tui/ ./tui/
 COPY web/ ./web/
 
+# Install npm for WebTUI CSS downloads
+RUN apt-get update && apt-get install -y npm && rm -rf /var/lib/apt/lists/*
+
+# Download WebTUI CSS via npm (latest version)
+RUN cd /tmp && \
+    npm install @webtui/css@latest && \
+    mkdir -p /app/web/public/css && \
+    cp node_modules/@webtui/css/dist/full.css /app/web/public/css/webtui.css && \
+    rm -rf /tmp/node_modules
+
 # Copy Caddyfile from web config
 COPY web/config/Caddyfile /etc/caddy/Caddyfile
 

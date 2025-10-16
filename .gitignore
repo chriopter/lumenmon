@@ -75,3 +75,6 @@ agent/data/**
 !agent/data/**/.gitkeep
 docker-compose.override.yml
 __pycache__/
+
+# WebTUI CSS files (downloaded during Docker build)
+console/web/public/css/
