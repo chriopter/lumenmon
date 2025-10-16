@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en" data-webtui-theme="catppuccin-mocha">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lumenmon Console</title>
+    <link rel="stylesheet" href="/css/webtui.css">
+    <link rel="stylesheet" href="/css/catppuccin.css">
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+    {% include 'logger.html' %}
+
+    <div class="shortcuts">
+        <kbd>↑/k</kbd> <kbd>↓/j</kbd> navigate · <kbd>enter</kbd> detail · <kbd>i</kbd> invite · <kbd>r</kbd> refresh · <kbd>h</kbd> help · <kbd>esc</kbd> close
+    </div>
+
+    {% include 'table.html' %}
+
+    <footer>
+        <div class="footer-status">
+            <span class="footer-status-item">console: online</span>
+            <span class="footer-status-item">ssh: 2345</span>
+            <span class="footer-status-item">web: 8080</span>
+        </div>
+        {% include 'invite.html' %}
+    </footer>
+
+    <script src="/js/vendor/chart.js"></script>
+    {% include 'detail.html' %}
+    {% include 'keyboard.html' %}
+</body>
+</html>

@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(chmod:*)",
-      "WebFetch(domain:webtui.ironclad.sh)"
+      "WebFetch(domain:webtui.ironclad.sh)",
+      "Bash(docker ps:*)"
     ],
     "deny": [],
     "ask": []

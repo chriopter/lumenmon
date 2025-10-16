@@ -100,11 +100,18 @@ lumenmon help       # Show help (alias: h)
 ./dev/logs       # Show container logs
 ```
 
-**Updating WebTUI CSS:**
-WebTUI is automatically downloaded during Docker build using `@latest` versions. Rebuild the container to get the newest versions:
+**Updating Web Dependencies:**
+WebTUI CSS, Catppuccin theme, and Chart.js are committed to the repo as static files. To update them manually:
 
 ```bash
-docker compose -f console/docker-compose.yml build --no-cache
+# Update WebTUI CSS
+curl -sL https://cdn.jsdelivr.net/npm/@webtui/css@latest/dist/full.css -o console/web/public/css/webtui.css
+
+# Update Catppuccin Mocha theme
+curl -sL https://cdn.jsdelivr.net/npm/@webtui/theme-catppuccin@latest/dist/mocha.css -o console/web/public/css/catppuccin.css
+
+# Update Chart.js
+curl -sL https://cdn.jsdelivr.net/npm/chart.js@latest/dist/chart.umd.js -o console/web/public/js/vendor/chart.js
 ```
 
 ---

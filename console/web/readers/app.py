@@ -2,15 +2,24 @@
 # Main Flask application for Lumenmon web interface.
 # Imports and registers all reader modules (agents, invites).
 
-from flask import Flask, jsonify
+from flask import Flask, jsonify, render_template
 from agents import agents_bp
 from invites import invites_bp
+import os
 
-app = Flask(__name__)
+# Configure template and static directories
+template_dir = os.path.join(os.path.dirname(__file__), '..', 'public', 'html')
+static_dir = os.path.join(os.path.dirname(__file__), '..', 'public')
+app = Flask(__name__, template_folder=template_dir, static_folder=static_dir, static_url_path='')
 
 # Register blueprints
 app.register_blueprint(agents_bp)
 app.register_blueprint(invites_bp)
+
+@app.route('/', methods=['GET'])
+def index():
+    """Serve the main dashboard page."""
+    return render_template('index.html')
 
 @app.route('/health', methods=['GET'])
 def health():
