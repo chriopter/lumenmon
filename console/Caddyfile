@@ -1,0 +1,24 @@
+# Caddy configuration for Lumenmon Console web interface
+# Serves static files from /app/web/public/ on port 80
+
+:80 {
+    # Root directory for static files
+    root * /app/web/public
+
+    # Enable file server
+    file_server
+
+    # Enable gzip compression
+    encode gzip
+
+    # Custom error pages (optional)
+    handle_errors {
+        respond "{http.error.status_code} {http.error.status_text}"
+    }
+
+    # Logging
+    log {
+        output stdout
+        format console
+    }
+}

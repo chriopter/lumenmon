@@ -9,6 +9,7 @@ services:
       - ./data/ssh:/data/ssh
     ports:
       - "2345:22"
+      - "8080:80"
     networks:
       - lumenmon
     environment:
