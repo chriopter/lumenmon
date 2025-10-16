@@ -117,17 +117,38 @@ def get_agent_tsv_files(agent_id):
     for file_path in sorted(glob.glob(tsv_pattern)):
         filename = os.path.basename(file_path)
 
-        # Read the last line
-        last_line = read_last_line(file_path)
-        timestamp, value = parse_tsv_line(last_line)
+        # Always include the file, even if reading fails
+        try:
+            # Read the last line
+            last_line = read_last_line(file_path)
+            timestamp, value = parse_tsv_line(last_line)
 
-        tsv_info = {
-            'filename': filename,
-            'path': file_path,
-            'lastLine': last_line if last_line else 'No data',
-            'timestamp': timestamp if timestamp else 0,
-            'value': round(value, 1) if value is not None else 'N/A'
-        }
+            # Count total lines in file
+            line_count = 0
+            try:
+                with open(file_path, 'r') as f:
+                    line_count = sum(1 for line in f if line.strip())
+            except:
+                line_count = 0
+
+            tsv_info = {
+                'filename': filename,
+                'path': file_path,
+                'lastLine': last_line if last_line else 'No data',
+                'timestamp': timestamp if timestamp else '-',
+                'value': round(value, 1) if value is not None else '-',
+                'line_count': line_count
+            }
+        except Exception as e:
+            # If there's any error, still show the file
+            tsv_info = {
+                'filename': filename,
+                'path': file_path,
+                'lastLine': f'Error reading file: {str(e)}',
+                'timestamp': '-',
+                'value': '-',
+                'line_count': 0
+            }
 
         tsv_files.append(tsv_info)
 
