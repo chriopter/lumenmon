@@ -28,7 +28,8 @@
             border-radius: 10px;
             backdrop-filter: blur(10px);
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-            max-width: 600px;
+            max-width: 900px;
+            width: 90%;
         }
 
         h1 {
@@ -101,6 +102,183 @@
             border-radius: 3px;
             font-family: 'Courier New', monospace;
         }
+
+        .agents-section {
+            margin-top: 2rem;
+            text-align: left;
+        }
+
+        .agents-header {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .agents-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .agents-table th {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 0.75rem;
+            text-align: left;
+            font-weight: bold;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .agents-table td {
+            padding: 0.75rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .agents-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .agents-table tr:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 0.2rem 0.6rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .status-online {
+            background: #4ade80;
+            color: #000;
+        }
+
+        .status-stale {
+            background: #fbbf24;
+            color: #000;
+        }
+
+        .status-offline {
+            background: #ef4444;
+            color: #fff;
+        }
+
+        .metric-bar {
+            background: rgba(255, 255, 255, 0.2);
+            height: 20px;
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .metric-fill {
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.3s ease;
+        }
+
+        .metric-cpu { background: #3b82f6; }
+        .metric-mem { background: #8b5cf6; }
+        .metric-disk { background: #ec4899; }
+
+        .metric-text {
+            position: absolute;
+            width: 100%;
+            text-align: center;
+            line-height: 20px;
+            font-size: 0.75rem;
+            color: #fff;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+        }
+
+        .no-agents {
+            text-align: center;
+            padding: 2rem;
+            opacity: 0.6;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            opacity: 0.6;
+        }
+
+        .btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: #fff;
+            padding: 0.6rem 1.2rem;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-primary {
+            background: #4ade80;
+            border-color: #4ade80;
+            color: #000;
+        }
+
+        .btn-primary:hover {
+            background: #22c55e;
+            border-color: #22c55e;
+        }
+
+        .invite-section {
+            margin-top: 2rem;
+            text-align: center;
+        }
+
+        .invite-box {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 1rem;
+            border-radius: 5px;
+            margin-top: 1rem;
+            border-left: 4px solid #8b5cf6;
+        }
+
+        .invite-url {
+            background: rgba(0, 0, 0, 0.4);
+            padding: 0.75rem;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            word-break: break-all;
+            margin: 0.5rem 0;
+            cursor: pointer;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .invite-url:hover {
+            background: rgba(0, 0, 0, 0.5);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .success-message {
+            color: #4ade80;
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .error-message {
+            color: #ef4444;
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+        }
     </style>
 </head>
 <body>
@@ -123,10 +301,176 @@
             </div>
         </div>
 
+        <!-- Invite Section -->
+        <div class="invite-section">
+            <button class="btn btn-primary" onclick="createInvite()">Create Agent Invite</button>
+            <div id="invite-container"></div>
+        </div>
+
+        <!-- Agents Section -->
+        <div class="agents-section">
+            <h2 class="agents-header">Connected Agents</h2>
+            <div id="agents-container">
+                <div class="loading">Loading agents...</div>
+            </div>
+        </div>
+
         <div class="footer">
             <p>Access the TUI dashboard: <span class="code">lumenmon</span></p>
             <p style="margin-top: 0.5rem;">Generate agent invite: <span class="code">lumenmon invite</span></p>
         </div>
     </div>
+
+    <script>
+        // Fetch and display agent data
+        async function fetchAgents() {
+            try {
+                const response = await fetch('/api/agents');
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                const data = await response.json();
+                displayAgents(data);
+            } catch (error) {
+                console.error('Error fetching agents:', error);
+                document.getElementById('agents-container').innerHTML =
+                    `<div class="no-agents">Unable to load agent data<br><small>${error.message}</small></div>`;
+            }
+        }
+
+        function displayAgents(data) {
+            const container = document.getElementById('agents-container');
+
+            if (!data.agents || data.agents.length === 0) {
+                container.innerHTML = `
+                    <div class="no-agents">
+                        No agents connected yet<br>
+                        <small>Run <span class="code">lumenmon invite</span> to get started</small>
+                    </div>
+                `;
+                return;
+            }
+
+            // Build table
+            let html = `
+                <table class="agents-table">
+                    <thead>
+                        <tr>
+                            <th>Agent ID</th>
+                            <th>Status</th>
+                            <th>CPU</th>
+                            <th>Memory</th>
+                            <th>Disk</th>
+                            <th>Age</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            data.agents.forEach(agent => {
+                const statusClass = `status-${agent.status}`;
+                const statusText = agent.status.charAt(0).toUpperCase() + agent.status.slice(1);
+                const age = formatAge(agent.age);
+
+                html += `
+                    <tr>
+                        <td><code>${agent.id}</code></td>
+                        <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+                        <td>
+                            <div class="metric-bar">
+                                <div class="metric-fill metric-cpu" style="width: ${agent.cpu}%"></div>
+                                <div class="metric-text">${agent.cpu.toFixed(1)}%</div>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="metric-bar">
+                                <div class="metric-fill metric-mem" style="width: ${agent.memory}%"></div>
+                                <div class="metric-text">${agent.memory.toFixed(1)}%</div>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="metric-bar">
+                                <div class="metric-fill metric-disk" style="width: ${agent.disk}%"></div>
+                                <div class="metric-text">${agent.disk.toFixed(1)}%</div>
+                            </div>
+                        </td>
+                        <td>${age}</td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                    </tbody>
+                </table>
+            `;
+
+            container.innerHTML = html;
+        }
+
+        function formatAge(seconds) {
+            if (seconds < 60) return `${seconds}s`;
+            if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
+            if (seconds < 86400) return `${Math.floor(seconds / 3600)}h`;
+            return `${Math.floor(seconds / 86400)}d`;
+        }
+
+        // Initial fetch
+        fetchAgents();
+
+        // Auto-refresh every 3 seconds
+        setInterval(fetchAgents, 3000);
+
+        // Create invite
+        async function createInvite() {
+            const container = document.getElementById('invite-container');
+            container.innerHTML = '<div class="loading">Creating invite...</div>';
+
+            try {
+                const response = await fetch('/api/invites/create', {
+                    method: 'POST'
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+
+                if (data.success) {
+                    container.innerHTML = `
+                        <div class="invite-box">
+                            <p style="opacity: 0.8; margin-bottom: 0.5rem;">Click to copy invite URL:</p>
+                            <div class="invite-url" onclick="copyToClipboard('${data.invite_url}')" title="Click to copy">
+                                ${data.invite_url}
+                            </div>
+                            <p class="success-message">Invite created! Valid for 5 minutes.</p>
+                        </div>
+                    `;
+                } else {
+                    container.innerHTML = `<p class="error-message">Failed to create invite: ${data.error}</p>`;
+                }
+            } catch (error) {
+                console.error('Error creating invite:', error);
+                container.innerHTML = `<p class="error-message">Error: ${error.message}</p>`;
+            }
+        }
+
+        // Copy to clipboard
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                const container = document.getElementById('invite-container');
+                const successMsg = container.querySelector('.success-message');
+                if (successMsg) {
+                    successMsg.textContent = 'Copied to clipboard!';
+                    setTimeout(() => {
+                        successMsg.textContent = 'Invite created! Valid for 5 minutes.';
+                    }, 2000);
+                }
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+                alert('Failed to copy to clipboard');
+            });
+        }
+    </script>
 </body>
 </html>

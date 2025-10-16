@@ -1,0 +1,27 @@
+# Caddy configuration for Lumenmon Console web interface
+# Serves static files from /app/web/public/ and proxies API to Flask
+
+:80 {
+    # Proxy API requests to Flask
+    handle /api/* {
+        reverse_proxy localhost:5000
+    }
+
+    # Serve static files
+    handle {
+        root * /app/web/public
+        file_server
+        encode gzip
+    }
+
+    # Custom error pages
+    handle_errors {
+        respond "{http.error.status_code} {http.error.status_text}"
+    }
+
+    # Logging
+    log {
+        output stdout
+        format console
+    }
+}

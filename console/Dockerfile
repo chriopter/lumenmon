@@ -22,6 +22,13 @@ RUN curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | gpg --de
     && apt-get install -y caddy \
     && rm -rf /var/lib/apt/lists/*
 
+# Install Python and Flask
+RUN apt-get update && apt-get install -y \
+    python3 \
+    python3-pip \
+    && rm -rf /var/lib/apt/lists/* \
+    && pip3 install --no-cache-dir flask --break-system-packages
+
 # Create groups for agent and registration users
 RUN groupadd agents && \
     groupadd registration
@@ -49,11 +56,11 @@ COPY core/ ./core/
 COPY tui/ ./tui/
 COPY web/ ./web/
 
-# Copy Caddyfile
-COPY Caddyfile /etc/caddy/Caddyfile
+# Copy Caddyfile from web config
+COPY web/config/Caddyfile /etc/caddy/Caddyfile
 
 # Make scripts executable
-RUN chmod +x console.sh tui.sh core/*.sh core/*/*.sh tui/*/*.sh
+RUN chmod +x console.sh tui.sh core/*.sh core/*/*.sh tui/*/*.sh web/readers/*.py
 
 # Mount point for persistent data
 VOLUME /data
