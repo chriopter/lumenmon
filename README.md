@@ -28,6 +28,7 @@ curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/install.sh |
 
 ```bash
 lumenmon            # Open dashboard (or show status)
+lumenmon start      # Start console and/or agent
 lumenmon status     # Show system status (alias: s)
 lumenmon logs       # Stream container logs (alias: l)
 lumenmon invite     # Generate agent invite (alias: i)
