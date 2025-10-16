@@ -3,7 +3,11 @@ Detail view panel component with Chart.js line charts for CPU, memory, and disk 
 Reads agent data from table row data attributes. Functions: openDetailView(), closeDetailView(), renderCharts().
 -->
 <script>
+    let detailViewOpen = false;
+    let detailRefreshInterval = null;
+
     function openDetailView() {
+        detailViewOpen = true;
         const agent = getSelectedAgent();
         if (!agent) {
             console.error('No agent selected');
@@ -22,8 +26,14 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
             // Calculate averages
             const cpuValues = agent.cpuHistory && agent.cpuHistory.length > 0 ? agent.cpuHistory.map(h => h.value) : [];
             const memValues = agent.memHistory && agent.memHistory.length > 0 ? agent.memHistory.map(h => h.value) : [];
+            const diskValues = agent.diskHistory && agent.diskHistory.length > 0 ? agent.diskHistory.map(h => h.value) : [];
             const avgCpu = cpuValues.length > 0 ? (cpuValues.reduce((a, b) => a + b, 0) / cpuValues.length) : 0;
             const avgMem = memValues.length > 0 ? (memValues.reduce((a, b) => a + b, 0) / memValues.length) : 0;
+
+            // Generate sparklines (last 8 values)
+            const cpuSparkline = generateSparkline(cpuValues.slice(-8));
+            const memSparkline = generateSparkline(memValues.slice(-8));
+            const diskSparkline = generateSparkline(diskValues.slice(-8));
 
         panel.innerHTML = `
             <div class="detail-header">
@@ -36,16 +46,19 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
                         <div class="stat-line">
                             <span class="stat-label">CPU</span>
                             <span class="stat-value">${currentCpu.toFixed(1)}%</span>
+                            <span class="sparkline">${cpuSparkline}</span>
                             <span class="stat-extra">avg ${avgCpu.toFixed(1)}%</span>
                         </div>
                         <div class="stat-line">
                             <span class="stat-label">MEM</span>
                             <span class="stat-value">${currentMem.toFixed(1)}%</span>
+                            <span class="sparkline">${memSparkline}</span>
                             <span class="stat-extra">avg ${avgMem.toFixed(1)}%</span>
                         </div>
                         <div class="stat-line">
                             <span class="stat-label">DISK</span>
                             <span class="stat-value">${currentDisk.toFixed(1)}%</span>
+                            <span class="sparkline">${diskSparkline}</span>
                             <span class="stat-extra">free ${(100 - currentDisk).toFixed(1)}%</span>
                         </div>
                     </div>
@@ -84,13 +97,82 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
         `;
 
             renderCharts(agent);
+
+            // Start auto-refresh if not already running
+            if (!detailRefreshInterval) {
+                detailRefreshInterval = setInterval(() => {
+                    if (detailViewOpen) {
+                        refreshDetailView();
+                    }
+                }, 1000);
+            }
         } catch (error) {
             console.error('Error opening detail view:', error);
             addLog(`error opening detail: ${error.message}`, 'error');
         }
     }
 
+    function refreshDetailView() {
+        if (!detailViewOpen) return;
+
+        const agent = getSelectedAgent();
+        if (!agent) return;
+
+        try {
+            // Get current values from history
+            const currentCpu = agent.cpuHistory && agent.cpuHistory.length > 0 ? agent.cpuHistory[agent.cpuHistory.length - 1].value : 0;
+            const currentMem = agent.memHistory && agent.memHistory.length > 0 ? agent.memHistory[agent.memHistory.length - 1].value : 0;
+            const currentDisk = agent.diskHistory && agent.diskHistory.length > 0 ? agent.diskHistory[agent.diskHistory.length - 1].value : 0;
+
+            // Calculate averages
+            const cpuValues = agent.cpuHistory && agent.cpuHistory.length > 0 ? agent.cpuHistory.map(h => h.value) : [];
+            const memValues = agent.memHistory && agent.memHistory.length > 0 ? agent.memHistory.map(h => h.value) : [];
+            const avgCpu = cpuValues.length > 0 ? (cpuValues.reduce((a, b) => a + b, 0) / cpuValues.length) : 0;
+            const avgMem = memValues.length > 0 ? (memValues.reduce((a, b) => a + b, 0) / memValues.length) : 0;
+
+            // Generate sparklines
+            const cpuSparkline = generateSparkline(cpuValues.slice(-8));
+            const memSparkline = generateSparkline(memValues.slice(-8));
+            const diskValues = agent.diskHistory && agent.diskHistory.length > 0 ? agent.diskHistory.map(h => h.value) : [];
+            const diskSparkline = generateSparkline(diskValues.slice(-8));
+
+            // Update stat values only (not the whole panel to avoid re-rendering charts)
+            const statLines = document.querySelectorAll('.stat-line');
+            if (statLines.length >= 3) {
+                statLines[0].querySelector('.stat-value').textContent = `${currentCpu.toFixed(1)}%`;
+                statLines[0].querySelector('.sparkline').textContent = cpuSparkline;
+                statLines[0].querySelector('.stat-extra').textContent = `avg ${avgCpu.toFixed(1)}%`;
+
+                statLines[1].querySelector('.stat-value').textContent = `${currentMem.toFixed(1)}%`;
+                statLines[1].querySelector('.sparkline').textContent = memSparkline;
+                statLines[1].querySelector('.stat-extra').textContent = `avg ${avgMem.toFixed(1)}%`;
+
+                statLines[2].querySelector('.stat-value').textContent = `${currentDisk.toFixed(1)}%`;
+                statLines[2].querySelector('.sparkline').textContent = diskSparkline;
+                statLines[2].querySelector('.stat-extra').textContent = `free ${(100 - currentDisk).toFixed(1)}%`;
+            }
+
+            // Update header status
+            const detailStatus = document.querySelector('.detail-status');
+            if (detailStatus) {
+                detailStatus.textContent = `${agent.status} · ${agent.age}`;
+            }
+
+            // Update samples count
+            if (statLines.length >= 6) {
+                statLines[5].querySelector('.stat-value').textContent = agent.cpuHistory ? agent.cpuHistory.length : 0;
+            }
+        } catch (error) {
+            console.error('Error refreshing detail view:', error);
+        }
+    }
+
     function closeDetailView() {
+        detailViewOpen = false;
+        if (detailRefreshInterval) {
+            clearInterval(detailRefreshInterval);
+            detailRefreshInterval = null;
+        }
         const panel = document.getElementById('detail-panel');
         panel.classList.add('detail-panel-empty');
         panel.innerHTML = '<span class="detail-placeholder">← Select an agent and press <kbd>Enter</kbd></span>';
@@ -190,5 +272,20 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
                 }
             }
         });
+    }
+
+    function generateSparkline(values) {
+        if (!values || values.length === 0) return '';
+
+        const blocks = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'];
+        const minVal = Math.min(...values);
+        const maxVal = Math.max(...values);
+        const range = maxVal - minVal || 1;
+
+        return values.map(val => {
+            const normalized = (val - minVal) / range;
+            const index = Math.floor(normalized * (blocks.length - 1));
+            return blocks[index];
+        }).join('');
     }
 </script>
