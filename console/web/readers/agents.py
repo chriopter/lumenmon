@@ -2,7 +2,7 @@
 # Reads agent metrics from TSV files and provides agent data endpoints.
 # Mirrors tui/readers/agents.sh functionality for web interface.
 
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, render_template
 import os
 import glob
 import time
@@ -79,6 +79,36 @@ def parse_tsv_line(line):
         except (ValueError, IndexError):
             pass
     return None, None
+
+def generate_tui_sparkline(values):
+    """Generate TUI-style sparkline using Unicode block characters."""
+    if not values or len(values) == 0:
+        return ''
+
+    blocks = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█']
+
+    min_val = min(values)
+    max_val = max(values)
+    range_val = max_val - min_val if max_val - min_val > 0 else 1
+
+    sparkline = ''
+    for val in values:
+        normalized = (val - min_val) / range_val
+        index = int(normalized * (len(blocks) - 1))
+        sparkline += blocks[index]
+
+    return sparkline
+
+def format_age(seconds):
+    """Format age in seconds to human-readable string."""
+    if seconds < 60:
+        return f"{seconds}s"
+    elif seconds < 3600:
+        return f"{seconds // 60}m"
+    elif seconds < 86400:
+        return f"{seconds // 3600}h"
+    else:
+        return f"{seconds // 86400}d"
 
 def get_agent_metrics(agent_id):
     """Read all metrics for a specific agent."""
@@ -157,6 +187,12 @@ def get_agent_metrics(agent_id):
         else:
             metrics['status'] = 'offline'
 
+    # Add formatted fields for HTML templates
+    metrics['age_formatted'] = format_age(metrics['age'])
+    metrics['cpuSparkline'] = generate_tui_sparkline(metrics['cpuHistory'])
+    metrics['memSparkline'] = generate_tui_sparkline(metrics['memHistory'])
+    metrics['diskSparkline'] = generate_tui_sparkline(metrics['diskHistory'])
+
     return metrics
 
 @agents_bp.route('/api/agents', methods=['GET'])
@@ -183,3 +219,24 @@ def get_agents():
         'timestamp': int(time.time()),
         'count': len(agents)
     })
+
+@agents_bp.route('/api/agents/table', methods=['GET'])
+def get_agents_table():
+    """Get agents table as HTML."""
+    agents = []
+
+    # Find all agent directories
+    if os.path.exists(DATA_DIR):
+        agent_dirs = glob.glob(os.path.join(DATA_DIR, 'id_*'))
+
+        for agent_dir in agent_dirs:
+            if os.path.isdir(agent_dir):
+                agent_id = os.path.basename(agent_dir)
+                metrics = get_agent_metrics(agent_id)
+                agents.append(metrics)
+
+    # Sort by status (online first) then by ID
+    status_order = {'online': 0, 'stale': 1, 'offline': 2}
+    agents.sort(key=lambda x: (status_order.get(x['status'], 3), x['id']))
+
+    return render_template('table_rows.html', agents=agents)

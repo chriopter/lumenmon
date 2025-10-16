@@ -1,0 +1,51 @@
+<!-- Invite Component -->
+<div class="invite-inline">
+    <button onclick="createInvite()">invite</button>
+    <span id="invite-container-inline"></span>
+</div>
+
+<script>
+    async function createInvite() {
+        const container = document.getElementById('invite-container-inline');
+        container.innerHTML = '<span style="color: var(--foreground2);">...</span>';
+        addLog('creating invite...', 'info');
+
+        try {
+            const response = await fetch('/api/invites/create', { method: 'POST' });
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const data = await response.json();
+
+            if (data.success) {
+                container.innerHTML = `
+                    <span class="invite-url-inline" onclick="copyToClipboard('${data.invite_url}')" title="click to copy">
+                        ${data.invite_url}
+                    </span>
+                `;
+                addLog('invite created (valid 5 min)', 'success');
+            } else {
+                container.innerHTML = `<span style="color: var(--accent4);">error</span>`;
+                addLog(`invite creation failed: ${data.error}`, 'error');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            container.innerHTML = `<span style="color: var(--accent4);">error</span>`;
+            addLog(`invite creation error: ${error.message}`, 'error');
+        }
+    }
+
+    function copyToClipboard(text) {
+        navigator.clipboard.writeText(text).then(() => {
+            const container = document.getElementById('invite-container-inline');
+            const url = container.querySelector('.invite-url-inline');
+            if (url) {
+                const originalText = url.textContent;
+                url.textContent = 'copied!';
+                setTimeout(() => { url.textContent = originalText; }, 2000);
+            }
+            addLog('invite url copied to clipboard', 'info');
+        }).catch(err => {
+            console.error('Copy failed:', err);
+            addLog('clipboard copy failed', 'error');
+        });
+    }
+</script>

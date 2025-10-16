@@ -1,0 +1,129 @@
+<!-- Detail View Component -->
+<script>
+    function openDetailView() {
+        const agent = getSelectedAgent();
+        if (!agent) return;
+
+        addLog(`opening detail view for ${agent.id}`, 'info');
+
+        const overlay = document.createElement('div');
+        overlay.id = 'detail-overlay';
+        overlay.innerHTML = `
+            <div class="detail-container">
+                <div class="detail-header">
+                    <h2>${agent.id}</h2>
+                    <span class="detail-status">
+                        <span is-="badge" class="badge-${agent.status}">${agent.status}</span>
+                    </span>
+                </div>
+                <div class="detail-content">
+                    <div class="chart-section">
+                        <h3>cpu</h3>
+                        <canvas id="cpu-chart"></canvas>
+                    </div>
+                    <div class="chart-section">
+                        <h3>memory</h3>
+                        <canvas id="mem-chart"></canvas>
+                    </div>
+                    <div class="chart-section">
+                        <h3>disk</h3>
+                        <canvas id="disk-chart"></canvas>
+                    </div>
+                </div>
+                <div class="detail-footer">
+                    press <kbd>esc</kbd> to close
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(overlay);
+
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                closeDetailView();
+            }
+        });
+
+        renderCharts(agent);
+    }
+
+    function closeDetailView() {
+        const overlay = document.getElementById('detail-overlay');
+        if (overlay) {
+            overlay.remove();
+        }
+    }
+
+    function renderCharts(agent) {
+        if (agent.cpuHistory && agent.cpuHistory.length > 0) {
+            renderChart('cpu-chart', 'CPU Usage', agent.cpuHistory, '#a6e3a1', '%');
+        }
+        if (agent.memHistory && agent.memHistory.length > 0) {
+            renderChart('mem-chart', 'Memory Usage', agent.memHistory, '#89b4fa', '%');
+        }
+        if (agent.diskHistory && agent.diskHistory.length > 0) {
+            renderChart('disk-chart', 'Disk Usage', agent.diskHistory, '#f9e2af', '%');
+        }
+    }
+
+    function renderChart(canvasId, label, data, color, suffix = '') {
+        const ctx = document.getElementById(canvasId);
+        if (!ctx) return;
+
+        const labels = data.map((_, i) => `-${data.length - i - 1}`);
+
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: label,
+                    data: data,
+                    borderColor: color,
+                    backgroundColor: color + '20',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: true,
+                    pointRadius: 3,
+                    pointHoverRadius: 5
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        titleColor: '#cdd6f4',
+                        bodyColor: '#cdd6f4',
+                        borderColor: '#45475a',
+                        borderWidth: 1,
+                        callbacks: {
+                            label: function(context) {
+                                return context.parsed.y.toFixed(1) + suffix;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            color: '#6c7086',
+                            callback: function(value) {
+                                return value + suffix;
+                            }
+                        },
+                        grid: { color: '#313244' }
+                    },
+                    x: {
+                        ticks: { color: '#6c7086' },
+                        grid: { color: '#313244' }
+                    }
+                }
+            }
+        });
+    }
+</script>

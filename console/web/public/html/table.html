@@ -1,0 +1,115 @@
+<!-- Table Component -->
+<div class="agents-section">
+    <table id="agents-table">
+        <thead>
+            <tr>
+                <td>id</td>
+                <td>status</td>
+                <td>cpu</td>
+                <td>mem</td>
+                <td>disk</td>
+                <td>age</td>
+            </tr>
+        </thead>
+        <tbody id="agents-tbody">
+            <tr>
+                <td colspan="6" class="no-data">loading...</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<script>
+    let selectedRow = 0;
+    let previousAgentCount = 0;
+
+    async function fetchAgents() {
+        try {
+            const response = await fetch('/api/agents/table');
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const html = await response.text();
+
+            const tbody = document.getElementById('agents-tbody');
+            tbody.innerHTML = html;
+
+            attachRowHandlers();
+
+            const rows = tbody.querySelectorAll('.agent-row');
+            const currentCount = rows.length;
+            if (previousAgentCount !== 0 && currentCount > previousAgentCount) {
+                addLog(`agent connected (total: ${currentCount})`, 'success');
+            } else if (previousAgentCount !== 0 && currentCount < previousAgentCount) {
+                addLog(`agent disconnected (total: ${currentCount})`, 'error');
+            }
+            previousAgentCount = currentCount;
+
+        } catch (error) {
+            console.error('Error:', error);
+            const tbody = document.getElementById('agents-tbody');
+            tbody.innerHTML = `<tr><td colspan="6" class="no-data">error: ${error.message}</td></tr>`;
+            addLog(`error fetching agents: ${error.message}`, 'error');
+        }
+    }
+
+    function attachRowHandlers() {
+        const rows = document.querySelectorAll('.agent-row');
+        rows.forEach(row => {
+            row.addEventListener('click', () => {
+                const index = parseInt(row.dataset.index);
+                selectRow(index);
+            });
+        });
+
+        if (rows.length > 0 && selectedRow === 0) {
+            rows[0].classList.add('selected');
+        }
+    }
+
+    function selectRow(index) {
+        const rows = document.querySelectorAll('.agent-row');
+        if (index < 0 || index >= rows.length) return;
+
+        selectedRow = index;
+
+        rows.forEach((row, i) => {
+            if (i === index) {
+                row.classList.add('selected');
+            } else {
+                row.classList.remove('selected');
+            }
+        });
+    }
+
+    function moveSelection(direction) {
+        const rows = document.querySelectorAll('.agent-row');
+        if (rows.length === 0) return;
+
+        const newIndex = selectedRow + direction;
+        if (newIndex >= 0 && newIndex < rows.length) {
+            selectRow(newIndex);
+            const row = rows[newIndex];
+            if (row) {
+                row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }
+    }
+
+    function getSelectedAgent() {
+        const row = document.querySelector(`.agent-row[data-index="${selectedRow}"]`);
+        if (!row) return null;
+
+        return {
+            id: row.dataset.agentId,
+            status: row.dataset.status,
+            cpuHistory: row.dataset.cpuHistory ? row.dataset.cpuHistory.split(',').map(Number) : [],
+            memHistory: row.dataset.memHistory ? row.dataset.memHistory.split(',').map(Number) : [],
+            diskHistory: row.dataset.diskHistory ? row.dataset.diskHistory.split(',').map(Number) : []
+        };
+    }
+
+    // Initialize
+    addLog('console started', 'success');
+    addLog('loading agents...', 'info');
+    fetchAgents();
+    setInterval(fetchAgents, 3000);
+</script>

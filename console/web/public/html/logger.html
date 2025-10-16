@@ -1,0 +1,28 @@
+<!-- Logger Component -->
+<div class="log-box" id="log-box">
+    <div class="logo-ascii">  ██╗     ██╗   ██╗███╗   ███╗███████╗███╗   ██╗███╗   ███╗ ██████╗ ███╗   ██╗
+  ██║     ██║   ██║████╗ ████║██╔════╝████╗  ██║████╗ ████║██╔═══██╗████╗  ██║
+  ██║     ██║   ██║██╔████╔██║█████╗  ██╔██╗ ██║██╔████╔██║██║   ██║██╔██╗ ██║
+  ██║     ██║   ██║██║╚██╔╝██║██╔══╝  ██║╚██╗██║██║╚██╔╝██║██║   ██║██║╚██╗██║
+  ███████╗╚██████╔╝██║ ╚═╝ ██║███████╗██║ ╚████║██║ ╚═╝ ██║╚██████╔╝██║ ╚████║
+  ╚══════╝ ╚═════╝ ╚═╝     ╚═╝╚══════╝╚═╝  ╚═══╝╚═╝     ╚═╝ ╚═════╝ ╚═╝  ╚═══╝</div>
+    <div id="log-entries"></div>
+</div>
+
+<script>
+    function addLog(message, level = 'info') {
+        const logEntries = document.getElementById('log-entries');
+        const timestamp = new Date().toLocaleTimeString();
+        const entry = document.createElement('div');
+        entry.className = 'log-entry';
+        entry.innerHTML = `<span class="log-timestamp">[${timestamp}]</span><span class="log-level-${level}">${message}</span>`;
+        logEntries.appendChild(entry);
+
+        const logBox = document.getElementById('log-box');
+        logBox.scrollTop = logBox.scrollHeight;
+
+        while (logEntries.children.length > 50) {
+            logEntries.removeChild(logEntries.firstChild);
+        }
+    }
+</script>

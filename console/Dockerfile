@@ -15,7 +15,6 @@ RUN apt-get update && apt-get install -y \
     gnupg \
     python3 \
     python3-pip \
-    npm \
     && curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg \
     && curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | tee /etc/apt/sources.list.d/caddy-stable.list \
     && apt-get update \
@@ -44,21 +43,11 @@ RUN mkdir -p /var/run/sshd && \
 RUN mkdir -p /data/agents && \
     chmod -R 755 /data
 
-# Copy ultra-KISS console files
+# Copy ultra-KISS console files (includes static CSS/JS from repo)
 WORKDIR /app
 COPY console.sh .
 COPY core/ ./core/
 COPY web/ ./web/
-
-# Download WebTUI CSS and Catppuccin theme via npm (latest versions)
-RUN cd /tmp && \
-    npm install @webtui/css@latest @webtui/theme-catppuccin@latest && \
-    mkdir -p /app/web/public/css && \
-    cp node_modules/@webtui/css/dist/full.css /app/web/public/css/webtui.css && \
-    ls -la node_modules/@webtui/theme-catppuccin/dist/ && \
-    find node_modules/@webtui/theme-catppuccin -type f -name "*.css" && \
-    cp node_modules/@webtui/theme-catppuccin/dist/*.css /app/web/public/css/catppuccin.css && \
-    rm -rf /tmp/node_modules
 
 # Copy Caddyfile from web config
 COPY web/config/Caddyfile /etc/caddy/Caddyfile
