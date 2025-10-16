@@ -14,7 +14,7 @@ source core/ingress/ssh_daemon.sh   # Start SSH daemon
 
 # Start Flask API server
 echo "[console] Starting Flask API server..."
-cd /app/web/readers && python3 app.py 2>&1 | sed 's/^/[flask] /' &
+cd /app/web/app && python3 app.py 2>&1 | sed 's/^/[flask] /' &
 sleep 1
 
 # Start Caddy web server

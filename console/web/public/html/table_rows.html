@@ -1,3 +1,7 @@
+{#
+Jinja2 template for agent table rows with server-rendered sparklines and formatted data.
+Rendered by /api/agents/table endpoint. Returns HTML fragment fetched every 3 seconds by table.html.
+#}
 {% if agents %}
   {% for agent in agents %}
 <tr class="agent-row {% if loop.index0 == 0 %}selected{% endif %}" data-index="{{ loop.index0 }}" data-agent-id="{{ agent.id }}" data-status="{{ agent.status }}" data-cpu-history="{{ agent.cpuHistory|join(',') }}" data-mem-history="{{ agent.memHistory|join(',') }}" data-disk-history="{{ agent.diskHistory|join(',') }}">
