@@ -104,6 +104,35 @@ def get_agent_metrics(agent_id):
 
     return metrics
 
+def get_agent_tsv_files(agent_id):
+    """Get all TSV files for an agent with their latest data line."""
+    agent_dir = os.path.join(DATA_DIR, agent_id)
+    tsv_files = []
+
+    if not os.path.exists(agent_dir):
+        return tsv_files
+
+    # Get all .tsv files in the agent directory
+    tsv_pattern = os.path.join(agent_dir, '*.tsv')
+    for file_path in sorted(glob.glob(tsv_pattern)):
+        filename = os.path.basename(file_path)
+
+        # Read the last line
+        last_line = read_last_line(file_path)
+        timestamp, value = parse_tsv_line(last_line)
+
+        tsv_info = {
+            'filename': filename,
+            'path': file_path,
+            'lastLine': last_line if last_line else 'No data',
+            'timestamp': timestamp if timestamp else 0,
+            'value': round(value, 1) if value is not None else 'N/A'
+        }
+
+        tsv_files.append(tsv_info)
+
+    return tsv_files
+
 def get_all_agents():
     """Get metrics for all agents, sorted by status."""
     agents = []
