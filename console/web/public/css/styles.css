@@ -95,21 +95,30 @@ body {
     color: var(--foreground2);
 }
 
+#agents-table thead td:first-child {
+    padding-left: 1.5rem;
+}
+
 #agents-table tbody td {
     padding: 0.5rem;
 }
 
 #agents-table .agent-row {
     cursor: pointer;
-    transition: background-color 0.1s;
 }
 
-#agents-table .agent-row.selected {
-    background: var(--background2);
+/* TUI-style arrow cursor indicator */
+#agents-table .agent-row td:first-child {
+    position: relative;
+    padding-left: 1.5rem;
 }
 
-#agents-table .agent-row:hover {
-    background: var(--background1);
+#agents-table .agent-row.selected td:first-child::before {
+    content: '>';
+    position: absolute;
+    left: 0.25rem;
+    color: var(--accent1);
+    font-weight: bold;
 }
 
 /* Status indicator dot */
