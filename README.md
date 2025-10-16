@@ -54,6 +54,23 @@ You can invite clients with a magic link (which is just a per-client ssh account
 - **Console** creates isolated Linux users per agent and appends incoming data to `/data/agents/<id>/*.tsv`.
 - **Security** is SSH-based and push-only. Invites are temporary SSH accounts (password + host fingerprint), exchanged for key-based access on enrollment. Agent and Console run as Docker containers.
 
+### Invite Process
+
+Console creates temp user `reg_<timestamp>` with 5-min expiry. Magic link: `ssh://user:pass@host:2345/#ed25519_hostkey` (host key prevents MITM). Agent sends public key via password auth, console creates permanent user `id_<fingerprint>` with key-based access. Agent connects via persistent SSH control socket, all collectors multiplex through it.
+
+### Collector Execution
+
+Collectors are bash scripts (`collectors/*/*.sh`) running `while true; do sleep $RHYTHM; <read /proc>; done` loops. Each collector uses a timing variable set by agent:
+
+| Rhythm | Interval | Purpose |
+|--------|----------|---------|
+| PULSE | 1s | Fast-changing metrics (CPU) |
+| BREATHE | 60s | Moderate metrics (memory) |
+| CYCLE | 300s | Slow-changing (disk usage) |
+| REPORT | 3600s | CPU-heavy operations (update status) |
+
+Each sends 2-line SSH: `generic_cpu.tsv\n1729123456 1 23.4`. Console ForceCommand appends to `/data/agents/$USER/$filename`, rotates at 3600 lines. WebTUI reads TSV directly.
+
 ## Commands
 
 ```bash

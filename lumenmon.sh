@@ -8,10 +8,17 @@ cd "$DIR"
 is_running() { docker ps | grep -q "lumenmon-$1"; }
 
 case "$1" in
-    # Default: open TUI or show status
+    # Default: open WebTUI or show status
     "")
         if is_running console; then
-            docker exec -it lumenmon-console /app/tui.sh
+            echo "Opening WebTUI at http://localhost:8080"
+            if command -v xdg-open > /dev/null; then
+                xdg-open http://localhost:8080
+            elif command -v open > /dev/null; then
+                open http://localhost:8080
+            else
+                echo "Web interface available at: http://localhost:8080"
+            fi
         else
             "$0" status
         fi
@@ -117,7 +124,7 @@ case "$1" in
         ;;
 
     help|h)
-        echo "lumenmon           - Open TUI (or status if not running)"
+        echo "lumenmon           - Open WebTUI (or status if not running)"
         echo "lumenmon status    - Show system status"
         echo "lumenmon logs     - View logs"
         echo "lumenmon invite   - Generate agent invite"

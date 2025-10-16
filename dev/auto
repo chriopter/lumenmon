@@ -1,43 +1,50 @@
 #!/bin/bash
-# Development auto-setup that resets containers, registers agent, and launches TUI dashboard.
-# Performs full reset, creates invite, registers agent with console, and opens interactive TUI.
+# Development auto-setup that rebuilds containers, registers agent if needed, and launches TUI dashboard.
+# Preserves existing data - use ./dev/reset for full wipe.
 
-# Step 1: Reset everything (same as dev/reset)
+# Step 1: Stop containers
 echo "🔄 Stopping containers..."
 docker stop lumenmon-console lumenmon-agent 2>/dev/null || true
 docker rm lumenmon-console lumenmon-agent 2>/dev/null || true
 
-echo "🧹 Cleaning data..."
-rm -rf agent/data/debug/* agent/data/ssh/* 2>/dev/null || true
-rm -rf console/data/agents/id_* console/data/ssh/ssh_host* console/data/*.log 2>/dev/null || true
-mkdir -p agent/data/{debug,ssh} console/data/{agents,ssh}
-
 # Step 2: Start containers
 echo "🚀 Starting fresh..."
 echo "CONSOLE_HOST=localhost" > console/.env
-docker compose -f console/docker-compose.yml up -d --build
-CONSOLE_HOST=localhost CONSOLE_PORT=2345 docker compose -f agent/docker-compose.yml up -d --build
+DOCKER_BUILDKIT=1 docker compose -f console/docker-compose.yml up -d --build
+CONSOLE_HOST=localhost CONSOLE_PORT=2345 DOCKER_BUILDKIT=1 docker compose -f agent/docker-compose.yml up -d --build
 
 # Step 3: Wait for console to be ready
 echo "⏳ Waiting for console to be ready..."
 sleep 3
 
-# Step 4: Create invite and register agent
-echo "🔑 Creating invite..."
-INVITE=$(docker exec lumenmon-console /app/core/enrollment/invite_create.sh 2>/dev/null | grep "^ssh://")
-if [ -z "$INVITE" ]; then
-    echo "❌ Failed to create invite"
-    exit 1
+# Step 4: Register agent if needed (only if no SSH keys exist)
+if [ ! -f agent/data/ssh/id_ed25519 ]; then
+    echo "🔑 Creating invite..."
+    INVITE=$(docker exec lumenmon-console /app/core/enrollment/invite_create.sh 2>/dev/null | grep "^ssh://")
+    if [ -z "$INVITE" ]; then
+        echo "❌ Failed to create invite"
+        exit 1
+    fi
+    echo "   Invite: $INVITE"
+
+    echo "📝 Registering agent..."
+    docker exec lumenmon-agent /app/core/setup/register.sh "$INVITE"
+
+    # Give agent a moment to connect
+    echo "⏳ Waiting for agent to connect..."
+    sleep 2
+else
+    echo "✓ Agent already registered, skipping enrollment"
+    sleep 2
 fi
-echo "   Invite: $INVITE"
 
-echo "📝 Registering agent..."
-docker exec lumenmon-agent /app/core/setup/register.sh "$INVITE"
-
-# Give agent a moment to connect
-echo "⏳ Waiting for agent to connect..."
-sleep 2
-
-# Step 5: Launch TUI
-echo "📊 Launching TUI..."
-docker exec -it lumenmon-console /app/tui.sh
+# Step 5: Launch WebTUI
+echo "📊 Opening WebTUI..."
+echo "   URL: http://localhost:8080"
+if command -v xdg-open > /dev/null; then
+    xdg-open http://localhost:8080
+elif command -v open > /dev/null; then
+    open http://localhost:8080
+else
+    echo "   Open browser manually to view dashboard"
+fi

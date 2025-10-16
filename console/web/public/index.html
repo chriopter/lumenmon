@@ -6,253 +6,488 @@
     <title>Lumenmon Console</title>
     <link rel="stylesheet" href="/css/webtui.css">
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
             margin: 0;
-            padding: 1rem;
-            font-family: 'Courier New', 'Consolas', monospace;
-            background: var(--base, #1e1e2e);
-            color: var(--text, #cdd6f4);
+            padding: 0;
+            font-family: 'Courier New', 'Consolas', 'Monaco', monospace;
+            background: #0a0a0a;
+            color: #e0e0e0;
             min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Startup Animation */
+        #startup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.3s;
+        }
+
+        #boot-screen {
+            max-width: 900px;
+            width: 90%;
+        }
+
+        #logo-display {
+            color: #00ff00;
+            font-size: 10px;
+            line-height: 1.2;
+            margin-bottom: 2rem;
+            text-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+        }
+
+        #boot-messages {
+            font-size: 14px;
+            line-height: 1.8;
+        }
+
+        #boot-prompt {
+            margin-top: 2rem;
+            color: #666;
+            font-size: 12px;
+            animation: blink 1.5s infinite;
+        }
+
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+
+        /* Main Interface */
+        .hidden {
+            display: none !important;
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
+            padding: 1rem;
         }
 
+        /* Terminal-style header */
         header {
-            text-align: center;
-            margin-bottom: 2rem;
+            border: 2px solid #333;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            background: #0f0f0f;
+            position: relative;
+        }
+
+        header::before {
+            content: '┌';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+        }
+
+        header::after {
+            content: '┐';
+            position: absolute;
+            top: -2px;
+            right: -2px;
         }
 
         h1 {
-            color: var(--mauve, #cba6f7);
-            font-size: 2rem;
-            margin: 0.5rem 0;
+            font-size: 1.8rem;
+            color: #0f0;
+            text-align: center;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
         }
 
         .subtitle {
-            color: var(--subtext0, #a6adc8);
+            text-align: center;
+            color: #888;
             font-size: 0.9rem;
+            margin-top: 0.5rem;
         }
 
+        /* Keyboard shortcuts bar */
+        .shortcuts-bar {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            padding: 0.5rem 1rem;
+            margin-bottom: 1rem;
+            font-size: 0.85rem;
+            display: flex;
+            gap: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .shortcut-item {
+            color: #888;
+        }
+
+        .shortcut-item kbd {
+            background: #333;
+            border: 1px solid #555;
+            padding: 0.1rem 0.4rem;
+            border-radius: 2px;
+            color: #0f0;
+            font-family: inherit;
+            font-size: 0.9em;
+        }
+
+        /* Sections */
         section {
-            margin-bottom: 1.5rem;
+            border: 1px solid #333;
+            margin-bottom: 1rem;
+            background: #0f0f0f;
         }
 
         h2 {
-            color: var(--blue, #89b4fa);
-            font-size: 1.2rem;
-            margin-bottom: 0.75rem;
-            border-bottom: 1px solid var(--surface0, #313244);
-            padding-bottom: 0.25rem;
+            background: #1a1a1a;
+            padding: 0.5rem 1rem;
+            border-bottom: 1px solid #333;
+            font-size: 1rem;
+            color: #0ff;
+            font-weight: normal;
         }
 
+        .section-content {
+            padding: 1rem;
+        }
+
+        /* Status grid */
         .status-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 0.5rem;
-            margin-bottom: 1rem;
         }
 
         .status-item {
-            padding: 0.5rem;
-            background: var(--surface0, #313244);
-            border-left: 3px solid var(--green, #a6e3a1);
-            border-radius: 3px;
+            border: 1px solid #333;
+            padding: 0.75rem;
+            background: #1a1a1a;
         }
 
         .status-label {
-            color: var(--subtext1, #bac2de);
+            color: #888;
             font-size: 0.85rem;
+            margin-bottom: 0.25rem;
         }
 
         .status-value {
-            color: var(--text, #cdd6f4);
+            color: #0f0;
             font-weight: bold;
         }
 
+        /* Buttons */
         .btn {
-            background: var(--blue, #89b4fa);
-            color: var(--crust, #11111b);
-            border: none;
-            padding: 0.6rem 1.2rem;
-            font-family: 'Courier New', monospace;
+            background: #1a1a1a;
+            color: #0ff;
+            border: 1px solid #0ff;
+            padding: 0.5rem 1rem;
+            font-family: inherit;
             font-size: 0.9rem;
             cursor: pointer;
-            border-radius: 3px;
             transition: all 0.2s;
         }
 
         .btn:hover {
-            background: var(--sapphire, #74c7ec);
-            transform: translateY(-1px);
+            background: #0ff;
+            color: #000;
         }
 
         .btn:active {
-            transform: translateY(0);
+            transform: scale(0.98);
         }
 
+        /* Invite box */
         .invite-box {
-            background: var(--surface0, #313244);
+            border: 1px solid #333;
+            background: #1a1a1a;
             padding: 1rem;
-            border-radius: 3px;
             margin-top: 1rem;
-            border-left: 3px solid var(--mauve, #cba6f7);
         }
 
         .invite-url {
-            background: var(--mantle, #181825);
+            background: #0a0a0a;
+            border: 1px solid #333;
             padding: 0.75rem;
-            border-radius: 3px;
             font-size: 0.85rem;
             word-break: break-all;
             margin: 0.5rem 0;
             cursor: pointer;
-            border: 1px solid var(--surface1, #45475a);
+            color: #0ff;
         }
 
         .invite-url:hover {
-            background: var(--crust, #11111b);
-            border-color: var(--mauve, #cba6f7);
+            border-color: #0ff;
+            background: #1a1a1a;
         }
 
+        /* Messages */
         .message {
             margin-top: 0.5rem;
             font-size: 0.9rem;
         }
 
-        .success { color: var(--green, #a6e3a1); }
-        .error { color: var(--red, #f38ba8); }
-        .loading { color: var(--yellow, #f9e2af); }
+        .success { color: #0f0; }
+        .error { color: #f00; }
+        .loading { color: #ff0; }
 
+        /* Table */
         table {
             width: 100%;
             border-collapse: collapse;
-            background: var(--surface0, #313244);
-            border-radius: 3px;
-            overflow: hidden;
+            font-size: 0.9rem;
         }
 
         thead {
-            background: var(--surface1, #45475a);
+            background: #1a1a1a;
+            border-bottom: 1px solid #333;
         }
 
         th {
             padding: 0.75rem;
             text-align: left;
-            font-weight: bold;
-            color: var(--text, #cdd6f4);
-            border-bottom: 2px solid var(--surface2, #585b70);
+            font-weight: normal;
+            color: #0ff;
+            border-right: 1px solid #222;
+        }
+
+        th:last-child {
+            border-right: none;
         }
 
         td {
             padding: 0.75rem;
-            border-bottom: 1px solid var(--surface1, #45475a);
+            border-bottom: 1px solid #222;
+            border-right: 1px solid #222;
+        }
+
+        td:last-child {
+            border-right: none;
         }
 
         tbody tr:hover {
-            background: var(--surface1, #45475a);
+            background: #1a1a1a;
         }
 
-        tbody tr:last-child td {
-            border-bottom: none;
-        }
-
+        /* Badges */
         .badge {
             display: inline-block;
-            padding: 0.2rem 0.6rem;
-            border-radius: 3px;
-            font-size: 0.8rem;
-            font-weight: bold;
+            padding: 0.2rem 0.5rem;
+            font-size: 0.75rem;
+            border: 1px solid;
         }
 
         .badge-online {
-            background: var(--green, #a6e3a1);
-            color: var(--crust, #11111b);
+            color: #0f0;
+            border-color: #0f0;
+            background: rgba(0, 255, 0, 0.1);
         }
 
         .badge-stale {
-            background: var(--yellow, #f9e2af);
-            color: var(--crust, #11111b);
+            color: #ff0;
+            border-color: #ff0;
+            background: rgba(255, 255, 0, 0.1);
         }
 
         .badge-offline {
-            background: var(--red, #f38ba8);
-            color: var(--crust, #11111b);
+            color: #f00;
+            border-color: #f00;
+            background: rgba(255, 0, 0, 0.1);
         }
 
+        /* Metrics */
         .metric {
             font-family: 'Courier New', monospace;
-            color: var(--text, #cdd6f4);
-        }
-
-        .no-data {
-            text-align: center;
-            padding: 2rem;
-            color: var(--subtext0, #a6adc8);
+            color: #0f0;
         }
 
         code {
-            background: var(--mantle, #181825);
-            padding: 0.2rem 0.4rem;
-            border-radius: 2px;
-            color: var(--rosewater, #f5e0dc);
+            background: #1a1a1a;
+            border: 1px solid #333;
+            padding: 0.1rem 0.4rem;
+            color: #0ff;
+            font-family: inherit;
         }
 
+        /* No data */
+        .no-data {
+            text-align: center;
+            padding: 2rem;
+            color: #666;
+            border: 1px dashed #333;
+        }
+
+        /* Footer */
         footer {
             margin-top: 2rem;
             text-align: center;
-            color: var(--subtext0, #a6adc8);
+            color: #666;
             font-size: 0.85rem;
-            padding: 1rem 0;
-            border-top: 1px solid var(--surface0, #313244);
+            padding: 1rem;
+            border-top: 1px solid #333;
+        }
+
+        /* Help Dialog */
+        #help-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 9998;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 1;
+            transition: opacity 0.2s;
+        }
+
+        .help-dialog {
+            background: #0a0a0a;
+            border: 2px solid #0ff;
+            padding: 2rem;
+            max-width: 600px;
+            width: 90%;
+        }
+
+        .help-dialog h3 {
+            color: #0ff;
+            font-size: 1.2rem;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+
+        .shortcuts-list {
+            display: grid;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .shortcut {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem;
+            background: #1a1a1a;
+            border: 1px solid #333;
+        }
+
+        .shortcut kbd {
+            background: #333;
+            padding: 0.2rem 0.6rem;
+            border: 1px solid #555;
+            color: #0f0;
+        }
+
+        .help-footer {
+            text-align: center;
+            color: #666;
+            font-size: 0.85rem;
+        }
+
+        /* Toast notifications */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: #1a1a1a;
+            border: 1px solid #0ff;
+            padding: 1rem 1.5rem;
+            z-index: 9997;
+            opacity: 1;
+            transition: opacity 0.3s;
+            max-width: 400px;
+        }
+
+        .toast-success {
+            border-color: #0f0;
+            color: #0f0;
+        }
+
+        .toast-error {
+            border-color: #f00;
+            color: #f00;
+        }
+
+        .toast-info {
+            border-color: #0ff;
+            color: #0ff;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>┌─ Lumenmon Console ─┐</h1>
-            <p class="subtitle">Lightweight System Monitoring</p>
-        </header>
+    <div id="main-interface" class="hidden">
+        <div class="container">
+            <header>
+                <h1>LUMENMON CONSOLE</h1>
+                <p class="subtitle">Lightweight System Monitoring // v0.1</p>
+            </header>
 
-        <section>
-            <h2>│ System Status</h2>
-            <div class="status-grid">
-                <div class="status-item">
-                    <div class="status-label">Console</div>
-                    <div class="status-value">● Online</div>
-                </div>
-                <div class="status-item">
-                    <div class="status-label">SSH Server</div>
-                    <div class="status-value">Port 2345</div>
-                </div>
-                <div class="status-item">
-                    <div class="status-label">Web Server</div>
-                    <div class="status-value">Caddy</div>
-                </div>
+            <div class="shortcuts-bar">
+                <span class="shortcut-item"><kbd>i</kbd> Create Invite</span>
+                <span class="shortcut-item"><kbd>r</kbd> Refresh</span>
+                <span class="shortcut-item"><kbd>h</kbd> Help</span>
+                <span class="shortcut-item"><kbd>ESC</kbd> Close</span>
             </div>
-        </section>
 
-        <section>
-            <h2>│ Agent Enrollment</h2>
-            <button class="btn" onclick="createInvite()">Create Agent Invite</button>
-            <div id="invite-container"></div>
-        </section>
+            <section>
+                <h2>│ SYSTEM STATUS</h2>
+                <div class="section-content">
+                    <div class="status-grid">
+                        <div class="status-item">
+                            <div class="status-label">CONSOLE</div>
+                            <div class="status-value">● ONLINE</div>
+                        </div>
+                        <div class="status-item">
+                            <div class="status-label">SSH SERVER</div>
+                            <div class="status-value">PORT 2345</div>
+                        </div>
+                        <div class="status-item">
+                            <div class="status-label">WEB SERVER</div>
+                            <div class="status-value">CADDY</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
 
-        <section>
-            <h2>│ Connected Agents</h2>
-            <div id="agents-container">
-                <div class="no-data loading">Loading agents...</div>
-            </div>
-        </section>
+            <section>
+                <h2>│ AGENT ENROLLMENT</h2>
+                <div class="section-content">
+                    <button class="btn" onclick="createInvite()">[ CREATE INVITE ]</button>
+                    <div id="invite-container"></div>
+                </div>
+            </section>
 
-        <footer>
-            <p>└─ Access TUI: <code>lumenmon</code> | Generate invite: <code>lumenmon invite</code> ─┘</p>
-        </footer>
+            <section>
+                <h2>│ CONNECTED AGENTS</h2>
+                <div class="section-content">
+                    <div id="agents-container">
+                        <div class="no-data loading">LOADING AGENTS...</div>
+                    </div>
+                </div>
+            </section>
+
+            <footer>
+                └─ TUI: <code>lumenmon</code> │ Invite: <code>lumenmon invite</code> │ Press <code>h</code> for help ─┘
+            </footer>
+        </div>
     </div>
 
+    <!-- External JS -->
+    <script src="/js/startup.js"></script>
+    <script src="/js/keyboard.js"></script>
+
+    <!-- Main application logic -->
     <script>
         // Fetch and display agent data
         async function fetchAgents() {
@@ -266,7 +501,7 @@
             } catch (error) {
                 console.error('Error fetching agents:', error);
                 document.getElementById('agents-container').innerHTML =
-                    `<div class="no-data error">Unable to load agent data: ${error.message}</div>`;
+                    `<div class="no-data error">ERROR: ${error.message}</div>`;
             }
         }
 
@@ -276,7 +511,7 @@
             if (!data.agents || data.agents.length === 0) {
                 container.innerHTML = `
                     <div class="no-data">
-                        No agents connected yet<br>
+                        NO AGENTS CONNECTED<br>
                         <small>Run <code>lumenmon invite</code> to get started</small>
                     </div>
                 `;
@@ -288,12 +523,12 @@
                 <table>
                     <thead>
                         <tr>
-                            <th>Agent ID</th>
-                            <th>Status</th>
+                            <th>AGENT ID</th>
+                            <th>STATUS</th>
                             <th>CPU</th>
-                            <th>Memory</th>
-                            <th>Disk</th>
-                            <th>Age</th>
+                            <th>MEMORY</th>
+                            <th>DISK</th>
+                            <th>AGE</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -301,7 +536,7 @@
 
             data.agents.forEach(agent => {
                 const statusClass = `badge-${agent.status}`;
-                const statusText = agent.status.charAt(0).toUpperCase() + agent.status.slice(1);
+                const statusText = agent.status.toUpperCase();
                 const age = formatAge(agent.age);
 
                 // Simple bar representation using block characters
@@ -331,8 +566,7 @@
 
         function generateBar(value) {
             const blocks = Math.floor(value / 10);
-            const chars = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'];
-            return chars[7].repeat(Math.min(blocks, 10));
+            return '█'.repeat(Math.min(blocks, 10));
         }
 
         function formatAge(seconds) {
@@ -345,7 +579,7 @@
         // Create invite
         async function createInvite() {
             const container = document.getElementById('invite-container');
-            container.innerHTML = '<div class="message loading">Creating invite...</div>';
+            container.innerHTML = '<div class="message loading">CREATING INVITE...</div>';
 
             try {
                 const response = await fetch('/api/invites/create', {
@@ -361,19 +595,19 @@
                 if (data.success) {
                     container.innerHTML = `
                         <div class="invite-box">
-                            <p style="opacity: 0.8; margin-bottom: 0.5rem;">Click to copy invite URL:</p>
+                            <p style="color: #888; margin-bottom: 0.5rem;">Click to copy invite URL:</p>
                             <div class="invite-url" onclick="copyToClipboard('${data.invite_url}')" title="Click to copy">
                                 ${data.invite_url}
                             </div>
-                            <p class="message success">✓ Invite created! Valid for 5 minutes.</p>
+                            <p class="message success">✓ INVITE CREATED | VALID FOR 5 MINUTES</p>
                         </div>
                     `;
                 } else {
-                    container.innerHTML = `<p class="message error">✗ Failed to create invite: ${data.error}</p>`;
+                    container.innerHTML = `<p class="message error">✗ FAILED: ${data.error}</p>`;
                 }
             } catch (error) {
                 console.error('Error creating invite:', error);
-                container.innerHTML = `<p class="message error">✗ Error: ${error.message}</p>`;
+                container.innerHTML = `<p class="message error">✗ ERROR: ${error.message}</p>`;
             }
         }
 
@@ -383,9 +617,9 @@
                 const container = document.getElementById('invite-container');
                 const successMsg = container.querySelector('.success');
                 if (successMsg) {
-                    successMsg.textContent = '✓ Copied to clipboard!';
+                    successMsg.textContent = '✓ COPIED TO CLIPBOARD!';
                     setTimeout(() => {
-                        successMsg.textContent = '✓ Invite created! Valid for 5 minutes.';
+                        successMsg.textContent = '✓ INVITE CREATED | VALID FOR 5 MINUTES';
                     }, 2000);
                 }
             }).catch(err => {
