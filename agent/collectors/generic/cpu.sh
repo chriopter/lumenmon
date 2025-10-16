@@ -1,5 +1,5 @@
 #!/bin/bash
-# Collects CPU usage percentage from /proc/stat and sends via SSH every PULSE interval (0.1s).
+# Collects CPU usage percentage from /proc/stat and sends via SSH every PULSE interval (1s).
 # Outputs to generic_cpu.tsv on console with timestamp, interval, and usage value.
 
 # Config

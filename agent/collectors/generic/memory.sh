@@ -1,5 +1,5 @@
 #!/bin/bash
-# Collects memory usage percentage from /proc/meminfo and sends via SSH every BREATHE interval (1s).
+# Collects memory usage percentage from /proc/meminfo and sends via SSH every BREATHE interval (10s).
 # Outputs to generic_mem.tsv on console with timestamp, interval, and usage value.
 
 # Config
