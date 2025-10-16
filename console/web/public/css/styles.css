@@ -1,0 +1,267 @@
+/*
+Lumenmon Console custom styles for TUI-themed dashboard layout.
+Uses Catppuccin Mocha CSS variables from catppuccin.css. Defines log box, table, sparklines, badges, overlays.
+*/
+
+body {
+    margin: 1rem;
+    max-width: 1400px;
+}
+
+/* ============================================================ */
+/* Log Box */
+/* ============================================================ */
+.log-box {
+    margin-bottom: 1rem;
+    padding: 1rem;
+    border: 1px solid var(--foreground2);
+    background: var(--background1);
+    max-height: 150px;
+    overflow-y: auto;
+    font-size: 0.85rem;
+}
+
+.logo-ascii {
+    color: var(--accent1);
+    font-size: 8px;
+    line-height: 1.1;
+    margin-bottom: 0.5rem;
+    white-space: pre;
+}
+
+.log-entry {
+    margin: 0.25rem 0;
+    color: var(--foreground1);
+}
+
+.log-timestamp {
+    color: var(--foreground2);
+    margin-right: 0.5rem;
+}
+
+.log-level-info {
+    color: var(--accent2);
+}
+
+.log-level-success {
+    color: var(--accent3);
+}
+
+.log-level-error {
+    color: var(--accent4);
+}
+
+/* ============================================================ */
+/* Shortcuts */
+/* ============================================================ */
+.shortcuts {
+    margin-bottom: 1rem;
+    padding: 0.5rem;
+    border: 1px solid var(--foreground2);
+    font-size: 0.85rem;
+}
+
+/* ============================================================ */
+/* Agents Table - TUI Style */
+/* ============================================================ */
+.agents-section {
+    margin-bottom: 1rem;
+}
+
+.sparkline {
+    display: inline-block;
+    margin-left: 0.5rem;
+    font-family: monospace;
+    font-size: 1.1em;
+    letter-spacing: 0.1em;
+    color: var(--accent1);
+}
+
+#agents-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: monospace;
+    border: none;
+}
+
+#agents-table thead td {
+    padding: 0.5rem;
+    text-transform: uppercase;
+    font-weight: bold;
+    color: var(--foreground2);
+    border: none;
+}
+
+#agents-table tbody td {
+    padding: 0.5rem;
+    border: none;
+}
+
+#agents-table thead tr,
+#agents-table tbody tr {
+    border: none;
+}
+
+#agents-table .agent-row {
+    cursor: pointer;
+    transition: background-color 0.1s;
+}
+
+#agents-table .agent-row.selected {
+    background: var(--background2);
+}
+
+#agents-table .agent-row:hover {
+    background: var(--background1);
+}
+
+/* Status indicator dot */
+.status-dot {
+    display: inline-block;
+    width: 0.6em;
+    height: 0.6em;
+    border-radius: 50%;
+    margin-right: 0.5rem;
+    vertical-align: middle;
+}
+
+.status-dot.online {
+    background: #a6e3a1; /* Catppuccin green */
+}
+
+.status-dot.stale {
+    background: #f9e2af; /* Catppuccin yellow */
+}
+
+.status-dot.offline {
+    background: #f38ba8; /* Catppuccin red */
+}
+
+.no-data {
+    text-align: center;
+    padding: 2rem;
+    color: var(--foreground2);
+}
+
+/* ============================================================ */
+/* Detail View Overlay */
+/* ============================================================ */
+#detail-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+}
+
+.detail-container {
+    background: var(--background0);
+    border: 2px solid var(--foreground2);
+    max-width: 900px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    padding: 1.5rem;
+}
+
+.detail-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--foreground2);
+}
+
+.detail-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+}
+
+.detail-content {
+    display: grid;
+    gap: 1.5rem;
+}
+
+.chart-section {
+    border: 1px solid var(--foreground2);
+    padding: 1rem;
+}
+
+.chart-section h3 {
+    margin: 0 0 1rem 0;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    color: var(--foreground2);
+}
+
+.detail-footer {
+    margin-top: 1.5rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--foreground2);
+    text-align: center;
+    font-size: 0.85rem;
+    color: var(--foreground2);
+}
+
+
+/* ============================================================ */
+/* Footer */
+/* ============================================================ */
+footer {
+    margin-top: 1rem;
+    padding: 0.75rem;
+    font-size: 0.7rem;
+    color: var(--foreground2);
+    border-top: 1px solid var(--foreground2);
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.footer-status {
+    display: inline-flex;
+    gap: 1rem;
+}
+
+.footer-status-item {
+    display: inline-block;
+}
+
+/* ============================================================ */
+/* Invite */
+/* ============================================================ */
+.invite-inline {
+    display: inline-block;
+    margin-left: 1rem;
+}
+
+.invite-inline button {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+}
+
+.invite-url-inline {
+    display: inline-block;
+    margin-left: 0.5rem;
+    padding: 0.25rem 0.5rem;
+    background: var(--background1);
+    border: 1px solid var(--foreground2);
+    font-size: 0.7rem;
+    cursor: pointer;
+    max-width: 400px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.invite-url-inline:hover {
+    background: var(--background2);
+}

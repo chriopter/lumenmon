@@ -5,11 +5,11 @@ Rendered by /api/agents/table endpoint. Returns HTML fragment fetched every 3 se
 {% if agents %}
   {% for agent in agents %}
 <tr class="agent-row {% if loop.index0 == 0 %}selected{% endif %}" data-index="{{ loop.index0 }}" data-agent-id="{{ agent.id }}" data-status="{{ agent.status }}" data-cpu-history="{{ agent.cpuHistory|join(',') }}" data-mem-history="{{ agent.memHistory|join(',') }}" data-disk-history="{{ agent.diskHistory|join(',') }}">
-  <td>{{ agent.id }}</td>
-  <td><span is-="badge" class="badge-{{ agent.status }}">{{ agent.status }}</span></td>
+  <td><span class="status-dot {{ agent.status }}"></span>{{ agent.id }}</td>
+  <td>{{ agent.status }}</td>
   <td>{{ "%.1f"|format(agent.cpu) }}% <span class="sparkline">{{ agent.cpuSparkline }}</span></td>
   <td>{{ "%.1f"|format(agent.memory) }}% <span class="sparkline">{{ agent.memSparkline }}</span></td>
-  <td>{{ "%.1f"|format(agent.disk) }}% <span class="sparkline">{{ agent.diskSparkline }}</span></td>
+  <td>{{ "%.1f"|format(agent.disk) }}%</td>
   <td>{{ agent.age_formatted }}</td>
 </tr>
   {% endfor %}
