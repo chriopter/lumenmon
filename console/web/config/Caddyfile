@@ -12,21 +12,17 @@
         reverse_proxy localhost:5000
     }
 
-    # Serve static files (CSS, JS) with no-cache headers for development
+    # Serve static files (CSS, JS) - no cache
     handle /css/* {
         root * /app/web/public
-        header Cache-Control "no-cache, no-store, must-revalidate"
-        header Pragma "no-cache"
-        header Expires "0"
+        header Cache-Control "no-cache, max-age=0"
         file_server
         encode gzip
     }
 
     handle /js/* {
         root * /app/web/public
-        header Cache-Control "no-cache, no-store, must-revalidate"
-        header Pragma "no-cache"
-        header Expires "0"
+        header Cache-Control "no-cache, max-age=0"
         file_server
         encode gzip
     }

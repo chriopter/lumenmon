@@ -2,11 +2,6 @@
 Invite creation component with clipboard copy functionality.
 Calls /api/invites/create POST endpoint. Functions: createInvite(), copyToClipboard().
 -->
-<div class="invite-inline">
-    <button onclick="createInvite()">invite</button>
-    <span id="invite-container-inline"></span>
-</div>
-
 <script>
     async function createInvite() {
         const container = document.getElementById('invite-container-inline');

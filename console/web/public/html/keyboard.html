@@ -27,7 +27,7 @@ Binds ↑/↓/j/k (navigation), Enter (detail), Esc (close), i (invite), r (refr
         } else if (key === 'i') {
             e.preventDefault();
             createInvite();
-        } else if (key === 'r') {
+        } else if (key === 'r' && !e.ctrlKey && !e.metaKey && !e.altKey) {
             e.preventDefault();
             fetchAgents();
             addLog('manual refresh', 'info');
