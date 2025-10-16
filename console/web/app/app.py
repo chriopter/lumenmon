@@ -23,7 +23,12 @@ app.register_blueprint(invites_bp)
 @app.route('/', methods=['GET'])
 def index():
     """Serve the main dashboard page."""
-    return render_template('index.html', v=CACHE_VERSION)
+    response = render_template('index.html', v=CACHE_VERSION)
+    return response, 200, {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+    }
 
 @app.route('/health', methods=['GET'])
 def health():
