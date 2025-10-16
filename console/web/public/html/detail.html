@@ -5,34 +5,89 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
 <script>
     function openDetailView() {
         const agent = getSelectedAgent();
-        if (!agent) return;
+        if (!agent) {
+            console.error('No agent selected');
+            return;
+        }
 
-        addLog(`opening detail view for ${agent.id}`, 'info');
+        try {
+            const panel = document.getElementById('detail-panel');
+            panel.classList.remove('detail-panel-empty');
 
-        const panel = document.getElementById('detail-panel');
-        panel.classList.remove('detail-panel-empty');
+            // Get current values from history
+            const currentCpu = agent.cpuHistory && agent.cpuHistory.length > 0 ? agent.cpuHistory[agent.cpuHistory.length - 1].value : 0;
+            const currentMem = agent.memHistory && agent.memHistory.length > 0 ? agent.memHistory[agent.memHistory.length - 1].value : 0;
+            const currentDisk = agent.diskHistory && agent.diskHistory.length > 0 ? agent.diskHistory[agent.diskHistory.length - 1].value : 0;
+
+            // Calculate averages
+            const cpuValues = agent.cpuHistory && agent.cpuHistory.length > 0 ? agent.cpuHistory.map(h => h.value) : [];
+            const memValues = agent.memHistory && agent.memHistory.length > 0 ? agent.memHistory.map(h => h.value) : [];
+            const avgCpu = cpuValues.length > 0 ? (cpuValues.reduce((a, b) => a + b, 0) / cpuValues.length) : 0;
+            const avgMem = memValues.length > 0 ? (memValues.reduce((a, b) => a + b, 0) / memValues.length) : 0;
+
         panel.innerHTML = `
             <div class="detail-header">
                 <h2><span class="status-dot ${agent.status}"></span>${agent.id}</h2>
                 <span class="detail-status">${agent.status} · ${agent.age}</span>
             </div>
             <div class="detail-content">
-                <div class="chart-section">
-                    <h3>cpu</h3>
-                    <canvas id="cpu-chart"></canvas>
+                <div class="detail-stats">
+                    <div class="stat-column">
+                        <div class="stat-line">
+                            <span class="stat-label">CPU</span>
+                            <span class="stat-value">${currentCpu.toFixed(1)}%</span>
+                            <span class="stat-extra">avg ${avgCpu.toFixed(1)}%</span>
+                        </div>
+                        <div class="stat-line">
+                            <span class="stat-label">MEM</span>
+                            <span class="stat-value">${currentMem.toFixed(1)}%</span>
+                            <span class="stat-extra">avg ${avgMem.toFixed(1)}%</span>
+                        </div>
+                        <div class="stat-line">
+                            <span class="stat-label">DISK</span>
+                            <span class="stat-value">${currentDisk.toFixed(1)}%</span>
+                            <span class="stat-extra">free ${(100 - currentDisk).toFixed(1)}%</span>
+                        </div>
+                    </div>
+                    <div class="stat-column">
+                        <div class="stat-line">
+                            <span class="stat-label">UPTIME</span>
+                            <span class="stat-value">${agent.age}</span>
+                        </div>
+                        <div class="stat-line">
+                            <span class="stat-label">CONNECTION</span>
+                            <span class="stat-value">ssh</span>
+                            <span class="stat-extra">authenticated</span>
+                        </div>
+                        <div class="stat-line">
+                            <span class="stat-label">SAMPLES</span>
+                            <span class="stat-value">${agent.cpuHistory ? agent.cpuHistory.length : 0}</span>
+                        </div>
+                    </div>
                 </div>
-                <div class="chart-section">
-                    <h3>memory</h3>
-                    <canvas id="mem-chart"></canvas>
-                </div>
-                <div class="chart-section">
-                    <h3>disk</h3>
-                    <canvas id="disk-chart"></canvas>
+
+                <div class="charts-grid">
+                    <div class="chart-section">
+                        <h3>cpu history</h3>
+                        <canvas id="cpu-chart"></canvas>
+                    </div>
+                    <div class="chart-section">
+                        <h3>memory history</h3>
+                        <canvas id="mem-chart"></canvas>
+                    </div>
+                    <div class="chart-section">
+                        <h3>disk history</h3>
+                        <canvas id="disk-chart"></canvas>
+                    </div>
                 </div>
             </div>
         `;
 
-        renderCharts(agent);
+            renderCharts(agent);
+        } catch (error) {
+            console.error('Error opening detail view:', error);
+            addLog(`error opening detail: ${error.message}`, 'error');
+        }
     }
 
     function closeDetailView() {
@@ -57,7 +112,15 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
         const ctx = document.getElementById(canvasId);
         if (!ctx) return;
 
-        const labels = data.map((_, i) => `-${data.length - i - 1}`);
+        // Extract timestamps and values
+        const timestamps = data.map(d => d.timestamp * 1000); // Convert to milliseconds
+        const values = data.map(d => d.value);
+
+        // Create time labels
+        const labels = timestamps.map(ts => {
+            const date = new Date(ts);
+            return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+        });
 
         new Chart(ctx, {
             type: 'line',
@@ -65,14 +128,14 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
                 labels: labels,
                 datasets: [{
                     label: label,
-                    data: data,
+                    data: values,
                     borderColor: color,
-                    backgroundColor: color + '20',
-                    borderWidth: 2,
-                    tension: 0.4,
-                    fill: true,
-                    pointRadius: 3,
-                    pointHoverRadius: 5
+                    backgroundColor: 'transparent',
+                    borderWidth: 1.5,
+                    tension: 0,
+                    fill: false,
+                    pointRadius: 0,
+                    pointHoverRadius: 3
                 }]
             },
             options: {
@@ -81,12 +144,16 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
                 plugins: {
                     legend: { display: false },
                     tooltip: {
-                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        backgroundColor: 'rgba(0, 0, 0, 0.9)',
                         titleColor: '#cdd6f4',
                         bodyColor: '#cdd6f4',
                         borderColor: '#45475a',
                         borderWidth: 1,
+                        displayColors: false,
                         callbacks: {
+                            title: function(context) {
+                                return context[0].label;
+                            },
                             label: function(context) {
                                 return context.parsed.y.toFixed(1) + suffix;
                             }
@@ -99,15 +166,26 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
                         max: 100,
                         ticks: {
                             color: '#6c7086',
+                            stepSize: 25,
                             callback: function(value) {
                                 return value + suffix;
                             }
                         },
-                        grid: { color: '#313244' }
+                        grid: {
+                            color: '#313244',
+                            drawTicks: false
+                        }
                     },
                     x: {
-                        ticks: { color: '#6c7086' },
-                        grid: { color: '#313244' }
+                        ticks: {
+                            color: '#6c7086',
+                            maxTicksLimit: 10,
+                            maxRotation: 0,
+                            minRotation: 0
+                        },
+                        grid: {
+                            display: false
+                        }
                     }
                 }
             }

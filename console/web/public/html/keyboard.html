@@ -22,9 +22,7 @@ Binds ↑/↓/j/k (navigation), Enter (detail), Esc (close), i (invite), r (refr
         } else if (key === 'escape') {
             e.preventDefault();
             closeDetailView();
-            const inviteContainer = document.getElementById('invite-container-inline');
-            if (inviteContainer) inviteContainer.innerHTML = '';
-        } else if (key === 'i') {
+        } else if (key === 'i' && !e.ctrlKey && !e.metaKey && !e.altKey) {
             e.preventDefault();
             createInvite();
         } else if (key === 'r' && !e.ctrlKey && !e.metaKey && !e.altKey) {

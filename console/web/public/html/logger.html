@@ -15,7 +15,7 @@ Provides addLog(message, level) function for inline event logging. Max 50 entrie
 <script>
     function addLog(message, level = 'info') {
         const logEntries = document.getElementById('log-entries');
-        const timestamp = new Date().toLocaleTimeString();
+        const timestamp = new Date().toLocaleTimeString('en-US', { hour12: false });
         const entry = document.createElement('div');
         entry.className = 'log-entry';
         entry.innerHTML = `<span class="log-timestamp">[${timestamp}]</span><span class="log-level-${level}">${message}</span>`;

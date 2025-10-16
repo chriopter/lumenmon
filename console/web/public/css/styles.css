@@ -22,7 +22,7 @@ body {
     border: 1px solid #cba6f7; /* Catppuccin mauve/purple */
     border-radius: 6px;
     background: var(--background1);
-    height: 120px;
+    height: 180px;
     overflow-y: auto;
     font-size: 0.75rem;
     scrollbar-width: none; /* Firefox */
@@ -63,6 +63,32 @@ body {
 
 .log-level-error {
     color: var(--accent4);
+}
+
+.invite-url-log {
+    color: var(--accent1);
+    cursor: pointer;
+    text-decoration: underline;
+    font-family: monospace;
+    position: relative;
+}
+
+.invite-url-log:hover {
+    color: transparent;
+    text-decoration: none;
+}
+
+.invite-url-log:hover::before {
+    content: 'click to copy!';
+    position: absolute;
+    left: 0;
+    top: 0;
+    background: #a6e3a1;
+    color: #1e1e2e;
+    padding: 0.1rem 0.3rem;
+    border-radius: 3px;
+    font-weight: bold;
+    white-space: nowrap;
 }
 
 /* ============================================================ */
@@ -215,6 +241,13 @@ body {
     color: var(--foreground2);
 }
 
+.agent-symbols {
+    font-family: 'DejaVu Sans Mono', 'Noto Sans Mono', monospace;
+    opacity: 0.5;
+    font-size: 0.9em;
+    letter-spacing: 0.2em;
+}
+
 /* ============================================================ */
 /* Detail View Panel (Split Screen) */
 /* ============================================================ */
@@ -267,6 +300,48 @@ body {
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
+}
+
+.charts-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+}
+
+.detail-stats {
+    display: flex;
+    gap: 2rem;
+    margin-bottom: 1rem;
+    font-family: monospace;
+}
+
+.stat-column {
+    flex: 1;
+}
+
+.stat-line {
+    display: flex;
+    gap: 1rem;
+    padding: 0.2rem 0;
+    font-size: 0.8rem;
+}
+
+.stat-label {
+    color: var(--foreground2);
+    min-width: 5rem;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+}
+
+.stat-value {
+    color: var(--accent1);
+    font-weight: bold;
+    min-width: 4rem;
+}
+
+.stat-extra {
+    color: var(--foreground2);
+    font-size: 0.75rem;
 }
 
 .chart-section {
@@ -338,28 +413,14 @@ footer {
 }
 
 .kbd-clickable:hover {
-    background: var(--accent1);
-    color: var(--background0);
+    text-decoration: underline;
 }
 
-/* ============================================================ */
-/* Invite */
-/* ============================================================ */
-.invite-url-inline {
-    display: inline-block;
-    padding: 0.25rem 0.5rem;
-    background: var(--background1);
-    border: 1px solid var(--foreground2);
-    font-size: 0.7rem;
-    cursor: pointer;
-    max-width: 300px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.invite-url-inline:hover {
-    background: var(--background2);
+.kbd-clickable kbd {
+    background: transparent;
+    border: none;
+    padding: 0;
+    margin: 0;
 }
 
 /* ============================================================ */
@@ -418,6 +479,15 @@ footer {
 
     #detail-panel {
         min-height: 400px;
+    }
+
+    .detail-stats {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .charts-grid {
+        grid-template-columns: 1fr;
     }
 
     footer {
