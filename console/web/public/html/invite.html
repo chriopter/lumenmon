@@ -4,8 +4,6 @@ Calls /api/invites/create POST endpoint. Functions: createInvite(), copyToClipbo
 -->
 <script>
     async function createInvite() {
-        const container = document.getElementById('invite-container-inline');
-        container.innerHTML = '<span style="color: var(--foreground2);">...</span>';
         addLog('creating invite...', 'info');
 
         try {
@@ -14,32 +12,33 @@ Calls /api/invites/create POST endpoint. Functions: createInvite(), copyToClipbo
             const data = await response.json();
 
             if (data.success) {
-                container.innerHTML = `
-                    <span class="invite-url-inline" onclick="copyToClipboard('${data.invite_url}')" title="click to copy">
+                // Add invite URL to log as clickable element
+                const logEntries = document.getElementById('log-entries');
+                const logBox = document.getElementById('log-box');
+                const logEntry = document.createElement('div');
+                logEntry.className = 'log-entry';
+                logEntry.innerHTML = `
+                    <span class="log-timestamp">[${new Date().toLocaleTimeString('en-US', { hour12: false })}]</span>
+                    <span class="invite-url-log" onclick="copyInviteToClipboard(this, '${data.invite_url}')" title="click to copy">
                         ${data.invite_url}
                     </span>
                 `;
-                addLog('invite created (valid 5 min)', 'success');
+                logEntries.appendChild(logEntry);
+                logBox.scrollTop = logBox.scrollHeight;
             } else {
-                container.innerHTML = `<span style="color: var(--accent4);">error</span>`;
                 addLog(`invite creation failed: ${data.error}`, 'error');
             }
         } catch (error) {
             console.error('Error:', error);
-            container.innerHTML = `<span style="color: var(--accent4);">error</span>`;
             addLog(`invite creation error: ${error.message}`, 'error');
         }
     }
 
-    function copyToClipboard(text) {
+    function copyInviteToClipboard(element, text) {
         navigator.clipboard.writeText(text).then(() => {
-            const container = document.getElementById('invite-container-inline');
-            const url = container.querySelector('.invite-url-inline');
-            if (url) {
-                const originalText = url.textContent;
-                url.textContent = 'copied!';
-                setTimeout(() => { url.textContent = originalText; }, 2000);
-            }
+            const originalText = element.textContent;
+            element.textContent = 'copied!';
+            setTimeout(() => { element.textContent = originalText; }, 2000);
             addLog('invite url copied to clipboard', 'info');
         }).catch(err => {
             console.error('Copy failed:', err);

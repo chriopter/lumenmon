@@ -97,16 +97,29 @@ Fetches server-rendered rows every 3s. Provides row selection, navigation functi
 
     function getSelectedAgent() {
         const row = document.querySelector(`.agent-row[data-index="${selectedRow}"]`);
-        if (!row) return null;
+        if (!row) {
+            console.error('No row found for selected index:', selectedRow);
+            return null;
+        }
 
-        return {
-            id: row.dataset.agentId,
-            status: row.dataset.status,
-            age: row.dataset.age,
-            cpuHistory: row.dataset.cpuHistory ? row.dataset.cpuHistory.split(',').map(Number) : [],
-            memHistory: row.dataset.memHistory ? row.dataset.memHistory.split(',').map(Number) : [],
-            diskHistory: row.dataset.diskHistory ? row.dataset.diskHistory.split(',').map(Number) : []
-        };
+        try {
+            return {
+                id: row.dataset.agentId,
+                status: row.dataset.status,
+                age: row.dataset.age,
+                cpuHistory: row.dataset.cpuHistory ? JSON.parse(row.dataset.cpuHistory) : [],
+                memHistory: row.dataset.memHistory ? JSON.parse(row.dataset.memHistory) : [],
+                diskHistory: row.dataset.diskHistory ? JSON.parse(row.dataset.diskHistory) : []
+            };
+        } catch (error) {
+            console.error('Error parsing agent data:', error);
+            console.log('Row data:', {
+                cpuHistory: row.dataset.cpuHistory,
+                memHistory: row.dataset.memHistory,
+                diskHistory: row.dataset.diskHistory
+            });
+            return null;
+        }
     }
 
     // Initialize

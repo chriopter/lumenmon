@@ -10,6 +10,26 @@ from formatters import generate_tui_sparkline, format_age
 
 DATA_DIR = "/data/agents"
 
+def get_history_from_file(file_path, minutes=60):
+    """Read history from TSV file for the last N minutes."""
+    history = []
+    if not os.path.exists(file_path):
+        return history
+
+    current_time = int(time.time())
+    cutoff_time = current_time - (minutes * 60)
+
+    # Read last 1000 lines to ensure we get all data from last 60 minutes
+    lines = read_last_n_lines(file_path, 1000)
+    for line in lines:
+        timestamp, value = parse_tsv_line(line)
+        if timestamp and value is not None and timestamp >= cutoff_time:
+            history.append({'timestamp': timestamp, 'value': round(value, 1)})
+
+    # Sort by timestamp
+    history.sort(key=lambda x: x['timestamp'])
+    return history
+
 def get_agent_metrics(agent_id):
     """Read all metrics for a specific agent."""
     agent_dir = os.path.join(DATA_DIR, agent_id)
@@ -36,11 +56,7 @@ def get_agent_metrics(agent_id):
             metrics['cpu'] = round(value, 1)
             metrics['lastUpdate'] = max(metrics['lastUpdate'], timestamp)
 
-        history_lines = read_last_n_lines(cpu_file, 10)
-        for history_line in history_lines:
-            _, history_value = parse_tsv_line(history_line)
-            if history_value is not None:
-                metrics['cpuHistory'].append(round(history_value, 1))
+        metrics['cpuHistory'] = get_history_from_file(cpu_file, 60)
 
     # Read Memory
     mem_file = os.path.join(agent_dir, 'generic_mem.tsv')
@@ -51,11 +67,7 @@ def get_agent_metrics(agent_id):
             metrics['memory'] = round(value, 1)
             metrics['lastUpdate'] = max(metrics['lastUpdate'], timestamp)
 
-        history_lines = read_last_n_lines(mem_file, 10)
-        for history_line in history_lines:
-            _, history_value = parse_tsv_line(history_line)
-            if history_value is not None:
-                metrics['memHistory'].append(round(history_value, 1))
+        metrics['memHistory'] = get_history_from_file(mem_file, 60)
 
     # Read Disk
     disk_file = os.path.join(agent_dir, 'generic_disk.tsv')
@@ -66,11 +78,7 @@ def get_agent_metrics(agent_id):
             metrics['disk'] = round(value, 1)
             metrics['lastUpdate'] = max(metrics['lastUpdate'], timestamp)
 
-        history_lines = read_last_n_lines(disk_file, 10)
-        for history_line in history_lines:
-            _, history_value = parse_tsv_line(history_line)
-            if history_value is not None:
-                metrics['diskHistory'].append(round(history_value, 1))
+        metrics['diskHistory'] = get_history_from_file(disk_file, 60)
 
     # Calculate age and status
     current_time = int(time.time())
@@ -86,9 +94,13 @@ def get_agent_metrics(agent_id):
 
     # Add formatted fields for HTML templates
     metrics['age_formatted'] = format_age(metrics['age'])
-    metrics['cpuSparkline'] = generate_tui_sparkline(metrics['cpuHistory'])
-    metrics['memSparkline'] = generate_tui_sparkline(metrics['memHistory'])
-    metrics['diskSparkline'] = generate_tui_sparkline(metrics['diskHistory'])
+    # Generate sparklines from history values only
+    cpu_values = [h['value'] for h in metrics['cpuHistory']]
+    mem_values = [h['value'] for h in metrics['memHistory']]
+    disk_values = [h['value'] for h in metrics['diskHistory']]
+    metrics['cpuSparkline'] = generate_tui_sparkline(cpu_values)
+    metrics['memSparkline'] = generate_tui_sparkline(mem_values)
+    metrics['diskSparkline'] = generate_tui_sparkline(disk_values)
 
     return metrics
 
