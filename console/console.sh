@@ -12,6 +12,10 @@ source core/setup/restore_users.sh  # Restore agent users
 # Start services
 source core/ingress/ssh_daemon.sh   # Start SSH daemon
 
+# Start Caddy web server
+echo "[console] Starting Caddy web server..."
+caddy start --config /etc/caddy/Caddyfile 2>&1 | sed 's/^/[caddy] /' &
+
 # Display console info
 AGENT_COUNT=$(find /data/agents -maxdepth 1 -type d -name "id_*" 2>/dev/null | wc -l)
 
@@ -20,6 +24,7 @@ echo "[console] Lumenmon Console Ready"
 echo "[console] ======================================"
 echo "[console] Console Host: ${CONSOLE_HOST:-localhost}"
 echo "[console] SSH Server: Port 22 (mapped to host 2345)"
+echo "[console] Web Interface: Port 80 (mapped to host 8080)"
 echo "[console] Data Directory: /data/agents/"
 echo "[console] Registered agents: $AGENT_COUNT"
 echo "[console]"
