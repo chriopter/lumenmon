@@ -17,7 +17,7 @@
             padding: 1rem;
             border: 1px solid var(--foreground2);
             background: var(--background1);
-            max-height: 300px;
+            max-height: 150px;
             overflow-y: auto;
             font-size: 0.85rem;
         }
@@ -59,68 +59,36 @@
             font-size: 0.85rem;
         }
 
-        section {
-            margin-bottom: 1.5rem;
+        .agents-section {
+            margin-bottom: 1rem;
         }
 
-        h2 {
-            font-size: 1rem;
-            margin: 0 0 0.5rem 0;
-            padding: 0.5rem;
-            background: var(--background2);
-            border: 1px solid var(--foreground2);
+        .invite-inline {
+            display: inline-block;
+            margin-left: 1rem;
         }
 
-        .section-content {
-            padding: 1rem;
-            border: 1px solid var(--foreground2);
-            border-top: none;
-        }
-
-        .status-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 0.5rem;
-        }
-
-        .status-item {
-            padding: 0.5rem;
-            border: 1px solid var(--foreground2);
-        }
-
-        .status-label {
+        .invite-inline button {
             font-size: 0.75rem;
-            color: var(--foreground2);
+            padding: 0.25rem 0.5rem;
         }
 
-        .status-value {
-            font-size: 0.9rem;
-            margin-top: 0.25rem;
-        }
-
-        .invite-box {
-            margin-top: 1rem;
-            padding: 1rem;
-            border: 1px solid var(--foreground2);
-        }
-
-        .invite-url {
-            margin: 0.5rem 0;
-            padding: 0.5rem;
+        .invite-url-inline {
+            display: inline-block;
+            margin-left: 0.5rem;
+            padding: 0.25rem 0.5rem;
             background: var(--background1);
             border: 1px solid var(--foreground2);
-            word-break: break-all;
+            font-size: 0.7rem;
             cursor: pointer;
-            font-size: 0.85rem;
+            max-width: 400px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
-        .invite-url:hover {
+        .invite-url-inline:hover {
             background: var(--background2);
-        }
-
-        .message {
-            margin-top: 0.5rem;
-            font-size: 0.9rem;
         }
 
         .no-data {
@@ -130,18 +98,136 @@
             border: 1px dashed var(--foreground2);
         }
 
-        .metric-bar {
+        .sparkline {
             display: inline-block;
             margin-left: 0.5rem;
+            vertical-align: middle;
         }
 
-        footer {
-            margin-top: 2rem;
+        .sparkline svg {
+            vertical-align: middle;
+        }
+
+        /* TUI table styling */
+        #agents-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        #agents-table .agent-row {
+            cursor: pointer;
+            transition: background-color 0.1s;
+        }
+
+        #agents-table .agent-row.selected {
+            background: var(--background2);
+            border-left: 3px solid var(--accent1);
+        }
+
+        #agents-table .agent-row:hover {
+            background: var(--background1);
+        }
+
+        /* Detail view overlay */
+        #detail-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(4px);
+        }
+
+        .detail-container {
+            background: var(--background0);
+            border: 2px solid var(--foreground2);
+            max-width: 900px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            padding: 1.5rem;
+        }
+
+        .detail-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--foreground2);
+        }
+
+        .detail-header h2 {
+            margin: 0;
+            font-size: 1.5rem;
+        }
+
+        .detail-content {
+            display: grid;
+            gap: 1.5rem;
+        }
+
+        .chart-section {
+            border: 1px solid var(--foreground2);
             padding: 1rem;
+        }
+
+        .chart-section h3 {
+            margin: 0 0 1rem 0;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            color: var(--foreground2);
+        }
+
+        .detail-footer {
+            margin-top: 1.5rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid var(--foreground2);
             text-align: center;
             font-size: 0.85rem;
             color: var(--foreground2);
+        }
+
+        /* Badge colors - Catppuccin Mocha */
+        [is-="badge"].badge-online {
+            --badge-color: #a6e3a1;
+            --badge-text: #1e1e2e;
+        }
+
+        [is-="badge"].badge-stale {
+            --badge-color: #f9e2af;
+            --badge-text: #1e1e2e;
+        }
+
+        [is-="badge"].badge-offline {
+            --badge-color: #f38ba8;
+            --badge-text: #1e1e2e;
+        }
+
+        footer {
+            margin-top: 1rem;
+            padding: 0.75rem;
+            font-size: 0.7rem;
+            color: var(--foreground2);
             border-top: 1px solid var(--foreground2);
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .footer-status {
+            display: inline-flex;
+            gap: 1rem;
+        }
+
+        .footer-status-item {
+            display: inline-block;
         }
     </style>
 </head>
@@ -157,217 +243,40 @@
     </div>
 
     <div class="shortcuts">
-        <kbd>i</kbd> invite · <kbd>r</kbd> refresh · <kbd>h</kbd> help · <kbd>esc</kbd> close
+        <kbd>↑/k</kbd> <kbd>↓/j</kbd> navigate · <kbd>enter</kbd> detail · <kbd>i</kbd> invite · <kbd>r</kbd> refresh · <kbd>h</kbd> help · <kbd>esc</kbd> close
     </div>
 
-    <section>
-        <h2>STATUS</h2>
-            <div class="section-content">
-                <div class="status-grid">
-                    <div class="status-item">
-                        <div class="status-label">console</div>
-                        <div class="status-value">online</div>
-                    </div>
-                    <div class="status-item">
-                        <div class="status-label">ssh</div>
-                        <div class="status-value">:2345</div>
-                    </div>
-                    <div class="status-item">
-                        <div class="status-label">web</div>
-                        <div class="status-value">:8080</div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <section>
-            <h2>INVITE</h2>
-            <div class="section-content">
-                <button onclick="createInvite()">create invite</button>
-                <div id="invite-container"></div>
-            </div>
-        </section>
-
-        <section>
-            <h2>AGENTS</h2>
-            <div class="section-content">
-                <div id="agents-container">
-                    <div class="no-data">loading...</div>
-                </div>
-            </div>
-        </section>
+    <div class="agents-section">
+        <div id="agents-container">
+            <div class="no-data">loading...</div>
+        </div>
+    </div>
 
     <footer>
-        lumenmon console
+        <div class="footer-status">
+            <span class="footer-status-item">console: online</span>
+            <span class="footer-status-item">ssh: 2345</span>
+            <span class="footer-status-item">web: 8080</span>
+        </div>
+        <div class="invite-inline">
+            <button onclick="createInvite()">invite</button>
+            <span id="invite-container-inline"></span>
+        </div>
     </footer>
 
-    <script src="/js/keyboard.js"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+    <!-- Modular components -->
+    <script src="/js/components/table.js"></script>
+    <script src="/js/components/navigation.js"></script>
+    <script src="/js/views/detail.js"></script>
+    <script src="/js/views/dashboard.js"></script>
 
     <script>
-        // Logging system
-        function addLog(message, level = 'info') {
-            const logEntries = document.getElementById('log-entries');
-            const timestamp = new Date().toLocaleTimeString();
-            const entry = document.createElement('div');
-            entry.className = 'log-entry';
-            entry.innerHTML = `<span class="log-timestamp">[${timestamp}]</span><span class="log-level-${level}">${message}</span>`;
-            logEntries.appendChild(entry);
-
-            // Auto-scroll to bottom
-            const logBox = document.getElementById('log-box');
-            logBox.scrollTop = logBox.scrollHeight;
-
-            // Keep max 50 entries
-            while (logEntries.children.length > 50) {
-                logEntries.removeChild(logEntries.firstChild);
-            }
-        }
-
-        let previousAgentCount = 0;
-
-        async function fetchAgents() {
-            try {
-                const response = await fetch('/api/agents');
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                const data = await response.json();
-                displayAgents(data);
-
-                // Log agent changes
-                if (data.agents) {
-                    const currentCount = data.agents.length;
-                    if (previousAgentCount !== 0 && currentCount > previousAgentCount) {
-                        addLog(`agent connected (total: ${currentCount})`, 'success');
-                    } else if (previousAgentCount !== 0 && currentCount < previousAgentCount) {
-                        addLog(`agent disconnected (total: ${currentCount})`, 'error');
-                    }
-                    previousAgentCount = currentCount;
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                document.getElementById('agents-container').innerHTML =
-                    `<div class="no-data">error: ${error.message}</div>`;
-                addLog(`error fetching agents: ${error.message}`, 'error');
-            }
-        }
-
-        function displayAgents(data) {
-            const container = document.getElementById('agents-container');
-
-            if (!data.agents || data.agents.length === 0) {
-                container.innerHTML = '<div class="no-data">no agents connected</div>';
-                return;
-            }
-
-            let html = `
-                <table>
-                    <thead>
-                        <tr>
-                            <td>id</td>
-                            <td>status</td>
-                            <td>cpu</td>
-                            <td>mem</td>
-                            <td>disk</td>
-                            <td>age</td>
-                        </tr>
-                    </thead>
-                    <tbody>
-            `;
-
-            data.agents.forEach(agent => {
-                const age = formatAge(agent.age);
-                const cpuBar = generateBar(agent.cpu);
-                const memBar = generateBar(agent.memory);
-                const diskBar = generateBar(agent.disk);
-
-                html += `
-                    <tr>
-                        <td>${agent.id}</td>
-                        <td><span is-="badge" variant-="${getBadgeVariant(agent.status)}">${agent.status}</span></td>
-                        <td>${agent.cpu.toFixed(1)}%<span class="metric-bar">${cpuBar}</span></td>
-                        <td>${agent.memory.toFixed(1)}%<span class="metric-bar">${memBar}</span></td>
-                        <td>${agent.disk.toFixed(1)}%<span class="metric-bar">${diskBar}</span></td>
-                        <td>${age}</td>
-                    </tr>
-                `;
-            });
-
-            html += '</tbody></table>';
-            container.innerHTML = html;
-        }
-
-        function getBadgeVariant(status) {
-            const variants = {
-                'online': 'foreground0',
-                'stale': 'foreground1',
-                'offline': 'foreground2'
-            };
-            return variants[status] || 'foreground2';
-        }
-
-        function generateBar(value) {
-            const blocks = Math.floor(value / 10);
-            return '█'.repeat(Math.min(blocks, 10));
-        }
-
-        function formatAge(seconds) {
-            if (seconds < 60) return `${seconds}s`;
-            if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
-            if (seconds < 86400) return `${Math.floor(seconds / 3600)}h`;
-            return `${Math.floor(seconds / 86400)}d`;
-        }
-
-        async function createInvite() {
-            const container = document.getElementById('invite-container');
-            container.innerHTML = '<div class="message">creating...</div>';
-            addLog('creating invite...', 'info');
-
-            try {
-                const response = await fetch('/api/invites/create', { method: 'POST' });
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                const data = await response.json();
-
-                if (data.success) {
-                    container.innerHTML = `
-                        <div class="invite-box">
-                            <div>click to copy:</div>
-                            <div class="invite-url" onclick="copyToClipboard('${data.invite_url}')" title="click to copy">
-                                ${data.invite_url}
-                            </div>
-                            <div class="message">valid for 5 minutes</div>
-                        </div>
-                    `;
-                    addLog('invite created (valid 5 min)', 'success');
-                } else {
-                    container.innerHTML = `<div class="message">error: ${data.error}</div>`;
-                    addLog(`invite creation failed: ${data.error}`, 'error');
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                container.innerHTML = `<div class="message">error: ${error.message}</div>`;
-                addLog(`invite creation error: ${error.message}`, 'error');
-            }
-        }
-
-        function copyToClipboard(text) {
-            navigator.clipboard.writeText(text).then(() => {
-                const container = document.getElementById('invite-container');
-                const msg = container.querySelector('.message');
-                if (msg) {
-                    msg.textContent = 'copied!';
-                    setTimeout(() => { msg.textContent = 'valid for 5 minutes'; }, 2000);
-                }
-                addLog('invite url copied to clipboard', 'info');
-            }).catch(err => {
-                console.error('Copy failed:', err);
-                addLog('clipboard copy failed', 'error');
-            });
-        }
-
-        // Initialize
-        addLog('console started', 'success');
-        addLog('loading agents...', 'info');
-        fetchAgents();
-        setInterval(fetchAgents, 3000);
+        // Initialize application
+        initNavigation();
+        initDashboard();
     </script>
 </body>
 </html>

@@ -34,6 +34,34 @@ def read_last_line(filepath):
         print(f"Error reading {filepath}: {e}")
     return None
 
+def read_last_n_lines(filepath, n=10):
+    """Read the last N lines of a file."""
+    try:
+        with open(filepath, 'rb') as f:
+            # Seek to end
+            f.seek(0, os.SEEK_END)
+            file_size = f.tell()
+            if file_size == 0:
+                return []
+
+            # Read backwards to find last N lines
+            buffer_size = min(8192, file_size)
+            f.seek(max(0, file_size - buffer_size))
+            lines = f.read().decode('utf-8', errors='ignore').splitlines()
+
+            # Return last N non-empty lines
+            result = []
+            for line in reversed(lines):
+                if line.strip():
+                    result.append(line.strip())
+                    if len(result) >= n:
+                        break
+
+            return list(reversed(result))
+    except Exception as e:
+        print(f"Error reading {filepath}: {e}")
+    return []
+
 def parse_tsv_line(line):
     """Parse TSV line: timestamp interval value"""
     if not line:
@@ -63,7 +91,10 @@ def get_agent_metrics(agent_id):
         'disk': 0.0,
         'age': 0,
         'status': 'offline',
-        'lastUpdate': 0
+        'lastUpdate': 0,
+        'cpuHistory': [],
+        'memHistory': [],
+        'diskHistory': []
     }
 
     # Read CPU
@@ -75,6 +106,13 @@ def get_agent_metrics(agent_id):
             metrics['cpu'] = round(value, 1)
             metrics['lastUpdate'] = max(metrics['lastUpdate'], timestamp)
 
+        # Read history for sparkline
+        history_lines = read_last_n_lines(cpu_file, 10)
+        for history_line in history_lines:
+            _, history_value = parse_tsv_line(history_line)
+            if history_value is not None:
+                metrics['cpuHistory'].append(round(history_value, 1))
+
     # Read Memory
     mem_file = os.path.join(agent_dir, 'generic_mem.tsv')
     if os.path.exists(mem_file):
@@ -84,6 +122,13 @@ def get_agent_metrics(agent_id):
             metrics['memory'] = round(value, 1)
             metrics['lastUpdate'] = max(metrics['lastUpdate'], timestamp)
 
+        # Read history for sparkline
+        history_lines = read_last_n_lines(mem_file, 10)
+        for history_line in history_lines:
+            _, history_value = parse_tsv_line(history_line)
+            if history_value is not None:
+                metrics['memHistory'].append(round(history_value, 1))
+
     # Read Disk
     disk_file = os.path.join(agent_dir, 'generic_disk.tsv')
     if os.path.exists(disk_file):
@@ -92,6 +137,13 @@ def get_agent_metrics(agent_id):
         if timestamp and value is not None:
             metrics['disk'] = round(value, 1)
             metrics['lastUpdate'] = max(metrics['lastUpdate'], timestamp)
+
+        # Read history for sparkline
+        history_lines = read_last_n_lines(disk_file, 10)
+        for history_line in history_lines:
+            _, history_value = parse_tsv_line(history_line)
+            if history_value is not None:
+                metrics['diskHistory'].append(round(history_value, 1))
 
     # Calculate age and status
     current_time = int(time.time())

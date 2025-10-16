@@ -55,7 +55,9 @@ RUN cd /tmp && \
     npm install @webtui/css@latest @webtui/theme-catppuccin@latest && \
     mkdir -p /app/web/public/css && \
     cp node_modules/@webtui/css/dist/full.css /app/web/public/css/webtui.css && \
-    find node_modules/@webtui/theme-catppuccin -name "mocha.css" -exec cp {} /app/web/public/css/catppuccin.css \; && \
+    ls -la node_modules/@webtui/theme-catppuccin/dist/ && \
+    find node_modules/@webtui/theme-catppuccin -type f -name "*.css" && \
+    cp node_modules/@webtui/theme-catppuccin/dist/*.css /app/web/public/css/catppuccin.css && \
     rm -rf /tmp/node_modules
 
 # Copy Caddyfile from web config

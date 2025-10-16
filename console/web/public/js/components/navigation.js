@@ -1,0 +1,57 @@
+// Keyboard navigation component
+// Handles keyboard shortcuts for table navigation and actions
+
+function initNavigation() {
+    document.addEventListener('keydown', (e) => {
+        // Ignore if typing in input field
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+            return;
+        }
+
+        const key = e.key.toLowerCase();
+
+        // Navigation keys
+        if (key === 'arrowdown' || key === 'j') {
+            e.preventDefault();
+            moveSelection(1);
+        } else if (key === 'arrowup' || key === 'k') {
+            e.preventDefault();
+            moveSelection(-1);
+        } else if (key === 'enter') {
+            e.preventDefault();
+            openDetailView();
+        } else if (key === 'escape') {
+            e.preventDefault();
+            closeDetailView();
+            const inviteContainer = document.getElementById('invite-container-inline');
+            if (inviteContainer) inviteContainer.innerHTML = '';
+        } else if (key === 'i') {
+            e.preventDefault();
+            createInvite();
+        } else if (key === 'r') {
+            e.preventDefault();
+            fetchAgents();
+            if (typeof addLog === 'function') addLog('manual refresh', 'info');
+        } else if (key === 'h' || key === '?') {
+            e.preventDefault();
+            showHelp();
+        }
+    });
+}
+
+function showHelp() {
+    const helpText = `Keyboard Shortcuts:
+
+Navigation:
+  ↑/k     - Move up
+  ↓/j     - Move down
+  Enter   - Open detail view
+  Esc     - Close detail view
+
+Actions:
+  i       - Create invite
+  r       - Refresh agents
+  h/?     - Show help`;
+
+    alert(helpText);
+}
