@@ -1,5 +1,5 @@
 <!--
-Detail view overlay component with Chart.js line charts for CPU, memory, and disk metrics.
+Detail view panel component with Chart.js line charts for CPU, memory, and disk metrics.
 Reads agent data from table row data attributes. Functions: openDetailView(), closeDetailView(), renderCharts().
 -->
 <script>
@@ -9,50 +9,36 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
 
         addLog(`opening detail view for ${agent.id}`, 'info');
 
-        const overlay = document.createElement('div');
-        overlay.id = 'detail-overlay';
-        overlay.innerHTML = `
-            <div class="detail-container">
-                <div class="detail-header">
-                    <h2><span class="status-dot ${agent.status}"></span>${agent.id}</h2>
-                    <span class="detail-status">${agent.status}</span>
+        const panel = document.getElementById('detail-panel');
+        panel.classList.remove('detail-panel-empty');
+        panel.innerHTML = `
+            <div class="detail-header">
+                <h2><span class="status-dot ${agent.status}"></span>${agent.id}</h2>
+                <span class="detail-status">${agent.status} · ${agent.age}</span>
+            </div>
+            <div class="detail-content">
+                <div class="chart-section">
+                    <h3>cpu</h3>
+                    <canvas id="cpu-chart"></canvas>
                 </div>
-                <div class="detail-content">
-                    <div class="chart-section">
-                        <h3>cpu</h3>
-                        <canvas id="cpu-chart"></canvas>
-                    </div>
-                    <div class="chart-section">
-                        <h3>memory</h3>
-                        <canvas id="mem-chart"></canvas>
-                    </div>
-                    <div class="chart-section">
-                        <h3>disk</h3>
-                        <canvas id="disk-chart"></canvas>
-                    </div>
+                <div class="chart-section">
+                    <h3>memory</h3>
+                    <canvas id="mem-chart"></canvas>
                 </div>
-                <div class="detail-footer">
-                    press <kbd>esc</kbd> to close
+                <div class="chart-section">
+                    <h3>disk</h3>
+                    <canvas id="disk-chart"></canvas>
                 </div>
             </div>
         `;
-
-        document.body.appendChild(overlay);
-
-        overlay.addEventListener('click', (e) => {
-            if (e.target === overlay) {
-                closeDetailView();
-            }
-        });
 
         renderCharts(agent);
     }
 
     function closeDetailView() {
-        const overlay = document.getElementById('detail-overlay');
-        if (overlay) {
-            overlay.remove();
-        }
+        const panel = document.getElementById('detail-panel');
+        panel.classList.add('detail-panel-empty');
+        panel.innerHTML = '<span class="detail-placeholder">← Select an agent and press <kbd>Enter</kbd></span>';
     }
 
     function renderCharts(agent) {

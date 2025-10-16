@@ -4,21 +4,34 @@ Uses Catppuccin Mocha CSS variables from catppuccin.css. Defines log box, table,
 */
 
 body {
-    margin: 1rem;
+    margin: 0.5rem;
     max-width: 1400px;
+    overflow: hidden;
+    height: calc(100vh - 1rem);
+    display: flex;
+    flex-direction: column;
+    font-size: 0.85rem;
+    line-height: 1.3;
 }
 
 /* ============================================================ */
 /* Log Box */
 /* ============================================================ */
 .log-box {
-    margin-bottom: 1rem;
-    padding: 1rem;
-    border: 1px solid var(--foreground2);
+    padding: 0.5rem;
+    border: 1px solid #cba6f7; /* Catppuccin mauve/purple */
+    border-radius: 6px;
     background: var(--background1);
-    max-height: 150px;
+    height: 120px;
     overflow-y: auto;
-    font-size: 0.85rem;
+    font-size: 0.75rem;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
+    flex-shrink: 0;
+}
+
+.log-box::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
 }
 
 .logo-ascii {
@@ -30,8 +43,9 @@ body {
 }
 
 .log-entry {
-    margin: 0.25rem 0;
+    margin: 0.1rem 0;
     color: var(--foreground1);
+    line-height: 1.2;
 }
 
 .log-timestamp {
@@ -52,71 +66,123 @@ body {
 }
 
 /* ============================================================ */
-/* Shortcuts */
+/* Footer - One Line Design */
 /* ============================================================ */
-.shortcuts {
-    margin-bottom: 1rem;
-    padding: 0.5rem;
-    border: 1px solid var(--foreground2);
-    font-size: 0.85rem;
+
+/* ============================================================ */
+/* Main Content - Split Screen */
+/* ============================================================ */
+.main-content {
+    display: flex;
+    gap: 0.5rem;
+    flex: 1;
+    overflow: hidden;
+    margin-bottom: 0.25rem;
+}
+
+.left-column {
+    flex: 0 0 33.33%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    overflow: hidden;
+}
+
+.detail-column {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
 
 /* ============================================================ */
 /* Agents Table - TUI Style */
 /* ============================================================ */
 .agents-section {
-    margin-bottom: 1rem;
+    border: 1px solid #a6e3a1; /* Catppuccin green */
+    border-radius: 6px;
+    padding: 0.25rem;
+    flex: 1;
+    overflow-y: auto;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
+}
+
+.agents-section::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
 }
 
 .sparkline {
     display: inline-block;
-    margin-left: 0.5rem;
+    margin-left: 0.35rem;
     font-family: monospace;
-    font-size: 1.1em;
-    letter-spacing: 0.1em;
+    font-size: 0.9em;
+    letter-spacing: 0.05em;
     color: var(--accent1);
 }
 
 #agents-table {
     width: 100%;
     border-collapse: collapse;
+    border-spacing: 0;
     font-family: monospace;
     border: none !important;
 }
 
-#agents-table * {
-    border: none !important;
+/* Override WebTUI table border system (uses pseudo-elements) */
+#agents-table {
+    --table-border-width: 0 !important;
+    --table-border-color: transparent !important;
+}
+
+#agents-table:before,
+#agents-table tr th:before,
+#agents-table tr td:before,
+#agents-table tr th:after,
+#agents-table tr td:after {
+    display: none !important;
 }
 
 #agents-table thead td {
-    padding: 0.5rem;
+    padding: 0.25rem 0.35rem;
     text-transform: uppercase;
     font-weight: bold;
     color: var(--foreground2);
+    font-size: 0.7rem;
 }
 
 #agents-table thead td:first-child {
-    padding-left: 1.5rem;
+    padding-left: 1.2rem;
 }
 
 #agents-table tbody td {
-    padding: 0.5rem;
+    padding: 0.25rem 0.35rem;
+    font-size: 0.75rem;
 }
 
 #agents-table .agent-row {
     cursor: pointer;
+    transition: background-color 0.1s;
+}
+
+#agents-table .agent-row.selected {
+    background: var(--background2);
+}
+
+#agents-table .agent-row:hover {
+    background: var(--background1);
 }
 
 /* TUI-style arrow cursor indicator */
 #agents-table .agent-row td:first-child {
     position: relative;
-    padding-left: 1.5rem;
+    padding-left: 1.2rem;
 }
 
 #agents-table .agent-row.selected td:first-child::before {
     content: '>';
     position: absolute;
-    left: 0.25rem;
+    left: 0.2rem;
     color: var(--accent1);
     font-weight: bold;
 }
@@ -150,69 +216,69 @@ body {
 }
 
 /* ============================================================ */
-/* Detail View Overlay */
+/* Detail View Panel (Split Screen) */
 /* ============================================================ */
-#detail-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
+#detail-panel {
+    border: 1px solid #89b4fa; /* Catppuccin blue */
+    border-radius: 6px;
+    padding: 0.5rem;
+    background: var(--background0);
+    overflow-y: auto;
     height: 100%;
-    background: rgba(0, 0, 0, 0.85);
-    z-index: 9999;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+#detail-panel::-webkit-scrollbar {
+    display: none;
+}
+
+.detail-panel-empty {
     display: flex;
     align-items: center;
     justify-content: center;
-    backdrop-filter: blur(4px);
 }
 
-.detail-container {
-    background: var(--background0);
-    border: 2px solid var(--foreground2);
-    max-width: 900px;
-    width: 90%;
-    max-height: 80vh;
-    overflow-y: auto;
-    padding: 1.5rem;
+.detail-placeholder {
+    color: var(--foreground2);
+    font-size: 0.8rem;
 }
 
 .detail-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 1.5rem;
-    padding-bottom: 0.75rem;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
     border-bottom: 1px solid var(--foreground2);
 }
 
 .detail-header h2 {
     margin: 0;
-    font-size: 1.5rem;
+    font-size: 1rem;
+}
+
+.detail-status {
+    font-size: 0.75rem;
+    color: var(--foreground2);
 }
 
 .detail-content {
-    display: grid;
-    gap: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
 }
 
 .chart-section {
     border: 1px solid var(--foreground2);
-    padding: 1rem;
+    border-radius: 4px;
+    padding: 0.5rem;
 }
 
 .chart-section h3 {
-    margin: 0 0 1rem 0;
-    font-size: 0.9rem;
+    margin: 0 0 0.5rem 0;
+    font-size: 0.7rem;
     text-transform: uppercase;
-    color: var(--foreground2);
-}
-
-.detail-footer {
-    margin-top: 1.5rem;
-    padding-top: 0.75rem;
-    border-top: 1px solid var(--foreground2);
-    text-align: center;
-    font-size: 0.85rem;
     color: var(--foreground2);
 }
 
@@ -221,48 +287,72 @@ body {
 /* Footer */
 /* ============================================================ */
 footer {
-    margin-top: 1rem;
-    padding: 0.75rem;
+    padding: 0.35rem 0.5rem;
     font-size: 0.7rem;
-    color: var(--foreground2);
-    border-top: 1px solid var(--foreground2);
+    color: #89b4fa; /* Catppuccin blue */
+    border: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    flex-shrink: 0;
+}
+
+.footer-left {
+    flex: 1;
     display: flex;
     align-items: center;
-    flex-wrap: wrap;
+    gap: 0.5ch;
+}
+
+.footer-right {
+    display: flex;
+    align-items: center;
     gap: 1rem;
 }
 
-.footer-status {
-    display: inline-flex;
-    gap: 1rem;
+.status-compact {
+    cursor: help;
+    color: var(--foreground2);
+    position: relative;
 }
 
-.footer-status-item {
-    display: inline-block;
+.status-compact:hover::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 100%;
+    right: 0;
+    background: var(--background2);
+    border: 1px solid var(--foreground2);
+    padding: 0.25rem 0.5rem;
+    white-space: nowrap;
+    font-size: 0.7rem;
+    margin-bottom: 0.25rem;
+    z-index: 1000;
+}
+
+.kbd-clickable {
+    cursor: pointer;
+    transition: all 0.1s;
+}
+
+.kbd-clickable:hover {
+    background: var(--accent1);
+    color: var(--background0);
 }
 
 /* ============================================================ */
 /* Invite */
 /* ============================================================ */
-.invite-inline {
-    display: inline-block;
-    margin-left: 1rem;
-}
-
-.invite-inline button {
-    font-size: 0.75rem;
-    padding: 0.25rem 0.5rem;
-}
-
 .invite-url-inline {
     display: inline-block;
-    margin-left: 0.5rem;
     padding: 0.25rem 0.5rem;
     background: var(--background1);
     border: 1px solid var(--foreground2);
     font-size: 0.7rem;
     cursor: pointer;
-    max-width: 400px;
+    max-width: 300px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -270,4 +360,74 @@ footer {
 
 .invite-url-inline:hover {
     background: var(--background2);
+}
+
+/* ============================================================ */
+/* Responsive Design */
+/* ============================================================ */
+
+/* Hide MEM and DISK on smaller screens */
+@media (max-width: 1200px) {
+    #agents-table thead td:nth-child(3),
+    #agents-table thead td:nth-child(4),
+    #agents-table tbody td:nth-child(3),
+    #agents-table tbody td:nth-child(4) {
+        display: none;
+    }
+}
+
+/* Hide CPU on even smaller screens */
+@media (max-width: 900px) {
+    #agents-table thead td:nth-child(2),
+    #agents-table tbody td:nth-child(2) {
+        display: none;
+    }
+}
+
+/* Mobile: Stack vertically */
+@media (max-width: 500px) {
+    body {
+        height: auto;
+        overflow: auto;
+    }
+
+    .main-content {
+        flex-direction: column;
+        overflow: auto;
+    }
+
+    .left-column {
+        flex: 0 0 auto;
+        width: 100%;
+        max-height: none;
+    }
+
+    .detail-column {
+        flex: 0 0 auto;
+        width: 100%;
+        min-height: 400px;
+    }
+
+    .log-box {
+        height: 100px;
+    }
+
+    .agents-section {
+        max-height: 300px;
+    }
+
+    #detail-panel {
+        min-height: 400px;
+    }
+
+    footer {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+
+    .footer-left,
+    .footer-right {
+        width: 100%;
+    }
 }

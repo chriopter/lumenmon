@@ -23,9 +23,4 @@ def get_agents():
 def get_agents_table():
     """Get agents table as HTML fragment."""
     agents = get_all_agents()
-    response = render_template('table_rows.html', agents=agents)
-    return response, 200, {
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0'
-    }
+    return render_template('table_rows.html', agents=agents)

@@ -13,25 +13,31 @@ Loads CSS, Chart.js vendor library, and initializes components. Served by Flask 
     <link rel="stylesheet" href="/css/styles.css?v={{ v }}">
 </head>
 <body>
-    {% include 'logger.html' %}
-
-    <div class="shortcuts">
-        <kbd>↑/k</kbd> <kbd>↓/j</kbd> navigate · <kbd>enter</kbd> detail · <kbd>i</kbd> invite · <kbd>r</kbd> refresh · <kbd>h</kbd> help · <kbd>esc</kbd> close
+    <div class="main-content">
+        <div class="left-column">
+            {% include 'logger.html' %}
+            {% include 'table.html' %}
+        </div>
+        <div class="detail-column">
+            <div id="detail-panel" class="detail-panel-empty">
+                <span class="detail-placeholder">← Select an agent and press <kbd>Enter</kbd></span>
+            </div>
+        </div>
     </div>
 
-    {% include 'table.html' %}
-
     <footer>
-        <div class="footer-status">
-            <span class="footer-status-item">console: online</span>
-            <span class="footer-status-item">ssh: 2345</span>
-            <span class="footer-status-item">web: 8080</span>
+        <div class="footer-left">
+            <kbd>↑/k</kbd> <kbd>↓/j</kbd> navigate · <kbd>enter</kbd> detail · <kbd onclick="createInvite()" class="kbd-clickable" title="click to create invite">i</kbd> invite · <kbd>r</kbd> refresh · <kbd>h</kbd> help · <kbd>esc</kbd> close
         </div>
-        {% include 'invite.html' %}
+        <div class="footer-right">
+            <span class="status-compact" data-tooltip="ssh: 2345 · web: 8080">console: online</span>
+            <span id="invite-container-inline"></span>
+        </div>
     </footer>
 
     <script src="/js/vendor/chart.js?v={{ v }}"></script>
     {% include 'detail.html' %}
     {% include 'keyboard.html' %}
+    {% include 'invite.html' %}
 </body>
 </html>
