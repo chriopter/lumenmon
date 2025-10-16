@@ -6,11 +6,15 @@ from flask import Flask, jsonify, render_template
 from agents import agents_bp
 from invites import invites_bp
 import os
+import time
 
 # Configure template and static directories
 template_dir = os.path.join(os.path.dirname(__file__), '..', 'public', 'html')
 static_dir = os.path.join(os.path.dirname(__file__), '..', 'public')
 app = Flask(__name__, template_folder=template_dir, static_folder=static_dir, static_url_path='')
+
+# Cache-busting version (timestamp at startup)
+CACHE_VERSION = str(int(time.time()))
 
 # Register blueprints
 app.register_blueprint(agents_bp)
@@ -19,7 +23,7 @@ app.register_blueprint(invites_bp)
 @app.route('/', methods=['GET'])
 def index():
     """Serve the main dashboard page."""
-    return render_template('index.html')
+    return render_template('index.html', v=CACHE_VERSION)
 
 @app.route('/health', methods=['GET'])
 def health():

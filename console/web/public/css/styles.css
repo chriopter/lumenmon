@@ -81,7 +81,11 @@ body {
     width: 100%;
     border-collapse: collapse;
     font-family: monospace;
-    border: none;
+    border: none !important;
+}
+
+#agents-table * {
+    border: none !important;
 }
 
 #agents-table thead td {
@@ -89,17 +93,10 @@ body {
     text-transform: uppercase;
     font-weight: bold;
     color: var(--foreground2);
-    border: none;
 }
 
 #agents-table tbody td {
     padding: 0.5rem;
-    border: none;
-}
-
-#agents-table thead tr,
-#agents-table tbody tr {
-    border: none;
 }
 
 #agents-table .agent-row {
