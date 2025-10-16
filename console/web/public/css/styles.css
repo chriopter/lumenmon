@@ -504,3 +504,79 @@ footer {
         width: 100%;
     }
 }
+
+/* ============================================================ */
+/* TSV Files Section */
+/* ============================================================ */
+.tsv-files-section {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--foreground2);
+}
+
+.tsv-files-section h3 {
+    margin: 0 0 0.5rem 0;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    color: var(--foreground2);
+}
+
+.tsv-files-list {
+    font-family: monospace;
+    font-size: 0.75rem;
+}
+
+.tsv-table {
+    width: 100%;
+    border-collapse: collapse;
+    border-spacing: 0;
+    border: none;
+}
+
+.tsv-table thead th {
+    text-align: left;
+    padding: 0.25rem 0.35rem;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    color: var(--foreground2);
+    border: none;
+}
+
+.tsv-table tbody td {
+    padding: 0.25rem 0.35rem;
+    font-size: 0.75rem;
+    border: none;
+}
+
+.tsv-filename {
+    color: var(--accent2);
+    font-weight: bold;
+    white-space: nowrap;
+}
+
+.tsv-lastline {
+    color: var(--foreground1);
+    font-family: monospace;
+    font-size: 0.7rem;
+}
+
+.tsv-lastline code {
+    background: var(--background1);
+    padding: 0.1rem 0.3rem;
+    border-radius: 3px;
+    display: inline-block;
+}
+
+.loading-text,
+.no-data-text,
+.error-text {
+    display: block;
+    text-align: center;
+    padding: 1rem;
+    color: var(--foreground2);
+    font-style: italic;
+}
+
+.error-text {
+    color: var(--accent4);
+}

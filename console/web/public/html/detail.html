@@ -93,10 +93,18 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
                         <canvas id="disk-chart"></canvas>
                     </div>
                 </div>
+
+                <div class="tsv-files-section">
+                    <h3>all tsv files</h3>
+                    <div id="tsv-files-list" class="tsv-files-list">
+                        <span class="loading-text">Loading TSV files...</span>
+                    </div>
+                </div>
             </div>
         `;
 
             renderCharts(agent);
+            loadTsvFiles(agent.id);
 
             // Start auto-refresh if not already running
             if (!detailRefreshInterval) {
@@ -287,5 +295,37 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
             const index = Math.floor(normalized * (blocks.length - 1));
             return blocks[index];
         }).join('');
+    }
+
+    async function loadTsvFiles(agentId) {
+        try {
+            const response = await fetch(`/api/agents/${agentId}/tsv`);
+            if (!response.ok) {
+                throw new Error(`HTTP error ${response.status}`);
+            }
+
+            const data = await response.json();
+            const tsvFilesList = document.getElementById('tsv-files-list');
+
+            if (!data.tsv_files || data.tsv_files.length === 0) {
+                tsvFilesList.innerHTML = '<span class="no-data-text">No TSV files found</span>';
+                return;
+            }
+
+            // Build the TSV files list
+            let html = '';
+            data.tsv_files.forEach(file => {
+                html += `<div class="tsv-row">`;
+                html += `<span class="tsv-filename">${file.filename}</span>`;
+                html += `<span class="tsv-lastline">${file.lastLine}</span>`;
+                html += `</div>`;
+            });
+
+            tsvFilesList.innerHTML = html;
+        } catch (error) {
+            console.error('Error loading TSV files:', error);
+            const tsvFilesList = document.getElementById('tsv-files-list');
+            tsvFilesList.innerHTML = '<span class="error-text">Failed to load TSV files</span>';
+        }
     }
 </script>

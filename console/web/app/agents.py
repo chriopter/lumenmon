@@ -4,7 +4,7 @@
 
 from flask import Blueprint, jsonify, render_template
 import time
-from metrics import get_all_agents
+from metrics import get_all_agents, get_agent_tsv_files
 
 agents_bp = Blueprint('agents', __name__)
 
@@ -24,3 +24,14 @@ def get_agents_table():
     """Get agents table as HTML fragment."""
     agents = get_all_agents()
     return render_template('table_rows.html', agents=agents)
+
+@agents_bp.route('/api/agents/<agent_id>/tsv', methods=['GET'])
+def get_agent_tsv(agent_id):
+    """Get all TSV files and their latest data for a specific agent."""
+    tsv_files = get_agent_tsv_files(agent_id)
+    return jsonify({
+        'agent_id': agent_id,
+        'tsv_files': tsv_files,
+        'count': len(tsv_files),
+        'timestamp': int(time.time())
+    })
