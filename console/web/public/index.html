@@ -1,507 +1,252 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-webtui-theme="catppuccin-mocha">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lumenmon Console</title>
     <link rel="stylesheet" href="/css/webtui.css">
+    <link rel="stylesheet" href="/css/catppuccin.css">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
         body {
-            margin: 0;
-            padding: 0;
-            font-family: 'Courier New', 'Consolas', 'Monaco', monospace;
-            background: #0a0a0a;
-            color: #e0e0e0;
-            min-height: 100vh;
-            overflow-x: hidden;
-        }
-
-        /* Startup Animation */
-        #startup-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: #000;
-            z-index: 9999;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: opacity 0.3s;
-        }
-
-        #boot-screen {
-            max-width: 900px;
-            width: 90%;
-        }
-
-        #logo-display {
-            color: #00ff00;
-            font-size: 10px;
-            line-height: 1.2;
-            margin-bottom: 2rem;
-            text-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
-        }
-
-        #boot-messages {
-            font-size: 14px;
-            line-height: 1.8;
-        }
-
-        #boot-prompt {
-            margin-top: 2rem;
-            color: #666;
-            font-size: 12px;
-            animation: blink 1.5s infinite;
-        }
-
-        @keyframes blink {
-            0%, 50% { opacity: 1; }
-            51%, 100% { opacity: 0; }
-        }
-
-        /* Main Interface */
-        .hidden {
-            display: none !important;
-        }
-
-        .container {
+            margin: 1rem;
             max-width: 1400px;
-            margin: 0 auto;
-            padding: 1rem;
         }
 
-        /* Terminal-style header */
-        header {
-            border: 2px solid #333;
-            padding: 1rem;
+        .log-box {
             margin-bottom: 1rem;
-            background: #0f0f0f;
-            position: relative;
-        }
-
-        header::before {
-            content: '┌';
-            position: absolute;
-            top: -2px;
-            left: -2px;
-        }
-
-        header::after {
-            content: '┐';
-            position: absolute;
-            top: -2px;
-            right: -2px;
-        }
-
-        h1 {
-            font-size: 1.8rem;
-            color: #0f0;
-            text-align: center;
-            letter-spacing: 2px;
-            text-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
-        }
-
-        .subtitle {
-            text-align: center;
-            color: #888;
-            font-size: 0.9rem;
-            margin-top: 0.5rem;
-        }
-
-        /* Keyboard shortcuts bar */
-        .shortcuts-bar {
-            background: #1a1a1a;
-            border: 1px solid #333;
-            padding: 0.5rem 1rem;
-            margin-bottom: 1rem;
+            padding: 1rem;
+            border: 1px solid var(--foreground2);
+            background: var(--background1);
+            max-height: 300px;
+            overflow-y: auto;
             font-size: 0.85rem;
-            display: flex;
-            gap: 2rem;
-            flex-wrap: wrap;
         }
 
-        .shortcut-item {
-            color: #888;
+        .logo-ascii {
+            color: var(--accent1);
+            font-size: 8px;
+            line-height: 1.1;
+            margin-bottom: 0.5rem;
+            white-space: pre;
         }
 
-        .shortcut-item kbd {
-            background: #333;
-            border: 1px solid #555;
-            padding: 0.1rem 0.4rem;
-            border-radius: 2px;
-            color: #0f0;
-            font-family: inherit;
-            font-size: 0.9em;
+        .log-entry {
+            margin: 0.25rem 0;
+            color: var(--foreground1);
         }
 
-        /* Sections */
-        section {
-            border: 1px solid #333;
+        .log-timestamp {
+            color: var(--foreground2);
+            margin-right: 0.5rem;
+        }
+
+        .log-level-info {
+            color: var(--accent2);
+        }
+
+        .log-level-success {
+            color: var(--accent3);
+        }
+
+        .log-level-error {
+            color: var(--accent4);
+        }
+
+        .shortcuts {
             margin-bottom: 1rem;
-            background: #0f0f0f;
+            padding: 0.5rem;
+            border: 1px solid var(--foreground2);
+            font-size: 0.85rem;
+        }
+
+        section {
+            margin-bottom: 1.5rem;
         }
 
         h2 {
-            background: #1a1a1a;
-            padding: 0.5rem 1rem;
-            border-bottom: 1px solid #333;
             font-size: 1rem;
-            color: #0ff;
-            font-weight: normal;
+            margin: 0 0 0.5rem 0;
+            padding: 0.5rem;
+            background: var(--background2);
+            border: 1px solid var(--foreground2);
         }
 
         .section-content {
             padding: 1rem;
+            border: 1px solid var(--foreground2);
+            border-top: none;
         }
 
-        /* Status grid */
         .status-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
             gap: 0.5rem;
         }
 
         .status-item {
-            border: 1px solid #333;
-            padding: 0.75rem;
-            background: #1a1a1a;
+            padding: 0.5rem;
+            border: 1px solid var(--foreground2);
         }
 
         .status-label {
-            color: #888;
-            font-size: 0.85rem;
-            margin-bottom: 0.25rem;
+            font-size: 0.75rem;
+            color: var(--foreground2);
         }
 
         .status-value {
-            color: #0f0;
-            font-weight: bold;
-        }
-
-        /* Buttons */
-        .btn {
-            background: #1a1a1a;
-            color: #0ff;
-            border: 1px solid #0ff;
-            padding: 0.5rem 1rem;
-            font-family: inherit;
             font-size: 0.9rem;
-            cursor: pointer;
-            transition: all 0.2s;
+            margin-top: 0.25rem;
         }
 
-        .btn:hover {
-            background: #0ff;
-            color: #000;
-        }
-
-        .btn:active {
-            transform: scale(0.98);
-        }
-
-        /* Invite box */
         .invite-box {
-            border: 1px solid #333;
-            background: #1a1a1a;
-            padding: 1rem;
             margin-top: 1rem;
+            padding: 1rem;
+            border: 1px solid var(--foreground2);
         }
 
         .invite-url {
-            background: #0a0a0a;
-            border: 1px solid #333;
-            padding: 0.75rem;
-            font-size: 0.85rem;
-            word-break: break-all;
             margin: 0.5rem 0;
+            padding: 0.5rem;
+            background: var(--background1);
+            border: 1px solid var(--foreground2);
+            word-break: break-all;
             cursor: pointer;
-            color: #0ff;
+            font-size: 0.85rem;
         }
 
         .invite-url:hover {
-            border-color: #0ff;
-            background: #1a1a1a;
+            background: var(--background2);
         }
 
-        /* Messages */
         .message {
             margin-top: 0.5rem;
             font-size: 0.9rem;
         }
 
-        .success { color: #0f0; }
-        .error { color: #f00; }
-        .loading { color: #ff0; }
-
-        /* Table */
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.9rem;
-        }
-
-        thead {
-            background: #1a1a1a;
-            border-bottom: 1px solid #333;
-        }
-
-        th {
-            padding: 0.75rem;
-            text-align: left;
-            font-weight: normal;
-            color: #0ff;
-            border-right: 1px solid #222;
-        }
-
-        th:last-child {
-            border-right: none;
-        }
-
-        td {
-            padding: 0.75rem;
-            border-bottom: 1px solid #222;
-            border-right: 1px solid #222;
-        }
-
-        td:last-child {
-            border-right: none;
-        }
-
-        tbody tr:hover {
-            background: #1a1a1a;
-        }
-
-        /* Badges */
-        .badge {
-            display: inline-block;
-            padding: 0.2rem 0.5rem;
-            font-size: 0.75rem;
-            border: 1px solid;
-        }
-
-        .badge-online {
-            color: #0f0;
-            border-color: #0f0;
-            background: rgba(0, 255, 0, 0.1);
-        }
-
-        .badge-stale {
-            color: #ff0;
-            border-color: #ff0;
-            background: rgba(255, 255, 0, 0.1);
-        }
-
-        .badge-offline {
-            color: #f00;
-            border-color: #f00;
-            background: rgba(255, 0, 0, 0.1);
-        }
-
-        /* Metrics */
-        .metric {
-            font-family: 'Courier New', monospace;
-            color: #0f0;
-        }
-
-        code {
-            background: #1a1a1a;
-            border: 1px solid #333;
-            padding: 0.1rem 0.4rem;
-            color: #0ff;
-            font-family: inherit;
-        }
-
-        /* No data */
         .no-data {
             text-align: center;
             padding: 2rem;
-            color: #666;
-            border: 1px dashed #333;
+            color: var(--foreground2);
+            border: 1px dashed var(--foreground2);
         }
 
-        /* Footer */
+        .metric-bar {
+            display: inline-block;
+            margin-left: 0.5rem;
+        }
+
         footer {
             margin-top: 2rem;
-            text-align: center;
-            color: #666;
-            font-size: 0.85rem;
             padding: 1rem;
-            border-top: 1px solid #333;
-        }
-
-        /* Help Dialog */
-        #help-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.9);
-            z-index: 9998;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            opacity: 1;
-            transition: opacity 0.2s;
-        }
-
-        .help-dialog {
-            background: #0a0a0a;
-            border: 2px solid #0ff;
-            padding: 2rem;
-            max-width: 600px;
-            width: 90%;
-        }
-
-        .help-dialog h3 {
-            color: #0ff;
-            font-size: 1.2rem;
-            margin-bottom: 1.5rem;
             text-align: center;
-        }
-
-        .shortcuts-list {
-            display: grid;
-            gap: 0.75rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .shortcut {
-            display: flex;
-            justify-content: space-between;
-            padding: 0.5rem;
-            background: #1a1a1a;
-            border: 1px solid #333;
-        }
-
-        .shortcut kbd {
-            background: #333;
-            padding: 0.2rem 0.6rem;
-            border: 1px solid #555;
-            color: #0f0;
-        }
-
-        .help-footer {
-            text-align: center;
-            color: #666;
             font-size: 0.85rem;
-        }
-
-        /* Toast notifications */
-        .toast {
-            position: fixed;
-            bottom: 2rem;
-            right: 2rem;
-            background: #1a1a1a;
-            border: 1px solid #0ff;
-            padding: 1rem 1.5rem;
-            z-index: 9997;
-            opacity: 1;
-            transition: opacity 0.3s;
-            max-width: 400px;
-        }
-
-        .toast-success {
-            border-color: #0f0;
-            color: #0f0;
-        }
-
-        .toast-error {
-            border-color: #f00;
-            color: #f00;
-        }
-
-        .toast-info {
-            border-color: #0ff;
-            color: #0ff;
+            color: var(--foreground2);
+            border-top: 1px solid var(--foreground2);
         }
     </style>
 </head>
 <body>
-    <div id="main-interface" class="hidden">
-        <div class="container">
-            <header>
-                <h1>LUMENMON CONSOLE</h1>
-                <p class="subtitle">Lightweight System Monitoring // v0.1</p>
-            </header>
-
-            <div class="shortcuts-bar">
-                <span class="shortcut-item"><kbd>i</kbd> Create Invite</span>
-                <span class="shortcut-item"><kbd>r</kbd> Refresh</span>
-                <span class="shortcut-item"><kbd>h</kbd> Help</span>
-                <span class="shortcut-item"><kbd>ESC</kbd> Close</span>
-            </div>
-
-            <section>
-                <h2>│ SYSTEM STATUS</h2>
-                <div class="section-content">
-                    <div class="status-grid">
-                        <div class="status-item">
-                            <div class="status-label">CONSOLE</div>
-                            <div class="status-value">● ONLINE</div>
-                        </div>
-                        <div class="status-item">
-                            <div class="status-label">SSH SERVER</div>
-                            <div class="status-value">PORT 2345</div>
-                        </div>
-                        <div class="status-item">
-                            <div class="status-label">WEB SERVER</div>
-                            <div class="status-value">CADDY</div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <section>
-                <h2>│ AGENT ENROLLMENT</h2>
-                <div class="section-content">
-                    <button class="btn" onclick="createInvite()">[ CREATE INVITE ]</button>
-                    <div id="invite-container"></div>
-                </div>
-            </section>
-
-            <section>
-                <h2>│ CONNECTED AGENTS</h2>
-                <div class="section-content">
-                    <div id="agents-container">
-                        <div class="no-data loading">LOADING AGENTS...</div>
-                    </div>
-                </div>
-            </section>
-
-            <footer>
-                └─ TUI: <code>lumenmon</code> │ Invite: <code>lumenmon invite</code> │ Press <code>h</code> for help ─┘
-            </footer>
-        </div>
+    <div class="log-box" id="log-box">
+        <div class="logo-ascii">  ██╗     ██╗   ██╗███╗   ███╗███████╗███╗   ██╗███╗   ███╗ ██████╗ ███╗   ██╗
+  ██║     ██║   ██║████╗ ████║██╔════╝████╗  ██║████╗ ████║██╔═══██╗████╗  ██║
+  ██║     ██║   ██║██╔████╔██║█████╗  ██╔██╗ ██║██╔████╔██║██║   ██║██╔██╗ ██║
+  ██║     ██║   ██║██║╚██╔╝██║██╔══╝  ██║╚██╗██║██║╚██╔╝██║██║   ██║██║╚██╗██║
+  ███████╗╚██████╔╝██║ ╚═╝ ██║███████╗██║ ╚████║██║ ╚═╝ ██║╚██████╔╝██║ ╚████║
+  ╚══════╝ ╚═════╝ ╚═╝     ╚═╝╚══════╝╚═╝  ╚═══╝╚═╝     ╚═╝ ╚═════╝ ╚═╝  ╚═══╝</div>
+        <div id="log-entries"></div>
     </div>
 
-    <!-- External JS -->
-    <script src="/js/startup.js"></script>
+    <div class="shortcuts">
+        <kbd>i</kbd> invite · <kbd>r</kbd> refresh · <kbd>h</kbd> help · <kbd>esc</kbd> close
+    </div>
+
+    <section>
+        <h2>STATUS</h2>
+            <div class="section-content">
+                <div class="status-grid">
+                    <div class="status-item">
+                        <div class="status-label">console</div>
+                        <div class="status-value">online</div>
+                    </div>
+                    <div class="status-item">
+                        <div class="status-label">ssh</div>
+                        <div class="status-value">:2345</div>
+                    </div>
+                    <div class="status-item">
+                        <div class="status-label">web</div>
+                        <div class="status-value">:8080</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <h2>INVITE</h2>
+            <div class="section-content">
+                <button onclick="createInvite()">create invite</button>
+                <div id="invite-container"></div>
+            </div>
+        </section>
+
+        <section>
+            <h2>AGENTS</h2>
+            <div class="section-content">
+                <div id="agents-container">
+                    <div class="no-data">loading...</div>
+                </div>
+            </div>
+        </section>
+
+    <footer>
+        lumenmon console
+    </footer>
+
     <script src="/js/keyboard.js"></script>
 
-    <!-- Main application logic -->
     <script>
-        // Fetch and display agent data
+        // Logging system
+        function addLog(message, level = 'info') {
+            const logEntries = document.getElementById('log-entries');
+            const timestamp = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.innerHTML = `<span class="log-timestamp">[${timestamp}]</span><span class="log-level-${level}">${message}</span>`;
+            logEntries.appendChild(entry);
+
+            // Auto-scroll to bottom
+            const logBox = document.getElementById('log-box');
+            logBox.scrollTop = logBox.scrollHeight;
+
+            // Keep max 50 entries
+            while (logEntries.children.length > 50) {
+                logEntries.removeChild(logEntries.firstChild);
+            }
+        }
+
+        let previousAgentCount = 0;
+
         async function fetchAgents() {
             try {
                 const response = await fetch('/api/agents');
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const data = await response.json();
                 displayAgents(data);
+
+                // Log agent changes
+                if (data.agents) {
+                    const currentCount = data.agents.length;
+                    if (previousAgentCount !== 0 && currentCount > previousAgentCount) {
+                        addLog(`agent connected (total: ${currentCount})`, 'success');
+                    } else if (previousAgentCount !== 0 && currentCount < previousAgentCount) {
+                        addLog(`agent disconnected (total: ${currentCount})`, 'error');
+                    }
+                    previousAgentCount = currentCount;
+                }
             } catch (error) {
-                console.error('Error fetching agents:', error);
+                console.error('Error:', error);
                 document.getElementById('agents-container').innerHTML =
-                    `<div class="no-data error">ERROR: ${error.message}</div>`;
+                    `<div class="no-data">error: ${error.message}</div>`;
+                addLog(`error fetching agents: ${error.message}`, 'error');
             }
         }
 
@@ -509,59 +254,54 @@
             const container = document.getElementById('agents-container');
 
             if (!data.agents || data.agents.length === 0) {
-                container.innerHTML = `
-                    <div class="no-data">
-                        NO AGENTS CONNECTED<br>
-                        <small>Run <code>lumenmon invite</code> to get started</small>
-                    </div>
-                `;
+                container.innerHTML = '<div class="no-data">no agents connected</div>';
                 return;
             }
 
-            // Build table
             let html = `
                 <table>
                     <thead>
                         <tr>
-                            <th>AGENT ID</th>
-                            <th>STATUS</th>
-                            <th>CPU</th>
-                            <th>MEMORY</th>
-                            <th>DISK</th>
-                            <th>AGE</th>
+                            <td>id</td>
+                            <td>status</td>
+                            <td>cpu</td>
+                            <td>mem</td>
+                            <td>disk</td>
+                            <td>age</td>
                         </tr>
                     </thead>
                     <tbody>
             `;
 
             data.agents.forEach(agent => {
-                const statusClass = `badge-${agent.status}`;
-                const statusText = agent.status.toUpperCase();
                 const age = formatAge(agent.age);
-
-                // Simple bar representation using block characters
                 const cpuBar = generateBar(agent.cpu);
                 const memBar = generateBar(agent.memory);
                 const diskBar = generateBar(agent.disk);
 
                 html += `
                     <tr>
-                        <td><code>${agent.id}</code></td>
-                        <td><span class="badge ${statusClass}">${statusText}</span></td>
-                        <td class="metric">${agent.cpu.toFixed(1)}% ${cpuBar}</td>
-                        <td class="metric">${agent.memory.toFixed(1)}% ${memBar}</td>
-                        <td class="metric">${agent.disk.toFixed(1)}% ${diskBar}</td>
+                        <td>${agent.id}</td>
+                        <td><span is-="badge" variant-="${getBadgeVariant(agent.status)}">${agent.status}</span></td>
+                        <td>${agent.cpu.toFixed(1)}%<span class="metric-bar">${cpuBar}</span></td>
+                        <td>${agent.memory.toFixed(1)}%<span class="metric-bar">${memBar}</span></td>
+                        <td>${agent.disk.toFixed(1)}%<span class="metric-bar">${diskBar}</span></td>
                         <td>${age}</td>
                     </tr>
                 `;
             });
 
-            html += `
-                    </tbody>
-                </table>
-            `;
-
+            html += '</tbody></table>';
             container.innerHTML = html;
+        }
+
+        function getBadgeVariant(status) {
+            const variants = {
+                'online': 'foreground0',
+                'stale': 'foreground1',
+                'offline': 'foreground2'
+            };
+            return variants[status] || 'foreground2';
         }
 
         function generateBar(value) {
@@ -576,62 +316,57 @@
             return `${Math.floor(seconds / 86400)}d`;
         }
 
-        // Create invite
         async function createInvite() {
             const container = document.getElementById('invite-container');
-            container.innerHTML = '<div class="message loading">CREATING INVITE...</div>';
+            container.innerHTML = '<div class="message">creating...</div>';
+            addLog('creating invite...', 'info');
 
             try {
-                const response = await fetch('/api/invites/create', {
-                    method: 'POST'
-                });
-
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-
+                const response = await fetch('/api/invites/create', { method: 'POST' });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const data = await response.json();
 
                 if (data.success) {
                     container.innerHTML = `
                         <div class="invite-box">
-                            <p style="color: #888; margin-bottom: 0.5rem;">Click to copy invite URL:</p>
-                            <div class="invite-url" onclick="copyToClipboard('${data.invite_url}')" title="Click to copy">
+                            <div>click to copy:</div>
+                            <div class="invite-url" onclick="copyToClipboard('${data.invite_url}')" title="click to copy">
                                 ${data.invite_url}
                             </div>
-                            <p class="message success">✓ INVITE CREATED | VALID FOR 5 MINUTES</p>
+                            <div class="message">valid for 5 minutes</div>
                         </div>
                     `;
+                    addLog('invite created (valid 5 min)', 'success');
                 } else {
-                    container.innerHTML = `<p class="message error">✗ FAILED: ${data.error}</p>`;
+                    container.innerHTML = `<div class="message">error: ${data.error}</div>`;
+                    addLog(`invite creation failed: ${data.error}`, 'error');
                 }
             } catch (error) {
-                console.error('Error creating invite:', error);
-                container.innerHTML = `<p class="message error">✗ ERROR: ${error.message}</p>`;
+                console.error('Error:', error);
+                container.innerHTML = `<div class="message">error: ${error.message}</div>`;
+                addLog(`invite creation error: ${error.message}`, 'error');
             }
         }
 
-        // Copy to clipboard
         function copyToClipboard(text) {
             navigator.clipboard.writeText(text).then(() => {
                 const container = document.getElementById('invite-container');
-                const successMsg = container.querySelector('.success');
-                if (successMsg) {
-                    successMsg.textContent = '✓ COPIED TO CLIPBOARD!';
-                    setTimeout(() => {
-                        successMsg.textContent = '✓ INVITE CREATED | VALID FOR 5 MINUTES';
-                    }, 2000);
+                const msg = container.querySelector('.message');
+                if (msg) {
+                    msg.textContent = 'copied!';
+                    setTimeout(() => { msg.textContent = 'valid for 5 minutes'; }, 2000);
                 }
+                addLog('invite url copied to clipboard', 'info');
             }).catch(err => {
-                console.error('Failed to copy:', err);
-                alert('Failed to copy to clipboard');
+                console.error('Copy failed:', err);
+                addLog('clipboard copy failed', 'error');
             });
         }
 
-        // Initial fetch
+        // Initialize
+        addLog('console started', 'success');
+        addLog('loading agents...', 'info');
         fetchAgents();
-
-        // Auto-refresh every 3 seconds
         setInterval(fetchAgents, 3000);
     </script>
 </body>

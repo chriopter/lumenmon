@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(chmod:*)"
+      "Bash(chmod:*)",
+      "WebFetch(domain:webtui.ironclad.sh)"
     ],
     "deny": [],
     "ask": []
