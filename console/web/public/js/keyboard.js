@@ -20,7 +20,7 @@ function initKeyboardNavigation() {
         const key = e.key.toLowerCase();
 
         if (key === 'escape') {
-            const inviteContainer = document.getElementById('invite-container');
+            const inviteContainer = document.getElementById('invite-container-inline');
             if (inviteContainer) inviteContainer.innerHTML = '';
             return;
         }
