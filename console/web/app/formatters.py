@@ -2,10 +2,13 @@
 # Formatting utilities for TUI-style sparklines and human-readable timestamps.
 # Used by metrics module to format data for HTML templates.
 
-def generate_tui_sparkline(values):
+def generate_tui_sparkline(values, max_chars=8):
     """Generate TUI-style sparkline using Unicode block characters."""
     if not values or len(values) == 0:
         return ''
+
+    # Limit to last N characters
+    values = values[-max_chars:]
 
     blocks = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█']
 

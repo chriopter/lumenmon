@@ -242,10 +242,7 @@ body {
 }
 
 .agent-symbols {
-    font-family: 'DejaVu Sans Mono', 'Noto Sans Mono', monospace;
-    opacity: 0.5;
-    font-size: 0.9em;
-    letter-spacing: 0.2em;
+    color: #cdd6f4;
 }
 
 /* ============================================================ */
@@ -434,6 +431,13 @@ footer {
     #agents-table tbody td:nth-child(3),
     #agents-table tbody td:nth-child(4) {
         display: none;
+    }
+}
+
+/* Stack charts on medium screens */
+@media (max-width: 1000px) {
+    .charts-grid {
+        grid-template-columns: 1fr;
     }
 }
 

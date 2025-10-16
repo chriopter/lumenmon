@@ -1,6 +1,6 @@
 <!--
 Agents table component with live HTML fragment updates via /api/agents/table.
-Fetches server-rendered rows every 3s. Provides row selection, navigation functions, and getSelectedAgent().
+Fetches server-rendered rows every 1s. Provides row selection, navigation functions, and getSelectedAgent().
 -->
 <div class="agents-section">
     <table id="agents-table">
@@ -126,5 +126,5 @@ Fetches server-rendered rows every 3s. Provides row selection, navigation functi
     addLog('console started', 'success');
     addLog('loading agents...', 'info');
     fetchAgents();
-    setInterval(fetchAgents, 3000);
+    setInterval(fetchAgents, 1000);
 </script>
