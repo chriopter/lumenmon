@@ -61,7 +61,8 @@ install_console() {
 
     # Pre-create data directories
     mkdir -p "$INSTALL_DIR/console/data/ssh" "$INSTALL_DIR/console/data/agents"
-    chmod -R 755 "$INSTALL_DIR/console/data"
+    chmod 755 "$INSTALL_DIR/console/data"
+    chmod 700 "$INSTALL_DIR/console/data/ssh"
 
     # Pull latest image
     status_progress "Pulling latest console image..."
