@@ -104,9 +104,6 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
 
             renderCharts(agent);
             loadTsvFiles(agent.id);
-
-            // Register with global clock for synchronized updates
-            window.globalClock.register(refreshDetailView);
         } catch (error) {
             console.error('Error opening detail view:', error);
             addLog(`error opening detail: ${error.message}`, 'error');
@@ -173,7 +170,6 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
 
     function closeDetailView() {
         detailViewOpen = false;
-        window.globalClock.unregister(refreshDetailView);
         const panel = document.getElementById('detail-panel');
         panel.classList.add('detail-panel-empty');
         panel.innerHTML = '<span class="detail-placeholder">← Select an agent and press <kbd>Enter</kbd></span>';

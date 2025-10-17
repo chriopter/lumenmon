@@ -11,30 +11,6 @@ Loads CSS, Chart.js vendor library, and initializes components. Served by Flask 
     <link rel="stylesheet" href="/css/webtui.css?v={{ v }}">
     <link rel="stylesheet" href="/css/catppuccin.css?v={{ v }}">
     <link rel="stylesheet" href="/css/styles.css?v={{ v }}">
-</head>
-<body>
-    <div class="main-content">
-        <div class="left-column">
-            {% include 'logger.html' %}
-            {% include 'table.html' %}
-        </div>
-        <div class="detail-column">
-            <div id="detail-panel" class="detail-panel-empty">
-                <span class="detail-placeholder">← Select an agent and press <kbd>Enter</kbd></span>
-            </div>
-        </div>
-    </div>
-
-    <footer>
-        <div class="footer-left">
-            <kbd>↑/k</kbd> <kbd>↓/j</kbd> navigate · <span class="kbd-clickable" onclick="openDetailView()" title="click to open detail"><kbd>enter</kbd> detail</span> · <span class="kbd-clickable" onclick="createInvite()" title="click to create invite"><kbd>i</kbd> invite</span> · <span class="kbd-clickable" onclick="fetchAgents(); addLog('manual refresh', 'info');" title="click to refresh"><kbd>r</kbd> refresh</span> · <span class="kbd-clickable" onclick="showHelp()" title="click for help"><kbd>h</kbd> help</span> · <span class="kbd-clickable" onclick="closeDetailView()" title="click to close detail"><kbd>esc</kbd> close</span>
-        </div>
-        <div class="footer-right">
-            <span class="status-compact" data-tooltip="ssh: 2345 · web: 8080">console: online</span>
-        </div>
-    </footer>
-
-    <script src="/js/vendor/chart.js?v={{ v }}"></script>
     <script>
         // Global synchronized clock - all timed updates tick together every second
         window.globalClock = {
@@ -63,6 +39,30 @@ Loads CSS, Chart.js vendor library, and initializes components. Served by Flask 
         // Start the global clock
         setInterval(() => window.globalClock.tick(), 1000);
     </script>
+</head>
+<body>
+    <div class="main-content">
+        <div class="left-column">
+            {% include 'logger.html' %}
+            {% include 'table.html' %}
+        </div>
+        <div class="detail-column">
+            <div id="detail-panel" class="detail-panel-empty">
+                <span class="detail-placeholder">← Select an agent and press <kbd>Enter</kbd></span>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <div class="footer-left">
+            <kbd>↑/k</kbd> <kbd>↓/j</kbd> navigate · <span class="kbd-clickable" onclick="openDetailView()" title="click to open detail"><kbd>enter</kbd> detail</span> · <span class="kbd-clickable" onclick="createInvite()" title="click to create invite"><kbd>i</kbd> invite</span> · <span class="kbd-clickable" onclick="fetchAgents(); addLog('manual refresh', 'info');" title="click to refresh"><kbd>r</kbd> refresh</span> · <span class="kbd-clickable" onclick="showHelp()" title="click for help"><kbd>h</kbd> help</span> · <span class="kbd-clickable" onclick="closeDetailView()" title="click to close detail"><kbd>esc</kbd> close</span>
+        </div>
+        <div class="footer-right">
+            <span class="status-compact" data-tooltip="ssh: 2345 · web: 8080">console: online</span>
+        </div>
+    </footer>
+
+    <script src="/js/vendor/chart.js?v={{ v }}"></script>
     {% include 'detail.html' %}
     {% include 'keyboard.html' %}
     {% include 'invite.html' %}
