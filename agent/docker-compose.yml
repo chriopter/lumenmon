@@ -4,7 +4,8 @@ services:
     build: .
     container_name: lumenmon-agent
     hostname: agent-${AGENT_ID:-default}
-    network_mode: host
+    networks:
+      - lumenmon
     volumes:
       - ./data/ssh:/home/metrics/.ssh
     environment:
@@ -24,3 +25,8 @@ services:
         echo '[agent] Starting...'
         exec /app/agent.sh
       "
+
+networks:
+  lumenmon:
+    name: lumenmon-net
+    external: true
