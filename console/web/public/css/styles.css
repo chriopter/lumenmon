@@ -588,6 +588,30 @@ footer {
     font-weight: bold;
 }
 
+.tsv-value {
+    color: var(--accent1);
+    font-weight: bold;
+}
+
+/* Type badges with color coding */
+.type-text {
+    color: #89b4fa; /* Catppuccin blue */
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.type-real {
+    color: #a6e3a1; /* Catppuccin green */
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.type-integer {
+    color: #f9e2af; /* Catppuccin yellow */
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
 .loading-text,
 .no-data-text,
 .error-text {
@@ -600,4 +624,227 @@ footer {
 
 .error-text {
     color: var(--accent4);
+}
+
+/* ============================================================ */
+/* SQLite Viewer Modal */
+/* ============================================================ */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+.modal-overlay.hidden {
+    display: none;
+}
+
+.modal-content {
+    background: var(--background0);
+    border: 2px solid var(--accent2);
+    border-radius: 8px;
+    width: 80%;
+    max-width: 1000px;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.sqlite-viewer-modal {
+    border-color: #89b4fa; /* Catppuccin blue */
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border-bottom: 1px solid var(--foreground2);
+}
+
+.modal-header h2 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: var(--accent1);
+}
+
+.modal-close {
+    font-size: 1.5rem;
+    color: var(--foreground2);
+    cursor: pointer;
+    line-height: 1;
+}
+
+.modal-close:hover {
+    color: var(--accent4);
+}
+
+.modal-body {
+    flex: 1;
+    overflow: hidden;
+    padding: 1rem;
+}
+
+.modal-footer {
+    padding: 0.75rem 1rem;
+    border-top: 1px solid var(--foreground2);
+    text-align: center;
+}
+
+.help-text {
+    font-size: 0.75rem;
+    color: var(--foreground2);
+}
+
+.sqlite-view {
+    height: 100%;
+    overflow-y: auto;
+    scrollbar-width: thin;
+}
+
+.sqlite-view::-webkit-scrollbar {
+    width: 8px;
+}
+
+.sqlite-view::-webkit-scrollbar-track {
+    background: var(--background1);
+}
+
+.sqlite-view::-webkit-scrollbar-thumb {
+    background: var(--foreground2);
+    border-radius: 4px;
+}
+
+.sqlite-tables-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: monospace;
+    border: none !important;
+}
+
+/* Override WebTUI table border system */
+.sqlite-tables-table {
+    --table-border-width: 0 !important;
+    --table-border-color: transparent !important;
+}
+
+.sqlite-tables-table:before,
+.sqlite-tables-table tr th:before,
+.sqlite-tables-table tr td:before,
+.sqlite-tables-table tr th:after,
+.sqlite-tables-table tr td:after {
+    display: none !important;
+}
+
+.sqlite-tables-table thead td {
+    padding: 0.5rem;
+    text-transform: uppercase;
+    font-weight: bold;
+    color: var(--foreground2);
+    font-size: 0.75rem;
+}
+
+.sqlite-tables-table tbody td {
+    padding: 0.5rem;
+    font-size: 0.8rem;
+    color: var(--foreground1);
+}
+
+.sqlite-table-row {
+    cursor: pointer;
+    transition: background-color 0.1s;
+}
+
+.sqlite-table-row:hover {
+    background: var(--background1);
+}
+
+.sqlite-table-row.selected {
+    background: var(--background2);
+}
+
+.sqlite-table-row.selected td:first-child::before {
+    content: '>';
+    margin-right: 0.5rem;
+    color: var(--accent1);
+    font-weight: bold;
+}
+
+.table-name {
+    color: var(--accent2);
+    font-weight: bold;
+}
+
+.table-data-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--foreground2);
+}
+
+.back-button {
+    padding: 0.25rem 0.75rem;
+    background: var(--background1);
+    border: 1px solid var(--foreground2);
+    color: var(--foreground1);
+    cursor: pointer;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-family: monospace;
+}
+
+.back-button:hover {
+    background: var(--background2);
+    border-color: var(--accent2);
+}
+
+.sqlite-data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: monospace;
+    font-size: 0.75rem;
+    border: none !important;
+}
+
+/* Override WebTUI table border system */
+.sqlite-data-table {
+    --table-border-width: 0 !important;
+    --table-border-color: transparent !important;
+}
+
+.sqlite-data-table:before,
+.sqlite-data-table tr th:before,
+.sqlite-data-table tr td:before,
+.sqlite-data-table tr th:after,
+.sqlite-data-table tr td:after {
+    display: none !important;
+}
+
+.sqlite-data-table thead td {
+    padding: 0.5rem;
+    text-transform: uppercase;
+    font-weight: bold;
+    color: var(--foreground2);
+    font-size: 0.7rem;
+    position: sticky;
+    top: 0;
+    background: var(--background0);
+}
+
+.sqlite-data-table tbody td {
+    padding: 0.5rem;
+    color: var(--foreground1);
+}
+
+.sqlite-data-table tbody tr:hover {
+    background: var(--background1);
 }

@@ -5,6 +5,9 @@
 # Config
 RHYTHM="REPORT"   # Uses REPORT timing from agent.sh
 PREFIX="generic_sys"      # Metric prefix: generic_sys_os, generic_sys_kernel, generic_sys_uptime
+TYPE_OS="TEXT"    # SQLite column type for OS name
+TYPE_KERNEL="TEXT"        # SQLite column type for kernel version
+TYPE_UPTIME="INTEGER"     # SQLite column type for uptime seconds
 
 set -euo pipefail
 
@@ -19,19 +22,19 @@ while true; do
     # Get uptime in seconds
     uptime=$(cut -d. -f1 /proc/uptime)
 
-    # Send system metrics to console
+    # Send system metrics to console with type declarations
     timestamp=$(date +%s)
 
     # OS info
-    echo -e "${PREFIX}_os.tsv\n$timestamp $REPORT $os" | \
+    echo -e "${PREFIX}_os.tsv $TYPE_OS\n$timestamp $REPORT $os" | \
         ssh -S $SSH_SOCKET $AGENT_USER@$CONSOLE_HOST 2>/dev/null
 
     # Kernel info
-    echo -e "${PREFIX}_kernel.tsv\n$timestamp $REPORT $kernel" | \
+    echo -e "${PREFIX}_kernel.tsv $TYPE_KERNEL\n$timestamp $REPORT $kernel" | \
         ssh -S $SSH_SOCKET $AGENT_USER@$CONSOLE_HOST 2>/dev/null
 
     # Uptime info
-    echo -e "${PREFIX}_uptime.tsv\n$timestamp $REPORT $uptime" | \
+    echo -e "${PREFIX}_uptime.tsv $TYPE_UPTIME\n$timestamp $REPORT $uptime" | \
         ssh -S $SSH_SOCKET $AGENT_USER@$CONSOLE_HOST 2>/dev/null
 
     sleep $REPORT

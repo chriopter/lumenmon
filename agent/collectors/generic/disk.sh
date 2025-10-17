@@ -5,6 +5,7 @@
 # Config
 RHYTHM="CYCLE"    # Uses CYCLE timing from agent.sh
 PREFIX="generic_disk"     # Metric prefix: generic_disk_root_usage
+TYPE="REAL"      # SQLite column type for numeric values
 
 set -euo pipefail
 
@@ -17,8 +18,8 @@ while true; do
     # Remove the % sign from percentage
     usage=${percentage%\%}
 
-    # Send to console - no mkdir needed!
-    echo -e "${PREFIX}.tsv\n$(date +%s) $CYCLE $usage" | \
+    # Send to console with type declaration
+    echo -e "${PREFIX}.tsv $TYPE\n$(date +%s) $CYCLE $usage" | \
         ssh -S $SSH_SOCKET $AGENT_USER@$CONSOLE_HOST 2>/dev/null
 
     sleep $CYCLE

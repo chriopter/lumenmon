@@ -19,5 +19,6 @@ echo "[console] ED25519: $(ssh-keygen -lf /data/ssh/ssh_host_ed25519_key | awk '
 echo "[console] ========================================"
 
 echo "[console] Starting SSH authentication server..."
-/usr/sbin/sshd -D -f /app/core/ingress/ssh_config &
+# Start sshd with output redirected to container logs
+/usr/sbin/sshd -D -e -f /app/core/ingress/ssh_config 2>&1 | sed 's/^/[sshd] /' &
 sleep 2

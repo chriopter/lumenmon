@@ -40,29 +40,31 @@ lumenmon help       # Show help (alias: h)
 
 ## How It Works
 
-You can invite clients with a magic link (which is just a per-client ssh account), each client just appends its data to a TSV file in a per-client folder on the Console.
+You can invite clients with a magic link (which is just a per-client ssh account), each client sends metrics via SSH that get stored in a SQLite database on the Console.
 
 
 ```
 ┌─────────────┐  SSH Tunnel   ┌─────────────┐
 │   Agent     │──────────────►│   Console   │
 ├─────────────┤   Port 2345   ├─────────────┤
-│ • CPU 100ms │               │ • SSH Server│──► WebTUI Dashboard
-│ • Mem 1s    │  TSV Stream   │ • Per-agent │
+│ • CPU 1s    │               │ • SSH Server│──► Web Dashboard
+│ • Mem 10s   │  Metric Data  │ • Per-agent │    (port 8080)
 │ • Disk 60s  │──────────────►│   Linux user│
-└─────────────┘               │ • TSV files │
+└─────────────┘               │ • SQLite DB │
                               └─────────────┘
                                     │
                                     ▼
-                              /data/agents/
-                              └── <agent-id>/
-                                  ├── generic_cpu.tsv
-                                  ├── generic_mem.tsv
-                                  └── generic_disk.tsv
+                              /data/metrics.db
+                              (SQLite database)
+                              └── Tables:
+                                  ├── id_xxx_generic_cpu
+                                  ├── id_xxx_generic_mem
+                                  └── id_xxx_generic_disk
 ```
 
-- **Agents** collect metrics (CPU/memory/disk) and push TSV data through a persistent SSH connection.
-- **Console** creates isolated Linux users per agent and appends incoming data to `/data/agents/<id>/*.tsv`.
+- **Agents** collect metrics (CPU/memory/disk) and push data through a persistent SSH connection.
+- **Console** creates isolated Linux users per agent and stores incoming data in SQLite (`/data/metrics.db`).
+- **Storage**: One table per metric per agent with typed columns (REAL for numbers, TEXT for strings, INTEGER for counts).
 - **Security** is SSH-based and push-only. Invites are temporary SSH accounts (password + host fingerprint), exchanged for key-based access on enrollment. Agent and Console run as Docker containers.
 
 ### Invite Process
@@ -80,7 +82,7 @@ Collectors are bash scripts (`collectors/*/*.sh`) running `while true; do sleep 
 | CYCLE | 300s | Slow-changing (disk usage) |
 | REPORT | 3600s | CPU-heavy operations (update status) |
 
-Each sends 2-line SSH: `generic_cpu.tsv\n1729123456 1 23.4`. Console ForceCommand appends to `/data/agents/$USER/$filename`, rotates at 3600 lines. WebTUI reads TSV directly.
+Each sends typed data via SSH: `generic_cpu.tsv REAL\n1729123456 1 23.4`. Console ForceCommand gateway writes to SQLite (`/data/metrics.db`) with type-safe columns. Web dashboard queries database for real-time display.
 
 ## Development
 

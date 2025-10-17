@@ -5,6 +5,7 @@
 # Config
 RHYTHM="PULSE"   # Uses PULSE timing from agent.sh
 PREFIX="generic_cpu"      # Metric prefix: generic_cpu_usage
+TYPE="REAL"      # SQLite column type for numeric values
 
 set -euo pipefail
 
@@ -38,8 +39,8 @@ while true; do
         usage="0.0"
     fi
 
-    # Send to console - no mkdir needed!
-    echo -e "${PREFIX}.tsv\n$(date +%s) $PULSE $usage" | \
+    # Send to console with type declaration
+    echo -e "${PREFIX}.tsv $TYPE\n$(date +%s) $PULSE $usage" | \
         ssh -S $SSH_SOCKET $AGENT_USER@$CONSOLE_HOST 2>/dev/null
 
     # Save current as previous for next iteration

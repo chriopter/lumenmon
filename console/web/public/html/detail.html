@@ -320,30 +320,36 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
                 return;
             }
 
-            // Build the TSV files table
+            // Build the comprehensive TSV files table
             let html = '<table id="tsv-table"><thead><tr>';
             html += '<td>NAME</td>';
-            html += '<td>TIMESTAMP</td>';
+            html += '<td>TYPE</td>';
             html += '<td>VALUE</td>';
-            html += '<td>CYCLE (S)</td>';
-            html += '<td># VALUES</td>';
+            html += '<td>LAST UPDATE</td>';
+            html += '<td>DATA SPAN</td>';
+            html += '<td># SAMPLES</td>';
             html += '</tr></thead><tbody>';
 
             data.tsv_files.forEach(file => {
-                // Parse the TSV line: timestamp interval value
-                const parts = file.lastLine.split(/\s+/);
-                const timestamp = parts[0] || '-';
-                const interval = parts[1] || '-';
-                const value = parts[2] || '-';
-                const lineCount = file.line_count || '-';
-                const timestampAge = formatTimestampAge(timestamp);
+                const metricName = file.metric_name || file.filename.replace('.tsv', '');
+                const type = file.type || 'TEXT';
+                const value = file.value !== undefined ? file.value : '-';
+                const timestampAge = file.timestamp_age || '-';
+                const dataSpan = file.data_span || '-';
+                const sampleCount = file.line_count || '-';
+
+                // Color code by type
+                let typeClass = 'type-text';
+                if (type === 'REAL') typeClass = 'type-real';
+                else if (type === 'INTEGER') typeClass = 'type-integer';
 
                 html += `<tr>`;
-                html += `<td class="tsv-filename">${file.filename}</td>`;
+                html += `<td class="tsv-filename">${metricName}</td>`;
+                html += `<td class="${typeClass}">${type}</td>`;
+                html += `<td class="tsv-value">${value}</td>`;
                 html += `<td>${timestampAge}</td>`;
-                html += `<td>${value}</td>`;
-                html += `<td>${interval}</td>`;
-                html += `<td>${lineCount}</td>`;
+                html += `<td>${dataSpan}</td>`;
+                html += `<td>${sampleCount}</td>`;
                 html += `</tr>`;
             });
 

@@ -31,9 +31,9 @@ Match Group registration
     PermitTunnel no
     AllowAgentForwarding no
 
-# Agent users - append only
+# Agent users - direct SQLite ingress
 Match Group agents
-    ForceCommand /app/core/ingress/gateway.sh
+    ForceCommand python3 /app/core/ingress/gateway.py
     AuthorizedKeysFile /data/agents/%u/.ssh/authorized_keys
     AllowTcpForwarding no
     X11Forwarding no

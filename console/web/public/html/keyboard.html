@@ -21,7 +21,13 @@ Binds ↑/↓/j/k (navigation), Enter (detail), Esc (close), i (invite), r (refr
             openDetailView();
         } else if (key === 'escape') {
             e.preventDefault();
-            closeDetailView();
+            // Close debug view if open, otherwise close detail view
+            const debugModal = document.getElementById('debug-modal');
+            if (debugModal && debugModal.style.display !== 'none') {
+                closeDebugView();
+            } else {
+                closeDetailView();
+            }
         } else if (key === 'i' && !e.ctrlKey && !e.metaKey && !e.altKey) {
             e.preventDefault();
             createInvite();
@@ -32,6 +38,9 @@ Binds ↑/↓/j/k (navigation), Enter (detail), Esc (close), i (invite), r (refr
         } else if (key === 'h' || key === '?') {
             e.preventDefault();
             showHelp();
+        } else if (key === 'd' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+            e.preventDefault();
+            openDebugView();
         }
     });
 
@@ -47,6 +56,7 @@ Navigation:
 Actions:
   i       - Create invite
   r       - Refresh agents
+  d       - Debug view
   h/?     - Show help`;
 
         alert(helpText);

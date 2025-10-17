@@ -32,9 +32,9 @@
         respond "{http.error.status_code} {http.error.status_text}"
     }
 
-    # Logging
+    # Logging - temporary file, not in docker logs or persistent storage
     log {
-        output stdout
+        output file /tmp/caddy.log
         format console
     }
 }
