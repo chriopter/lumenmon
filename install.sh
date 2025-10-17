@@ -208,7 +208,10 @@ main() {
 
             echo ""
             install_console "$CONSOLE_HOST"
-            install_agent "lumenmon-console" "2345"
+            # Local agent uses port 22 (internal Docker network port)
+            # Console SSH runs on port 22 inside container, mapped to host port 2345
+            # Since both containers are on same Docker network, use internal port
+            install_agent "lumenmon-console" "22"
 
             # Generate invite and auto-register
             INVITE_URL=$(generate_invite)
