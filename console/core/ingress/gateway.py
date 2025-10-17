@@ -9,12 +9,22 @@ import sqlite3
 from datetime import datetime
 
 DB_PATH = "/data/metrics.db"
+LOG_FILE = "/data/gateway.log"
 
 def log_debug(agent_id, message):
-    """Write debug log to stderr (appears in agent SSH session and docker logs)."""
+    """Write debug log to both stderr and log file."""
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    log_msg = f"[gateway] [{timestamp}] [{agent_id}] {message}"
-    print(log_msg, file=sys.stderr, flush=True)
+    log_msg = f"[gateway] [{timestamp}] [{agent_id}] {message}\n"
+
+    # Write to stderr
+    print(log_msg.rstrip(), file=sys.stderr, flush=True)
+
+    # Also write to log file
+    try:
+        with open(LOG_FILE, 'a') as f:
+            f.write(log_msg)
+    except Exception:
+        pass  # Don't fail if log file can't be written
 
 def main():
     # Get agent ID from SSH user
