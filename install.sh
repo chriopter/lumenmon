@@ -116,6 +116,20 @@ generate_invite() {
 # Register agent with console
 register_agent() {
     local invite_url="$1"
+    local is_local="${2:-false}"
+
+    # For local agent installations, rewrite invite URL to use internal Docker hostname
+    # This ensures agent connects via Docker network (lumenmon-console:22) instead of external IP
+    if [ "$is_local" = "true" ]; then
+        # Extract parts: ssh://user:pass@host:port/#hostkey
+        local credentials="${invite_url#ssh://}"
+        credentials="${credentials%%@*}"
+        local hostkey="${invite_url##*#}"
+
+        # Rebuild URL with internal Docker hostname and port
+        invite_url="ssh://${credentials}@lumenmon-console:22/#${hostkey}"
+    fi
+
     status_progress "Auto-registering local agent..."
     sleep 2  # Wait for agent to be ready
     docker exec lumenmon-agent /app/core/setup/register.sh "$invite_url" 2>&1 | grep -E "\[REGISTER\]|SUCCESS|ERROR" || true
@@ -216,7 +230,7 @@ main() {
             # Generate invite and auto-register
             INVITE_URL=$(generate_invite)
             if [ -n "$INVITE_URL" ]; then
-                register_agent "$INVITE_URL"
+                register_agent "$INVITE_URL" "true"
                 status_ok "Local agent connected!"
 
                 # Generate second invite for remote agents
