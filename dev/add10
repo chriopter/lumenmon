@@ -1,8 +1,10 @@
 #!/bin/bash
-# Spawns 10 agent containers and auto-registers them with the console.
+# Spawns 10 agent containers and auto-registers them with the console in parallel.
 # Useful for testing multi-agent scenarios and TUI performance.
 
-echo "🚀 Adding 10 agents to console..."
+set -euo pipefail
+
+echo "🚀 Adding 10 agents to console (in parallel)..."
 
 # Check if console is running
 if ! docker ps | grep -q lumenmon-console; then
@@ -16,53 +18,72 @@ docker stop $(docker ps -q --filter name=lumenmon-agent-) 2>/dev/null || true
 docker rm $(docker ps -aq --filter name=lumenmon-agent-) 2>/dev/null || true
 rm -rf agent/data/agents/agent-* 2>/dev/null || true
 
-# Create 10 agents
+# Create temp directory for log files
+TEMP_DIR=$(mktemp -d)
+trap "rm -rf $TEMP_DIR" EXIT
+
+# Function to create and register a single agent
+create_agent() {
+    local i=$1
+    local AGENT_NAME="agent-$i"
+    local LOG_FILE="$TEMP_DIR/agent-$i.log"
+
+    {
+        echo ""
+        echo "📦 Creating agent $i/10: $AGENT_NAME"
+
+        # Create isolated data directory for this agent
+        local AGENT_DATA_DIR="agent/data/agents/$AGENT_NAME"
+        mkdir -p "$AGENT_DATA_DIR/ssh"
+
+        # Create invite
+        echo "🔑 Creating invite for $AGENT_NAME..."
+        local INVITE=$(docker exec lumenmon-console /app/core/enrollment/invite_create.sh 2>/dev/null | grep "^ssh://")
+        if [ -z "$INVITE" ]; then
+            echo "❌ Failed to create invite for $AGENT_NAME"
+            return 1
+        fi
+
+        # Start agent container
+        echo "🚀 Starting $AGENT_NAME..."
+        CONSOLE_HOST=localhost CONSOLE_PORT=2345 AGENT_ID="$AGENT_NAME" \
+            docker run -d \
+            --name "lumenmon-$AGENT_NAME" \
+            --hostname "$AGENT_NAME" \
+            --network host \
+            -v "$(pwd)/$AGENT_DATA_DIR/ssh:/home/metrics/.ssh" \
+            -e CONSOLE_HOST=localhost \
+            -e CONSOLE_PORT=2345 \
+            -e AGENT_ID="$AGENT_NAME" \
+            -e CPU_SAMPLE_HZ=10 \
+            -e MEMORY_SAMPLE_HZ=1 \
+            -e DISK_SAMPLE_HZ=0.1 \
+            -e NETWORK_SAMPLE_HZ=0.5 \
+            -e PROCESS_SAMPLE_HZ=0.2 \
+            -e SYSTEM_SAMPLE_HZ=0.017 \
+            ghcr.io/chriopter/lumenmon-agent:latest \
+            > /dev/null
+
+        # Wait for agent to start
+        sleep 1
+
+        # Register agent
+        echo "📝 Registering $AGENT_NAME..."
+        docker exec "lumenmon-$AGENT_NAME" /app/core/setup/register.sh "$INVITE" 2>&1 | grep -E "\[REGISTER\]|ERROR" || true
+    } > "$LOG_FILE" 2>&1
+}
+
+# Create all 10 agents in parallel
 for i in $(seq 1 10); do
-    AGENT_NAME="agent-$i"
-    echo ""
-    echo "📦 Creating agent $i/10: $AGENT_NAME"
+    create_agent $i &
+done
 
-    # Create isolated data directory for this agent
-    AGENT_DATA_DIR="agent/data/agents/$AGENT_NAME"
-    mkdir -p "$AGENT_DATA_DIR/ssh"
+# Wait for all background jobs to complete
+wait
 
-    # Create invite
-    echo "🔑 Creating invite for $AGENT_NAME..."
-    INVITE=$(docker exec lumenmon-console /app/core/enrollment/invite_create.sh 2>/dev/null | grep "^ssh://")
-    if [ -z "$INVITE" ]; then
-        echo "❌ Failed to create invite for $AGENT_NAME"
-        continue
-    fi
-
-    # Start agent container
-    echo "🚀 Starting $AGENT_NAME..."
-    CONSOLE_HOST=localhost CONSOLE_PORT=2345 AGENT_ID="$AGENT_NAME" \
-        docker run -d \
-        --name "lumenmon-$AGENT_NAME" \
-        --hostname "$AGENT_NAME" \
-        --network host \
-        -v "$(pwd)/$AGENT_DATA_DIR/ssh:/home/metrics/.ssh" \
-        -e CONSOLE_HOST=localhost \
-        -e CONSOLE_PORT=2345 \
-        -e AGENT_ID="$AGENT_NAME" \
-        -e CPU_SAMPLE_HZ=10 \
-        -e MEMORY_SAMPLE_HZ=1 \
-        -e DISK_SAMPLE_HZ=0.1 \
-        -e NETWORK_SAMPLE_HZ=0.5 \
-        -e PROCESS_SAMPLE_HZ=0.2 \
-        -e SYSTEM_SAMPLE_HZ=0.017 \
-        ghcr.io/chriopter/lumenmon-agent:latest \
-        > /dev/null
-
-    # Wait for agent to start
-    sleep 1
-
-    # Register agent
-    echo "📝 Registering $AGENT_NAME..."
-    docker exec "lumenmon-$AGENT_NAME" /app/core/setup/register.sh "$INVITE" 2>&1 | grep -E "\[REGISTER\]|ERROR" || true
-
-    # Brief pause between agents
-    sleep 0.5
+# Display logs in order
+for i in $(seq 1 10); do
+    cat "$TEMP_DIR/agent-$i.log"
 done
 
 echo ""
