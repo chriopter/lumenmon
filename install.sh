@@ -131,8 +131,22 @@ register_agent() {
     fi
 
     status_progress "Auto-registering local agent..."
-    sleep 2  # Wait for agent to be ready
-    docker exec lumenmon-agent /app/core/setup/register.sh "$invite_url" 2>&1 | grep -E "\[REGISTER\]|SUCCESS|ERROR" || true
+
+    # Wait for agent container to be fully ready (SSH key generated)
+    for i in $(seq 1 20); do
+        if docker exec lumenmon-agent test -f /home/metrics/.ssh/id_ed25519.pub 2>/dev/null; then
+            break
+        fi
+        sleep 1
+    done
+
+    # Try registration with better error reporting
+    if docker exec lumenmon-agent /app/core/setup/register.sh "$invite_url" 2>&1 | tee /tmp/register_output | grep -qE "Success|ENROLL"; then
+        return 0
+    else
+        status_warn "Registration may have failed - check with 'lumenmon status'"
+        return 1
+    fi
 }
 
 # Install CLI command
@@ -227,9 +241,18 @@ main() {
             # Since both containers are on same Docker network, use internal port
             install_agent "lumenmon-console" "22"
 
+            # Wait for console SSH to be ready
+            status_progress "Waiting for console SSH server..."
+            for i in $(seq 1 30); do
+                if docker exec lumenmon-console nc -zv localhost 22 2>&1 | grep -q succeeded; then
+                    break
+                fi
+                sleep 1
+            done
+            sleep 2  # Extra buffer for SSH to be fully ready
+
             # Generate invite for local agent registration (URL only, no --full)
             status_progress "Generating invite for local agent..."
-            sleep 3
             INVITE_URL=$(docker exec lumenmon-console /app/core/enrollment/invite_create.sh 2>/dev/null)
 
             if [ -n "$INVITE_URL" ]; then
