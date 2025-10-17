@@ -125,22 +125,27 @@ Functions: openDebugView(), closeDebugView(), loadDebugData()
     function renderDebugData(data) {
         const body = document.getElementById('debug-body');
 
-        // Build a set of agent IDs that have DB tables
-        const agentsWithTables = new Set(data.database_agents.agents.map(a => a.agent_id));
+        // Build a map of agent IDs to table counts
+        const tableCountsByAgent = {};
+        data.database_agents.agents.forEach(agent => {
+            tableCountsByAgent[agent.agent_id] = agent.table_count;
+        });
 
         let html = '';
 
-        // Section 1: All users (green if in DB)
+        // Section 1: All users with table counts
         html += '<div class="debug-section">';
-        html += '<div class="debug-section-title">system users:</div>';
+        html += '<div class="debug-section-title">system users: (green = has database tables)</div>';
 
         if (data.system_users.count === 0) {
             html += '<div class="debug-line">no users found</div>';
         } else {
             data.system_users.users.forEach(user => {
-                const hasDb = agentsWithTables.has(user.username);
+                const tableCount = tableCountsByAgent[user.username] || 0;
+                const hasDb = tableCount > 0;
                 const className = hasDb ? 'debug-line has-db' : 'debug-line';
-                html += `<div class="${className}">${user.username}</div>`;
+                const countStr = hasDb ? ` (${tableCount} tables)` : ' (no tables)';
+                html += `<div class="${className}">${user.username}${countStr}</div>`;
             });
         }
 
@@ -150,9 +155,11 @@ Functions: openDebugView(), closeDebugView(), loadDebugData()
         const orphanedAgents = data.mismatches.tables_without_users.agents;
         if (orphanedAgents.length > 0) {
             html += '<div class="debug-section">';
-            html += '<div class="debug-section-title">database agents without users:</div>';
-            orphanedAgents.forEach(agent => {
-                html += `<div class="debug-line no-user">${agent}</div>`;
+            html += '<div class="debug-section-title">orphaned database agents: (tables exist but no system user)</div>';
+
+            orphanedAgents.forEach(agentId => {
+                const tableCount = tableCountsByAgent[agentId] || 0;
+                html += `<div class="debug-line no-user">${agentId} (${tableCount} tables)</div>`;
             });
             html += '</div>';
         }
