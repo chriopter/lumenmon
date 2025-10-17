@@ -292,6 +292,11 @@ body {
     color: var(--foreground2);
 }
 
+.detail-id {
+    opacity: 0.6;
+    font-size: 0.7rem;
+}
+
 .detail-content {
     display: flex;
     flex-direction: column;

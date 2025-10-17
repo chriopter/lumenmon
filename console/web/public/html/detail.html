@@ -37,7 +37,7 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
 
         panel.innerHTML = `
             <div class="detail-header">
-                <h2><span class="status-dot ${agent.status}"></span>${agent.id}</h2>
+                <h2><span class="status-dot ${agent.status}"></span>${agent.hostname || agent.id} <span class="detail-id">${agent.id}</span></h2>
                 <span class="detail-status">${agent.status} · ${agent.age}</span>
             </div>
             <div class="detail-content">

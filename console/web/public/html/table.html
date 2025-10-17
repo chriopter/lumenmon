@@ -6,7 +6,6 @@ Fetches server-rendered rows every 1s. Provides row selection, navigation functi
     <table id="agents-table">
         <thead>
             <tr>
-                <td>id</td>
                 <td>hostname</td>
                 <td>cpu</td>
                 <td>mem</td>
@@ -15,7 +14,7 @@ Fetches server-rendered rows every 1s. Provides row selection, navigation functi
         </thead>
         <tbody id="agents-tbody">
             <tr>
-                <td colspan="5" class="no-data">loading...</td>
+                <td colspan="4" class="no-data">loading...</td>
             </tr>
         </tbody>
     </table>
@@ -66,7 +65,7 @@ Fetches server-rendered rows every 1s. Provides row selection, navigation functi
         } catch (error) {
             console.error('Error:', error);
             const tbody = document.getElementById('agents-tbody');
-            tbody.innerHTML = `<tr><td colspan="5" class="no-data">error: ${error.message}</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="4" class="no-data">error: ${error.message}</td></tr>`;
             addLog(`error fetching agents: ${error.message}`, 'error');
         }
     }
@@ -120,6 +119,7 @@ Fetches server-rendered rows every 1s. Provides row selection, navigation functi
         try {
             return {
                 id: row.dataset.agentId,
+                hostname: row.dataset.hostname || '',
                 status: row.dataset.status,
                 age: row.dataset.age,
                 cpuHistory: row.dataset.cpuHistory ? JSON.parse(row.dataset.cpuHistory) : [],
