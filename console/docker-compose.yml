@@ -5,8 +5,7 @@ services:
     container_name: lumenmon-console
     hostname: lumenmon-console
     volumes:
-      - ./data/agents:/data/agents
-      - ./data/ssh:/data/ssh
+      - ./data:/data
     ports:
       - "2345:22"
       - "8080:80"

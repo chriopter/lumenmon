@@ -5,6 +5,7 @@
 # Config
 RHYTHM="REPORT"   # Uses REPORT timing from agent.sh
 PREFIX="generic_hostname"      # Metric prefix: generic_hostname
+TYPE="TEXT"       # SQLite column type for string values
 
 set -euo pipefail
 
@@ -13,10 +14,10 @@ while true; do
     # Get system hostname
     hostname=$(hostname)
 
-    # Send hostname metric to console
+    # Send hostname metric to console with type declaration
     timestamp=$(date +%s)
 
-    echo -e "${PREFIX}.tsv\n$timestamp $REPORT $hostname" | \
+    echo -e "${PREFIX}.tsv $TYPE\n$timestamp $REPORT $hostname" | \
         ssh -S $SSH_SOCKET $AGENT_USER@$CONSOLE_HOST 2>/dev/null
 
     sleep $REPORT

@@ -1,0 +1,24 @@
+#!/bin/bash
+# Resets the SQLite metrics database by deleting all data and restarting console.
+# Preserves agent registrations (SSH keys and users), only removes metric data.
+
+set -e
+
+echo "Resetting metrics database..."
+
+# Stop console to release database locks
+echo "Stopping console..."
+docker stop lumenmon-console 2>/dev/null || true
+
+# Delete database files
+echo "Deleting database files..."
+rm -f console/data/metrics.db
+rm -f console/data/metrics.db-wal
+rm -f console/data/metrics.db-shm
+
+# Restart console
+echo "Starting console..."
+docker start lumenmon-console
+
+echo "Database reset complete!"
+echo "Agent registrations preserved. Metric data cleared."

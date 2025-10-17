@@ -1,45 +1,133 @@
 #!/usr/bin/env python3
 # Agent metrics reading and aggregation.
-# Reads TSV files and generates formatted metrics for agents.
+# Reads metrics from SQLite database and generates formatted metrics for agents.
 
-import os
-import glob
 import time
-from tsv import read_last_line, read_last_n_lines, parse_tsv_line
+import re
+from db import get_db_connection, table_exists
+from ssh_status import is_ssh_connected
 from formatters import generate_tui_sparkline, format_age
 
-DATA_DIR = "/data/agents"
+def _format_duration(seconds):
+    """Format duration in seconds to human-readable string."""
+    if seconds < 60:
+        return f"{seconds}s"
+    elif seconds < 3600:
+        return f"{seconds // 60}m"
+    elif seconds < 86400:
+        return f"{seconds // 3600}h"
+    else:
+        return f"{seconds // 86400}d"
 
-def get_history_from_file(file_path, minutes=None):
-    """Read history from TSV file. If minutes=None, read all available data."""
+def _format_timestamp_age(timestamp):
+    """Format how long ago a timestamp was."""
+    age = int(time.time()) - timestamp
+    return _format_duration(age) + " ago"
+
+def get_history_from_db(agent_id, metric_name):
+    """Read all history for a metric from SQLite."""
     history = []
-    if not os.path.exists(file_path):
-        return history
+    table_name = f"{agent_id}_{metric_name}"
 
-    current_time = int(time.time())
-    cutoff_time = current_time - (minutes * 60) if minutes else 0
+    try:
+        conn = get_db_connection()
 
-    # Read last 10000 lines to get all historical data
-    lines = read_last_n_lines(file_path, 10000)
-    for line in lines:
-        timestamp, value = parse_tsv_line(line)
-        if timestamp and value is not None and timestamp >= cutoff_time:
-            history.append({'timestamp': timestamp, 'value': round(value, 1)})
+        # Check if table exists
+        if not table_exists(conn, table_name):
+            conn.close()
+            return history
 
-    # Sort by timestamp
-    history.sort(key=lambda x: x['timestamp'])
+        cursor = conn.cursor()
+        cursor.execute(
+            f'SELECT timestamp, value FROM "{table_name}" ORDER BY timestamp'
+        )
 
-    # Downsample to reduce resolution (every 5th point)
-    if len(history) > 100:
-        step = max(1, len(history) // 100)
-        history = history[::step]
+        for row in cursor.fetchall():
+            # Try to convert to float, if it fails keep as string
+            try:
+                value = round(float(row[1]), 1)
+            except (ValueError, TypeError):
+                value = row[1]
+
+            history.append({
+                'timestamp': row[0],
+                'value': value
+            })
+
+        conn.close()
+
+        # Downsample if needed
+        if len(history) > 100:
+            step = max(1, len(history) // 100)
+            history = history[::step]
+
+    except Exception:
+        pass
 
     return history
 
+def get_latest_value(agent_id, metric_name):
+    """Get the most recent value and timestamp for a metric."""
+    table_name = f"{agent_id}_{metric_name}"
+
+    try:
+        conn = get_db_connection()
+
+        # Check if table exists
+        if not table_exists(conn, table_name):
+            conn.close()
+            return None, None
+
+        cursor = conn.cursor()
+        cursor.execute(
+            f'SELECT timestamp, value FROM "{table_name}" ORDER BY timestamp DESC LIMIT 1'
+        )
+
+        row = cursor.fetchone()
+        conn.close()
+
+        if row:
+            # Try to convert to float
+            try:
+                value = round(float(row[1]), 1)
+            except (ValueError, TypeError):
+                value = row[1]
+            return row[0], value
+    except Exception:
+        pass
+
+    return None, None
+
+def get_latest_hostname(agent_id):
+    """Get the most recent hostname value."""
+    table_name = f"{agent_id}_generic_hostname"
+
+    try:
+        conn = get_db_connection()
+
+        # Check if table exists
+        if not table_exists(conn, table_name):
+            conn.close()
+            return ''
+
+        cursor = conn.cursor()
+        cursor.execute(
+            f'SELECT value FROM "{table_name}" ORDER BY timestamp DESC LIMIT 1'
+        )
+
+        row = cursor.fetchone()
+        conn.close()
+
+        if row:
+            # Value is stored as string for hostname
+            return str(row[0])
+    except Exception:
+        pass
+
+    return ''
+
 def get_agent_metrics(agent_id):
     """Read all metrics for a specific agent."""
-    agent_dir = os.path.join(DATA_DIR, agent_id)
-
     metrics = {
         'id': agent_id,
         'cpu': 0.0,
@@ -55,63 +143,56 @@ def get_agent_metrics(agent_id):
     }
 
     # Read CPU
-    cpu_file = os.path.join(agent_dir, 'generic_cpu.tsv')
-    if os.path.exists(cpu_file):
-        line = read_last_line(cpu_file)
-        timestamp, value = parse_tsv_line(line)
-        if timestamp and value is not None:
-            metrics['cpu'] = round(value, 1)
-            metrics['lastUpdate'] = max(metrics['lastUpdate'], timestamp)
-
-        metrics['cpuHistory'] = get_history_from_file(cpu_file, None)
+    timestamp, value = get_latest_value(agent_id, 'generic_cpu')
+    if timestamp and value is not None:
+        metrics['cpu'] = value
+        metrics['lastUpdate'] = max(metrics['lastUpdate'], timestamp)
+    metrics['cpuHistory'] = get_history_from_db(agent_id, 'generic_cpu')
 
     # Read Memory
-    mem_file = os.path.join(agent_dir, 'generic_mem.tsv')
-    if os.path.exists(mem_file):
-        line = read_last_line(mem_file)
-        timestamp, value = parse_tsv_line(line)
-        if timestamp and value is not None:
-            metrics['memory'] = round(value, 1)
-            metrics['lastUpdate'] = max(metrics['lastUpdate'], timestamp)
-
-        metrics['memHistory'] = get_history_from_file(mem_file, None)
+    timestamp, value = get_latest_value(agent_id, 'generic_mem')
+    if timestamp and value is not None:
+        metrics['memory'] = value
+        metrics['lastUpdate'] = max(metrics['lastUpdate'], timestamp)
+    metrics['memHistory'] = get_history_from_db(agent_id, 'generic_mem')
 
     # Read Disk
-    disk_file = os.path.join(agent_dir, 'generic_disk.tsv')
-    if os.path.exists(disk_file):
-        line = read_last_line(disk_file)
-        timestamp, value = parse_tsv_line(line)
-        if timestamp and value is not None:
-            metrics['disk'] = round(value, 1)
-            metrics['lastUpdate'] = max(metrics['lastUpdate'], timestamp)
-
-        metrics['diskHistory'] = get_history_from_file(disk_file, None)
+    timestamp, value = get_latest_value(agent_id, 'generic_disk')
+    if timestamp and value is not None:
+        metrics['disk'] = value
+        metrics['lastUpdate'] = max(metrics['lastUpdate'], timestamp)
+    metrics['diskHistory'] = get_history_from_db(agent_id, 'generic_disk')
 
     # Read Hostname
-    hostname_file = os.path.join(agent_dir, 'generic_hostname.tsv')
-    if os.path.exists(hostname_file):
-        line = read_last_line(hostname_file)
-        if line:
-            parts = line.strip().split()
-            if len(parts) >= 3:
-                # Format: timestamp interval hostname
-                # Hostname is everything after the interval (could contain spaces)
-                metrics['hostname'] = ' '.join(parts[2:])
+    metrics['hostname'] = get_latest_hostname(agent_id)
 
-    # Calculate age and status
+    # Calculate age and status based on SSH connection + data freshness
     current_time = int(time.time())
+    ssh_connected = is_ssh_connected(agent_id)
+
     if metrics['lastUpdate'] > 0:
         metrics['age'] = current_time - metrics['lastUpdate']
 
-        if metrics['age'] < 5:
+        # Determine status based on SSH connection AND data freshness
+        if ssh_connected and metrics['age'] < 10:
+            # SSH connected + fresh data = online
             metrics['status'] = 'online'
-        elif metrics['age'] < 30:
+        elif ssh_connected and metrics['age'] < 60:
+            # SSH connected but data getting stale = warning
+            metrics['status'] = 'stale'
+        elif not ssh_connected and metrics['age'] < 10:
+            # No SSH but very recent data (just disconnected?) = stale
             metrics['status'] = 'stale'
         else:
+            # No SSH connection or very old data = offline
             metrics['status'] = 'offline'
+    else:
+        # No data at all
+        metrics['status'] = 'offline' if not ssh_connected else 'stale'
 
     # Add formatted fields for HTML templates
     metrics['age_formatted'] = format_age(metrics['age'])
+
     # Generate sparklines from history values only
     cpu_values = [h['value'] for h in metrics['cpuHistory']]
     mem_values = [h['value'] for h in metrics['memHistory']]
@@ -123,67 +204,103 @@ def get_agent_metrics(agent_id):
     return metrics
 
 def get_agent_tsv_files(agent_id):
-    """Get all TSV files for an agent with their latest data line."""
-    agent_dir = os.path.join(DATA_DIR, agent_id)
-    tsv_files = []
+    """Get all metric tables for an agent with their latest data and schema info."""
+    tables = []
 
-    if not os.path.exists(agent_dir):
-        return tsv_files
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
 
-    # Get all .tsv files in the agent directory
-    tsv_pattern = os.path.join(agent_dir, '*.tsv')
-    for file_path in sorted(glob.glob(tsv_pattern)):
-        filename = os.path.basename(file_path)
+        # Find all tables for this agent with their schema
+        cursor.execute(
+            "SELECT name, sql FROM sqlite_master WHERE type='table' AND name LIKE ?",
+            (f"{agent_id}_%",)
+        )
 
-        # Always include the file, even if reading fails
-        try:
-            # Read the last line
-            last_line = read_last_line(file_path)
-            timestamp, value = parse_tsv_line(last_line)
+        for row in cursor.fetchall():
+            table_name = row[0]
+            table_sql = row[1]
 
-            # Count total lines in file
-            line_count = 0
-            try:
-                with open(file_path, 'r') as f:
-                    line_count = sum(1 for line in f if line.strip())
-            except:
-                line_count = 0
+            # Extract metric name (remove agent_id_ prefix)
+            metric_name = table_name[len(agent_id)+1:]
 
-            tsv_info = {
-                'filename': filename,
-                'path': file_path,
-                'lastLine': last_line if last_line else 'No data',
-                'timestamp': timestamp if timestamp else '-',
-                'value': round(value, 1) if value is not None else '-',
-                'line_count': line_count
-            }
-        except Exception as e:
-            # If there's any error, still show the file
-            tsv_info = {
-                'filename': filename,
-                'path': file_path,
-                'lastLine': f'Error reading file: {str(e)}',
-                'timestamp': '-',
-                'value': '-',
-                'line_count': 0
-            }
+            # Extract type from schema: "value TYPE" in CREATE TABLE statement
+            value_type = "TEXT"  # Default
+            if table_sql:
+                type_match = re.search(r'value\s+(TEXT|REAL|INTEGER)', table_sql, re.IGNORECASE)
+                if type_match:
+                    value_type = type_match.group(1).upper()
 
-        tsv_files.append(tsv_info)
+            # Get latest value and count
+            cursor.execute(f'SELECT timestamp, value FROM "{table_name}" ORDER BY timestamp DESC LIMIT 1')
+            latest = cursor.fetchone()
 
-    return tsv_files
+            cursor.execute(f'SELECT COUNT(*) FROM "{table_name}"')
+            count = cursor.fetchone()[0]
+
+            # Get oldest timestamp for data span calculation
+            cursor.execute(f'SELECT timestamp FROM "{table_name}" ORDER BY timestamp ASC LIMIT 1')
+            oldest = cursor.fetchone()
+
+            if latest:
+                # Format timestamp age and data span
+                timestamp_age = _format_timestamp_age(latest[0])
+                data_span = _format_duration(latest[0] - oldest[0]) if oldest else "N/A"
+
+                # Format value based on type
+                formatted_value = latest[1]
+                if value_type in ('REAL', 'INTEGER') and isinstance(latest[1], (int, float)):
+                    formatted_value = round(latest[1], 1)
+
+                tables.append({
+                    'filename': f"{metric_name}.tsv",
+                    'metric_name': metric_name,
+                    'table_name': table_name,
+                    'type': value_type,
+                    'lastLine': f"{latest[0]} - {latest[1]}",
+                    'timestamp': latest[0],
+                    'timestamp_age': timestamp_age,
+                    'value': formatted_value,
+                    'line_count': count,
+                    'data_span': data_span
+                })
+
+        conn.close()
+    except Exception:
+        pass
+
+    return tables
 
 def get_all_agents():
-    """Get metrics for all agents, sorted by status."""
+    """Get metrics for all agents from SQLite, sorted by status."""
     agents = []
 
-    if os.path.exists(DATA_DIR):
-        agent_dirs = glob.glob(os.path.join(DATA_DIR, 'id_*'))
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
 
-        for agent_dir in agent_dirs:
-            if os.path.isdir(agent_dir):
-                agent_id = os.path.basename(agent_dir)
-                metrics = get_agent_metrics(agent_id)
-                agents.append(metrics)
+        # Get all unique agent IDs from table names
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
+
+        agent_ids = set()
+        for row in cursor.fetchall():
+            table_name = row[0]
+            # Extract agent ID from table name (format: id_xxx_metric_name)
+            if table_name.startswith('id_'):
+                parts = table_name.split('_', 2)  # Split into ['id', 'xxx', 'metric_name']
+                if len(parts) >= 3:
+                    agent_id = f"{parts[0]}_{parts[1]}"  # Reconstruct id_xxx
+                    agent_ids.add(agent_id)
+
+        conn.close()
+
+        # Get metrics for each agent
+        for agent_id in agent_ids:
+            metrics = get_agent_metrics(agent_id)
+            agents.append(metrics)
+
+    except Exception:
+        pass  # Return empty list on error
 
     # Sort by status (online first) then by ID
     status_order = {'online': 0, 'stale': 1, 'offline': 2}

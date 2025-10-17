@@ -5,6 +5,7 @@
 # Config
 RHYTHM="BREATHE"  # Uses BREATHE timing from agent.sh
 PREFIX="generic_mem"      # Metric prefix: generic_mem_usage
+TYPE="REAL"      # SQLite column type for numeric values
 
 set -euo pipefail
 
@@ -17,8 +18,8 @@ while true; do
     # Calculate usage percentage: (total - available) / total * 100
     usage=$(((total - available) * 100 / total))
 
-    # Send to console - no mkdir needed!
-    echo -e "${PREFIX}.tsv\n$(date +%s) $BREATHE $usage" | \
+    # Send to console with type declaration
+    echo -e "${PREFIX}.tsv $TYPE\n$(date +%s) $BREATHE $usage" | \
         ssh -S $SSH_SOCKET $AGENT_USER@$CONSOLE_HOST 2>/dev/null
 
     sleep $BREATHE

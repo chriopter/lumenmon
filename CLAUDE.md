@@ -84,22 +84,25 @@ curl -sSL https://lumenmon.run | bash -s agent
 ## Architecture
 
 ### Data Flow
-1. Agents collect metrics at intervals (CPU: 0.1s, Memory: 1s, Disk: 60s)
-2. Metrics sent as TSV through SSH (ForceCommand gateway).
-3. Console gateway appends to `/data/agents/<agent_id>/*.tsv` files.
-4. Bash TUI reads from `/data/agents/` for real-time display
+1. Agents collect metrics at intervals (CPU: 1s, Memory: 10s, Disk: 60s)
+2. Metrics sent via SSH with type declarations (ForceCommand gateway)
+3. Console gateway writes to SQLite database (`/data/metrics.db`)
+4. Web dashboard queries SQLite for real-time display
+5. Tables: one per metric per agent (`id_xxx_metric_name`)
 
 ### Directory Structure
 - `console/`: Dashboard container
-  - `tui/`: Bash TUI
-    - `core/`: state and cache helpers
-    - `readers/`: agents, invites, metrics/history
-    - `render/`: buffer, header/footer, rows, plots, sparklines
-    - `views/`: dashboard and detail views
-    - `input/`: input handling and event loop
+  - `web/`: Flask web dashboard (port 5000, proxied via Caddy on 8080)
+    - `app/`: Python API server
+      - `db.py`: Database connection helpers
+      - `ssh_status.py`: SSH connection checking
+      - `metrics.py`: Metric reading and aggregation
+      - `agents.py`, `invites.py`, `debug.py`: API blueprints
+    - `public/`: HTML templates, CSS, JavaScript
   - `core/`: Shell scripts for SSH, enrollment, ingress
+    - `ingress/gateway.py`: SSH ForceCommand handler (writes to SQLite)
     - `status.sh`: Comprehensive console status checks
-  - `data/`: Persistent agent data and SSH keys (gitignored)
+  - `data/`: Persistent database and SSH keys (gitignored)
 
 - `agent/`: Metrics collector container
   - `collectors/`: Metric collection scripts (CPU, memory, disk)
@@ -145,12 +148,14 @@ Guidelines:
 
 ## Key Implementation Details
 
-### Console TUI (`console/tui/`)
-- Implemented in Bash.
-- Main entry: `tui.sh` (sources modules and runs event loop).
-- Dashboard lists agents with current metrics and invites.
-- Detail view renders simple plots/sparklines from TSV history.
-- Event loop refresh interval defined in `tui.sh` (default ~2s).
+### Console Web Dashboard (`console/web/`)
+- Flask API server with HTML/JavaScript frontend
+- Real-time agent monitoring with Chart.js visualizations
+- Keyboard navigation (j/k, Enter, Esc, i=invite, r=refresh, d=debug)
+- Status indicators: green (online), yellow (stale), red (offline)
+- Status logic: checks SSH connections + data freshness
+- Detail view: CPU/memory/disk charts, all metrics table
+- Debug view (d key): system users vs database agents
 
 ### SSH Enrollment Flow
 1. Console creates invite: `/app/core/enrollment/invite_create.sh`
@@ -158,9 +163,14 @@ Guidelines:
 3. Console creates dedicated user and sets up SSH access
 4. Agent connects and starts streaming metrics
 
-### Metric Storage
-- Files under `/data/agents/<agent_id>/`: `generic_cpu.tsv`, `generic_mem.tsv`, `generic_disk.tsv`, etc.
-- Format: simple TSV lines: `timestamp interval value`.
+### Metric Storage (SQLite)
+- Database: `/data/metrics.db` (SQLite3 with WAL mode)
+- Table structure: one table per metric per agent
+- Table naming: `{agent_id}_{metric_name}` (e.g., `id_abc123_generic_cpu`)
+- Schema: `(timestamp INTEGER PRIMARY KEY, value TYPE)`
+- Types: REAL (numeric), TEXT (strings), INTEGER (whole numbers)
+- Protocol: Collectors declare type in header: `metric_name.tsv TYPE`
+- Auto-migration: Tables dropped/recreated if type changes
 
 ### Status Scripts
 Both `console/core/status.sh` and `agent/core/status.sh` provide comprehensive checks:
@@ -171,16 +181,18 @@ Both `console/core/status.sh` and `agent/core/status.sh` provide comprehensive c
 ## Common Tasks
 
 ### Adding New Metrics
-1. Create collector script in `agent/collectors/` (or `agent/collectors/generic/`).
-2. Ensure it is started by `agent/core/connection/collectors.sh`.
-3. Verify TUI readers pick up the new TSV filename.
-4. Adjust `console/tui/render/plot.sh` or views if needed.
+1. Create collector script in `agent/collectors/` (or `agent/collectors/generic/`)
+2. Add TYPE config: REAL (numeric), TEXT (string), INTEGER (whole number)
+3. Send data with type header: `echo -e "metric_name.tsv $TYPE\n$timestamp $interval $value" | ssh ...`
+4. Ensure collector is started by `agent/core/connection/collectors.sh`
+5. Metric appears automatically in web dashboard "All Values" table
 
-### Modifying TUI
-- Layout: modify `console/tui/views/` and table rows in `console/tui/render/`.
-- Rendering: adjust `console/tui/render/*` (header, footer, plot, sparkline).
-- Input/keys: edit `console/tui/input/handle.sh` and event loop in `input/loop.sh`.
-- State/cache: tweak `console/tui/core/state.sh` and `console/tui/core/cache.sh`.
+### Modifying Web Dashboard
+- API endpoints: `console/web/app/*.py` (Flask blueprints)
+- Frontend: `console/web/public/html/*.html` (Jinja2 templates with inline JS)
+- Styling: `console/web/public/css/styles.css` (Catppuccin theme)
+- Add charts: modify `detail.html` renderChart() function
+- Add keyboard shortcuts: `keyboard.html`
 
 ### Debugging
 - Container logs: `docker logs lumenmon-console` or `lumenmon logs`

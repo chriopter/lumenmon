@@ -8,6 +8,7 @@ echo "[console] Starting Lumenmon Console"
 # Setup
 source core/setup/create_dirs.sh    # Create required directories
 source core/setup/restore_users.sh  # Restore agent users
+source core/setup/init_db.sh        # Initialize SQLite database
 
 # Start services
 source core/ingress/ssh_daemon.sh   # Start SSH daemon
