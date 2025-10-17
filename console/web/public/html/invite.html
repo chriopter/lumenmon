@@ -7,28 +7,28 @@ Calls /api/invites/create POST endpoint. Functions: createInvite(), copyToClipbo
         addLog('creating invite...', 'info');
 
         try {
-            const response = await fetch('/api/invites/create', { method: 'POST' });
+            const response = await fetch('/api/invites/create/full', { method: 'POST' });
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             const data = await response.json();
 
             if (data.success) {
-                // Auto-copy to clipboard
-                navigator.clipboard.writeText(data.invite_url).then(() => {
-                    addLog('invite copied to clipboard', 'success');
+                // Auto-copy full install command to clipboard
+                navigator.clipboard.writeText(data.install_command).then(() => {
+                    addLog('install command copied to clipboard', 'success');
                 }).catch(err => {
                     console.error('Copy failed:', err);
                     addLog('clipboard copy failed', 'error');
                 });
 
-                // Add invite URL to log as clickable element
+                // Add install command to log as clickable element
                 const logEntries = document.getElementById('log-entries');
                 const logBox = document.getElementById('log-box');
                 const logEntry = document.createElement('div');
                 logEntry.className = 'log-entry';
                 logEntry.innerHTML = `
                     <span class="log-timestamp">[${new Date().toLocaleTimeString('en-US', { hour12: false })}]</span>
-                    <span class="invite-url-log" onclick="copyInviteToClipboard(this, '${data.invite_url}')" title="click to copy again">
-                        ${data.invite_url}
+                    <span class="invite-url-log" onclick="copyInviteToClipboard(this, \`${data.install_command}\`)" title="click to copy again">
+                        ${data.install_command}
                     </span>
                 `;
                 logEntries.appendChild(logEntry);
