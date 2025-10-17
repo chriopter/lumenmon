@@ -37,7 +37,7 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
         panel.innerHTML = `
             <div class="detail-header">
                 <h2><span class="status-dot ${agent.status}"></span>${agent.hostname || agent.id}</h2>
-                <span class="detail-status"><span class="detail-status-text">${agent.status} · ${agent.age}</span> · <span class="detail-id">${agent.id}</span></span>
+                <span class="detail-status">${agent.id} · ${agent.status} · ${agent.age}</span>
             </div>
             <div class="detail-content">
                 <div class="detail-stats">
@@ -153,10 +153,10 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
                 statLines[2].querySelector('.stat-extra').textContent = `free ${(100 - currentDisk).toFixed(1)}%`;
             }
 
-            // Update header status (only the status text, not the ID)
-            const detailStatusText = document.querySelector('.detail-status-text');
-            if (detailStatusText) {
-                detailStatusText.textContent = `${agent.status} · ${agent.age}`;
+            // Update header status
+            const detailStatus = document.querySelector('.detail-status');
+            if (detailStatus) {
+                detailStatus.textContent = `${agent.id} · ${agent.status} · ${agent.age}`;
             }
 
             // Update samples count
