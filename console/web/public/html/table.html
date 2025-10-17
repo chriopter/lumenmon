@@ -36,7 +36,16 @@ Fetches server-rendered rows every 1s. Provides row selection, navigation functi
 
             attachRowHandlers();
 
+            // Restore highlight after content refresh
             const rows = tbody.querySelectorAll('.agent-row');
+            if (rows.length > 0) {
+                // Clamp selectedRow to valid range
+                if (selectedRow >= rows.length) {
+                    selectedRow = rows.length - 1;
+                }
+                selectRow(selectedRow);
+            }
+
             const currentCount = rows.length;
             if (previousAgentCount !== 0 && currentCount > previousAgentCount) {
                 addLog(`agent connected (total: ${currentCount})`, 'success');
@@ -69,10 +78,6 @@ Fetches server-rendered rows every 1s. Provides row selection, navigation functi
                 selectRow(index);
             });
         });
-
-        if (rows.length > 0 && selectedRow === 0) {
-            rows[0].classList.add('selected');
-        }
     }
 
     function selectRow(index) {
