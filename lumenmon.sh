@@ -8,20 +8,20 @@ cd "$DIR"
 is_running() { docker ps | grep -q "lumenmon-$1"; }
 
 case "$1" in
-    # Default: open WebTUI or show status
+    # Default: show status and CLI commands
     "")
-        if is_running console; then
-            echo "Opening WebTUI at http://localhost:8080"
-            if command -v xdg-open > /dev/null; then
-                xdg-open http://localhost:8080
-            elif command -v open > /dev/null; then
-                open http://localhost:8080
-            else
-                echo "Web interface available at: http://localhost:8080"
-            fi
-        else
-            "$0" status
-        fi
+        echo "Lumenmon Status"
+        echo "━━━━━━━━━━━━━━━"
+        is_running console && docker exec lumenmon-console /app/core/status.sh 2>/dev/null || echo "Console: ✗ Container stopped"
+        is_running agent && docker exec lumenmon-agent /app/core/status.sh 2>/dev/null || echo "Agent: ✗ Container stopped"
+        echo ""
+        echo "CLI commands:"
+        echo "  lumenmon start     # Start containers"
+        echo "  lumenmon logs      # Stream container logs"
+        echo "  lumenmon invite    # Generate new invite"
+        echo "  lumenmon register  # Register agent with invite"
+        echo "  lumenmon update    # Update to latest version"
+        echo "  lumenmon uninstall # Remove Lumenmon"
         ;;
 
     status|s)
@@ -38,7 +38,18 @@ case "$1" in
         ;;
 
     invite|i)
-        docker exec lumenmon-console /app/core/enrollment/invite_create.sh
+        echo ""
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "Agent Invite (expires in 5 minutes)"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo ""
+        INVITE_URL=$(docker exec lumenmon-console /app/core/enrollment/invite_create.sh 2>/dev/null)
+        echo "Invite URL:"
+        echo "$INVITE_URL"
+        echo ""
+        echo "One-line install:"
+        docker exec lumenmon-console /app/core/enrollment/invite_create.sh --full 2>/dev/null
+        echo ""
         ;;
 
     register|r)
@@ -61,6 +72,23 @@ case "$1" in
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
         echo "Updating Lumenmon"
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo ""
+
+        # Update CLI script itself
+        echo "CLI:"
+        echo "  → Downloading latest lumenmon CLI..."
+        TEMP_CLI=$(mktemp)
+        if curl -fsSL "$GITHUB_RAW/lumenmon.sh" -o "$TEMP_CLI" 2>/dev/null; then
+            if ! diff -q "$DIR/lumenmon" "$TEMP_CLI" >/dev/null 2>&1; then
+                cp "$DIR/lumenmon" "$DIR/lumenmon.backup"
+                cp "$TEMP_CLI" "$DIR/lumenmon"
+                chmod +x "$DIR/lumenmon"
+                echo "  ✓ CLI updated (backup saved)"
+            else
+                echo "  ✓ CLI up to date"
+            fi
+        fi
+        rm -f "$TEMP_CLI"
         echo ""
 
         # Update console if installed
@@ -156,7 +184,19 @@ case "$1" in
 
     uninstall)
         echo ""
-        read -r -p "Uninstall Lumenmon? [y/N]: " -n 1 CONFIRM
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "⚠  WARNING: Complete Uninstall"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo ""
+        echo "This will remove:"
+        echo "  • All containers (console and agent)"
+        echo "  • All data (metrics database, SSH keys, configs)"
+        echo "  • All network configurations"
+        echo "  • CLI installation"
+        echo ""
+        echo "ALL DATA WILL BE PERMANENTLY LOST!"
+        echo ""
+        read -r -p "Continue with uninstall? [y/N]: " -n 1 CONFIRM
         echo ""
 
         [[ ! $CONFIRM =~ ^[Yy]$ ]] && exit 0
