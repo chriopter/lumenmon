@@ -241,15 +241,16 @@ main() {
             # Since both containers are on same Docker network, use internal port
             install_agent "lumenmon-console" "22"
 
-            # Wait for console SSH to be ready
+            # Wait for console SSH to be ready and accepting connections
             status_progress "Waiting for console SSH server..."
             for i in $(seq 1 30); do
-                if docker exec lumenmon-console nc -zv localhost 22 2>&1 | grep -q succeeded; then
+                # Test SSH protocol handshake, not just port availability
+                if docker exec lumenmon-console timeout 2 ssh -o ConnectTimeout=1 -o BatchMode=yes -o StrictHostKeyChecking=no localhost 2>&1 | grep -qE "Permission denied|publickey"; then
                     break
                 fi
                 sleep 1
             done
-            sleep 2  # Extra buffer for SSH to be fully ready
+            sleep 1  # Small buffer for enrollment script to be ready
 
             # Generate invite for local agent registration (URL only, no --full)
             status_progress "Generating invite for local agent..."
