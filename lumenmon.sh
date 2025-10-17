@@ -54,54 +54,67 @@ case "$1" in
         fi
         ;;
 
-    # Update: respects installation method via docker-compose.override.yml
+    # Update: downloads latest compose files and pulls new images
     update|u)
+        GITHUB_RAW="https://raw.githubusercontent.com/chriopter/lumenmon/main"
+
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
         echo "Updating Lumenmon"
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
         echo ""
 
-        # Pull latest code
-        echo "→ Pulling latest code from git..."
-        git pull
-        echo ""
-
         # Update console if installed
         if [ -d "$DIR/console/data" ]; then
-            cd "$DIR/console"
+            echo "Console:"
 
-            # Determine update method
-            if [ -f docker-compose.override.yml ]; then
-                IMAGE=$(grep "image:" docker-compose.override.yml | awk '{print $2}')
-                echo "Console: Using remote image"
-                echo "  Image: $IMAGE"
-                echo "  → Pulling from registry..."
-                docker compose pull
-            else
-                echo "Console: Building locally from source"
-                echo "  → Building new image..."
-                docker compose build
+            # Download latest compose file
+            echo "  → Downloading latest docker-compose.yml..."
+            TEMP_COMPOSE=$(mktemp)
+            if curl -fsSL "$GITHUB_RAW/console/docker-compose.yml" -o "$TEMP_COMPOSE" 2>/dev/null; then
+                # Check if changed
+                if ! diff -q "$DIR/console/docker-compose.yml" "$TEMP_COMPOSE" >/dev/null 2>&1; then
+                    echo "  ⚠ Compose file changed"
+                    cp "$DIR/console/docker-compose.yml" "$DIR/console/docker-compose.yml.backup"
+                    cp "$TEMP_COMPOSE" "$DIR/console/docker-compose.yml"
+                    echo "  ✓ Compose updated (backup saved)"
+                else
+                    echo "  ✓ Compose up to date"
+                fi
             fi
+            rm -f "$TEMP_COMPOSE"
+
+            # Pull latest image
+            cd "$DIR/console"
+            echo "  → Pulling latest image..."
+            docker compose pull
             echo "  ✓ Console updated"
             echo ""
         fi
 
         # Update agent if installed
         if [ -d "$DIR/agent/data" ]; then
-            cd "$DIR/agent"
+            echo "Agent:"
 
-            # Determine update method
-            if [ -f docker-compose.override.yml ]; then
-                IMAGE=$(grep "image:" docker-compose.override.yml | awk '{print $2}')
-                echo "Agent: Using remote image"
-                echo "  Image: $IMAGE"
-                echo "  → Pulling from registry..."
-                docker compose pull
-            else
-                echo "Agent: Building locally from source"
-                echo "  → Building new image..."
-                docker compose build
+            # Download latest compose file
+            echo "  → Downloading latest docker-compose.yml..."
+            TEMP_COMPOSE=$(mktemp)
+            if curl -fsSL "$GITHUB_RAW/agent/docker-compose.yml" -o "$TEMP_COMPOSE" 2>/dev/null; then
+                # Check if changed
+                if ! diff -q "$DIR/agent/docker-compose.yml" "$TEMP_COMPOSE" >/dev/null 2>&1; then
+                    echo "  ⚠ Compose file changed"
+                    cp "$DIR/agent/docker-compose.yml" "$DIR/agent/docker-compose.yml.backup"
+                    cp "$TEMP_COMPOSE" "$DIR/agent/docker-compose.yml"
+                    echo "  ✓ Compose updated (backup saved)"
+                else
+                    echo "  ✓ Compose up to date"
+                fi
             fi
+            rm -f "$TEMP_COMPOSE"
+
+            # Pull latest image
+            cd "$DIR/agent"
+            echo "  → Pulling latest image..."
+            docker compose pull
             echo "  ✓ Agent updated"
             echo ""
         fi
@@ -111,7 +124,7 @@ case "$1" in
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
         echo ""
 
-        # Start updated containers
+        # Restart updated containers
         "$0" start
         ;;
 
@@ -142,7 +155,43 @@ case "$1" in
         ;;
 
     uninstall)
-        source installer/uninstall.sh
+        echo ""
+        read -r -p "Uninstall Lumenmon? [y/N]: " -n 1 CONFIRM
+        echo ""
+
+        [[ ! $CONFIRM =~ ^[Yy]$ ]] && exit 0
+
+        echo ""
+
+        # Stop containers
+        if [ -d "$DIR/console" ]; then
+            cd "$DIR/console"
+            docker compose down -v 2>/dev/null && echo "[✓] Console stopped"
+        fi
+
+        if [ -d "$DIR/agent" ]; then
+            cd "$DIR/agent"
+            docker compose down -v 2>/dev/null && echo "[✓] Agent stopped"
+        fi
+
+        # Remove network
+        docker network rm lumenmon-net 2>/dev/null && echo "[✓] Network removed"
+
+        # Remove CLI symlinks
+        [ -L /usr/local/bin/lumenmon ] && rm /usr/local/bin/lumenmon 2>/dev/null && echo "[✓] CLI removed"
+        [ -L ~/.local/bin/lumenmon ] && rm ~/.local/bin/lumenmon 2>/dev/null && echo "[✓] CLI removed"
+
+        # Remove installation directory
+        cd "$HOME"
+        if rm -rf "$DIR" 2>/dev/null; then
+            echo "[✓] $DIR removed"
+        else
+            echo "[✗] Failed to remove $DIR (try: sudo rm -rf $DIR)"
+        fi
+
+        echo ""
+        echo "✓ Uninstall complete"
+        echo ""
         ;;
 
     help|h)
