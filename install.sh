@@ -140,15 +140,14 @@ register_agent() {
         sleep 1
     done
 
-    # Try registration with full output for debugging
+    # Try registration
     REGISTER_OUTPUT=$(docker exec lumenmon-agent /app/core/setup/register.sh "$invite_url" 2>&1)
-    echo "$REGISTER_OUTPUT" | grep -E "\[REGISTER\]" >&2
 
     if echo "$REGISTER_OUTPUT" | grep -qE "Success|ENROLL"; then
         return 0
     else
-        echo "[DEBUG] Registration output:" >&2
-        echo "$REGISTER_OUTPUT" >&2
+        # Show error if registration failed
+        echo "$REGISTER_OUTPUT" | grep -E "\[REGISTER\]" >&2
         return 1
     fi
 }
@@ -261,9 +260,6 @@ main() {
             INVITE_URL=$(docker exec lumenmon-console /app/core/enrollment/invite_create.sh 2>&1 | grep '^ssh://')
 
             if [ -n "$INVITE_URL" ]; then
-                # Debug: show we got an invite
-                echo "[DEBUG] Got invite: ${INVITE_URL:0:50}..." >&2
-
                 if register_agent "$INVITE_URL" "true"; then
                     status_ok "Local agent connected!"
                 else

@@ -24,8 +24,8 @@ for collector in collectors/generic/*.sh; do
             echo "  - $name"
         fi
 
-        # Start collector in background
-        "$collector" 2>/dev/null &
+        # Start collector in background (log errors to debug file)
+        "$collector" 2>/tmp/collector_${name}.log &
     fi
 done
 
