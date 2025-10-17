@@ -16,17 +16,11 @@ A stupid simple docker container with just a bunch of bash scripts will collect 
 
 ## Quick Start
 
-Install the console (installs Docker if needed). The installer gives you an invite link to add your first server.
-
 ```bash
-curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/refs/heads/main/install.sh | bash
 ```
 
-Install agent with invite link (one command, installs Docker if needed):
-
-```bash
-curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/install.sh | LUMENMON_INVITE="<invite_url>" bash
-```
+The installer will guide you through setup and show you how to add agents.
 
 <img width="650" alt="screenshot-2025-09-21_20-57-39" src="https://github.com/user-attachments/assets/a900ed9c-d519-4c1c-8268-2d2417807aed" />
 
@@ -46,8 +40,7 @@ lumenmon help       # Show help (alias: h)
 
 ## How It Works
 
-You can invite clients with a magic link (which is just a per-client ssh account), each client sends metrics via SSH that get stored in a SQLite database on the Console.
-
+Agents push metrics via SSH to console. Each agent gets a dedicated SSH account and data goes into SQLite.
 
 ```
 ┌─────────────┐  SSH Tunnel   ┌─────────────┐
@@ -58,27 +51,15 @@ You can invite clients with a magic link (which is just a per-client ssh account
 │ • Disk 60s  │──────────────►│   Linux user│
 └─────────────┘               │ • SQLite DB │
                               └─────────────┘
-                                    │
-                                    ▼
-                              /data/metrics.db
-                              (SQLite database)
-                              └── Tables:
-                                  ├── id_xxx_generic_cpu
-                                  ├── id_xxx_generic_mem
-                                  └── id_xxx_generic_disk
 ```
 
-- **Agents** collect metrics (CPU/memory/disk) and push data through a persistent SSH connection.
-- **Console** creates isolated Linux users per agent and stores incoming data in SQLite (`/data/metrics.db`).
-- **Storage**: One table per metric per agent with typed columns (REAL for numbers, TEXT for strings, INTEGER for counts).
+Agents collect from `/proc`, push through persistent SSH. Console stores in SQLite (`/data/metrics.db`), one table per metric per agent.
 
-## Security
+### Security
 
-- **Push-only architecture**: Agents push metrics outbound via SSH. Console never connects to agents, so no firewall rules or port forwarding needed. Works behind NAT.
-- **MITM-proof enrollment**: Invite links include the console's SSH host key fingerprint. Agents verify this before sending credentials, preventing man-in-the-middle attacks during setup.
-- **SSH key pinning**: After enrollment, agents connect only with SSH keys (no passwords). Keys are generated per-agent and pinned to specific console users, preventing replay attacks.
-- **Isolated execution**: Both console and agents run in Docker containers with minimal dependencies (bash + OpenSSH + /proc). Agents can't execute shells on console via ForceCommand restriction.
-- **Per-agent isolation**: Each agent gets its own Linux user on the console. File permissions prevent agents from reading each other's data or accessing other parts of the system.
+- **Push-only over SSH**: Agents initiate outbound connections. Console never connects to agents. No firewall rules needed, works behind NAT.
+- **MITM-proof enrollment**: Invite links include SSH host key fingerprint. Agents verify before sending credentials. After enrollment, SSH keys pinned to per-agent console users.
+- **Isolated execution**: Runs in Docker. ForceCommand prevents shell access. Per-agent Linux users and file permissions enforce data isolation.
 
 ### Invite Process
 
