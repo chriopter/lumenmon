@@ -11,7 +11,10 @@ set -euo pipefail
 CONSOLE_HOST="${CONSOLE_HOST:-console}"
 CONSOLE_PORT="${CONSOLE_PORT:-22}"
 SSH_SOCKET="/tmp/lumenmon.sock"
-PULSE="1" BREATHE="10" CYCLE="60" REPORT="3600"
+PULSE="1"
+BREATHE="10"
+CYCLE="60"
+REPORT="3600"
 
 echo "[agent] Starting Lumenmon Agent"
 
