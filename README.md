@@ -16,10 +16,16 @@ A stupid simple docker container with just a bunch of bash scripts will collect 
 
 ## Quick Start
 
-Install the console. The installer gives you an invite link to add your first server.
+Install the console (installs Docker if needed). The installer gives you an invite link to add your first server.
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/install.sh | bash
+```
+
+Install agent with invite link (one command, installs Docker if needed):
+
+```bash
+curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/install.sh | LUMENMON_INVITE="<invite_url>" bash
 ```
 
 <img width="650" alt="screenshot-2025-09-21_20-57-39" src="https://github.com/user-attachments/assets/a900ed9c-d519-4c1c-8268-2d2417807aed" />
@@ -65,7 +71,14 @@ You can invite clients with a magic link (which is just a per-client ssh account
 - **Agents** collect metrics (CPU/memory/disk) and push data through a persistent SSH connection.
 - **Console** creates isolated Linux users per agent and stores incoming data in SQLite (`/data/metrics.db`).
 - **Storage**: One table per metric per agent with typed columns (REAL for numbers, TEXT for strings, INTEGER for counts).
-- **Security** is SSH-based and push-only. Invites are temporary SSH accounts (password + host fingerprint), exchanged for key-based access on enrollment. Agent and Console run as Docker containers.
+
+## Security
+
+- **Push-only architecture**: Agents push metrics outbound via SSH. Console never connects to agents, so no firewall rules or port forwarding needed. Works behind NAT.
+- **MITM-proof enrollment**: Invite links include the console's SSH host key fingerprint. Agents verify this before sending credentials, preventing man-in-the-middle attacks during setup.
+- **SSH key pinning**: After enrollment, agents connect only with SSH keys (no passwords). Keys are generated per-agent and pinned to specific console users, preventing replay attacks.
+- **Isolated execution**: Both console and agents run in Docker containers with minimal dependencies (bash + OpenSSH + /proc). Agents can't execute shells on console via ForceCommand restriction.
+- **Per-agent isolation**: Each agent gets its own Linux user on the console. File permissions prevent agents from reading each other's data or accessing other parts of the system.
 
 ### Invite Process
 

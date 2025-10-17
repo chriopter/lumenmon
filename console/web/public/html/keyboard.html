@@ -35,30 +35,9 @@ Binds ↑/↓/j/k (navigation), Enter (detail), Esc (close), i (invite), r (refr
             e.preventDefault();
             fetchAgents();
             addLog('manual refresh', 'info');
-        } else if (key === 'h' || key === '?') {
-            e.preventDefault();
-            showHelp();
         } else if (key === 'd' && !e.ctrlKey && !e.metaKey && !e.altKey) {
             e.preventDefault();
             openDebugView();
         }
     });
-
-    function showHelp() {
-        const helpText = `Keyboard Shortcuts:
-
-Navigation:
-  ↑/k     - Move up
-  ↓/j     - Move down
-  Enter   - Open detail view
-  Esc     - Close detail view
-
-Actions:
-  i       - Create invite
-  r       - Refresh agents
-  d       - Debug view
-  h/?     - Show help`;
-
-        alert(helpText);
-    }
 </script>
