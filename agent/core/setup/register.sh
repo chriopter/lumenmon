@@ -30,7 +30,12 @@ echo "[REGISTER] Found key: $(echo "$PUBLIC_KEY" | cut -c1-50)..." >&2
 
 # Save ED25519 host key
 KNOWN_HOSTS="/tmp/known_hosts_$$"
-echo "[$HOST]:$PORT ${HOSTKEY//_/ }" > "$KNOWN_HOSTS"
+# For port 22, don't use bracket notation (SSH default)
+if [ "$PORT" = "22" ]; then
+    echo "$HOST ${HOSTKEY//_/ }" > "$KNOWN_HOSTS"
+else
+    echo "[$HOST]:$PORT ${HOSTKEY//_/ }" > "$KNOWN_HOSTS"
+fi
 
 echo "[REGISTER] Sending key to console..." >&2
 if echo "$PUBLIC_KEY" | sshpass -p "$PASSWORD" \
