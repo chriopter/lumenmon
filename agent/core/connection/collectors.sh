@@ -1,5 +1,5 @@
 #!/bin/bash
-# Starts all metric collector scripts in collectors/ directory as background processes.
+# Starts all metric collector scripts in collectors/generic/ directory as background processes.
 # Each collector runs independently and sends data through the established SSH tunnel.
 set -euo pipefail
 
@@ -7,18 +7,24 @@ set -euo pipefail
 export PULSE BREATHE CYCLE REPORT
 export SSH_SOCKET AGENT_USER CONSOLE_HOST CONSOLE_PORT
 
-# Start collectors
+# Start all generic collectors
 echo "[agent] Starting collectors:"
-for collector in collectors/*/*.sh; do
+for collector in collectors/generic/*.sh; do
     if [ -f "$collector" ]; then
         name=$(basename "$collector" .sh)
-        case "$name" in
-            cpu)      echo "  - $name (PULSE: ${PULSE}s)" ;;
-            memory)   echo "  - $name (BREATHE: ${BREATHE}s)" ;;
-            disk)     echo "  - $name (CYCLE: ${CYCLE}s)" ;;
-            lumenmon) echo "  - $name (REPORT: ${REPORT}s)" ;;
-            *)        echo "  - $name" ;;
-        esac
+
+        # Extract RHYTHM from collector script
+        rhythm=$(grep -oP '^RHYTHM="\K[^"]+' "$collector" 2>/dev/null || echo "")
+
+        # Display with timing info
+        if [ -n "$rhythm" ]; then
+            timing="${!rhythm:-unknown}"
+            echo "  - $name ($rhythm: ${timing}s)"
+        else
+            echo "  - $name"
+        fi
+
+        # Start collector in background
         "$collector" 2>/dev/null &
     fi
 done
