@@ -6,6 +6,7 @@ Rendered by /api/agents/table endpoint. Returns HTML fragment fetched every 3 se
   {% for agent in agents %}
 <tr class="agent-row {% if loop.index0 == 0 %}selected{% endif %}" data-index="{{ loop.index0 }}" data-agent-id="{{ agent.id }}" data-status="{{ agent.status }}" data-age="{{ agent.age_formatted }}" data-cpu-history='{{ agent.cpuHistory|tojson }}' data-mem-history='{{ agent.memHistory|tojson }}' data-disk-history='{{ agent.diskHistory|tojson }}'>
   <td><span class="status-dot {{ agent.status }}" title="{{ agent.status }}"></span>{{ agent.id }} <span class="agent-symbols">✉ ↑</span></td>
+  <td>{{ agent.hostname if agent.hostname else '-' }}</td>
   <td>{{ "%.1f"|format(agent.cpu) }}%<span class="sparkline">{{ agent.cpuSparkline }}</span></td>
   <td>{{ "%.1f"|format(agent.memory) }}%</td>
   <td>{{ "%.1f"|format(agent.disk) }}%</td>
@@ -13,6 +14,6 @@ Rendered by /api/agents/table endpoint. Returns HTML fragment fetched every 3 se
   {% endfor %}
 {% else %}
 <tr>
-  <td colspan="4" class="no-data">no agents connected</td>
+  <td colspan="5" class="no-data">no agents connected</td>
 </tr>
 {% endif %}

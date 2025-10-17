@@ -39,6 +39,7 @@ def get_agent_metrics(agent_id):
         'cpu': 0.0,
         'memory': 0.0,
         'disk': 0.0,
+        'hostname': '',
         'age': 0,
         'status': 'offline',
         'lastUpdate': 0,
@@ -79,6 +80,17 @@ def get_agent_metrics(agent_id):
             metrics['lastUpdate'] = max(metrics['lastUpdate'], timestamp)
 
         metrics['diskHistory'] = get_history_from_file(disk_file, 60)
+
+    # Read Hostname
+    hostname_file = os.path.join(agent_dir, 'generic_hostname.tsv')
+    if os.path.exists(hostname_file):
+        line = read_last_line(hostname_file)
+        if line:
+            parts = line.strip().split()
+            if len(parts) >= 3:
+                # Format: timestamp interval hostname
+                # Hostname is everything after the interval (could contain spaces)
+                metrics['hostname'] = ' '.join(parts[2:])
 
     # Calculate age and status
     current_time = int(time.time())
