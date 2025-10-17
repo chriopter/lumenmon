@@ -27,15 +27,13 @@ The installer will guide you through setup and show you how to add agents.
 ## Commands
 
 ```bash
-lumenmon            # Open dashboard (or show status)
-lumenmon start      # Start console and/or agent
-lumenmon status     # Show system status (alias: s)
-lumenmon logs       # Stream container logs (alias: l)
-lumenmon invite     # Generate agent invite (alias: i)
+lumenmon            # Show status and available commands
+lumenmon start      # Start containers
+lumenmon logs       # Stream container logs
+lumenmon invite     # Generate agent invite (URL + one-line install)
 lumenmon register   # Register agent with invite
-lumenmon update     # Update to latest version (alias: u)
+lumenmon update     # Update CLI, compose files, and images
 lumenmon uninstall  # Remove everything
-lumenmon help       # Show help (alias: h)
 ```
 
 ## How It Works

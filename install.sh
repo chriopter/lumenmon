@@ -63,10 +63,14 @@ install_console() {
     mkdir -p "$INSTALL_DIR/console/data/ssh" "$INSTALL_DIR/console/data/agents"
     chmod -R 755 "$INSTALL_DIR/console/data"
 
+    # Pull latest image
+    status_progress "Pulling latest console image..."
+    cd "$INSTALL_DIR/console"
+    docker compose pull --quiet 2>&1 || true
+
     # Start console
     status_progress "Starting console..."
-    cd "$INSTALL_DIR/console"
-    docker compose up -d --quiet-pull 2>&1 | grep -v "Pulling" || true
+    docker compose up -d 2>&1 | grep -v "Pulling" || true
 
     status_ok "Console installed at $INSTALL_DIR/console/"
 }
@@ -90,10 +94,14 @@ install_agent() {
     mkdir -p "$INSTALL_DIR/agent/data/ssh"
     chmod 777 "$INSTALL_DIR/agent/data/ssh"
 
+    # Pull latest image
+    status_progress "Pulling latest agent image..."
+    cd "$INSTALL_DIR/agent"
+    docker compose pull --quiet 2>&1 || true
+
     # Start agent
     status_progress "Starting agent..."
-    cd "$INSTALL_DIR/agent"
-    docker compose up -d --quiet-pull 2>&1 | grep -v "Pulling" || true
+    docker compose up -d 2>&1 | grep -v "Pulling" || true
 
     status_ok "Agent installed at $INSTALL_DIR/agent/"
 }
