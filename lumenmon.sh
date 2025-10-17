@@ -56,7 +56,7 @@ case "$1" in
 
     # Update: downloads latest compose files and pulls new images
     update|u)
-        GITHUB_RAW="https://raw.githubusercontent.com/chriopter/lumenmon/main"
+        GITHUB_RAW="https://raw.githubusercontent.com/chriopter/lumenmon/refs/heads/main"
 
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
         echo "Updating Lumenmon"

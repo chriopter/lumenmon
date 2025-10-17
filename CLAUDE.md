@@ -12,14 +12,15 @@ Lumenmon is a lightweight system monitoring solution with SSH transport and TUI 
 
 ### Production Commands (`lumenmon`)
 ```bash
-lumenmon              # Open TUI (or show status if not running)
+lumenmon              # Open WebTUI (or show status if not running)
 lumenmon status       # Show comprehensive system status
 lumenmon logs         # Stream logs from all containers
 lumenmon invite       # Generate agent enrollment invite
-lumenmon update       # Update from git repository
+lumenmon register     # Register agent with invite URL
+lumenmon update       # Update from GitHub (downloads latest compose, pulls images)
 lumenmon uninstall    # Remove all containers and data
 
-# Short aliases available: s (status), l (logs), i (invite), u (update), h (help)
+# Short aliases available: s (status), l (logs), i (invite), r (register), u (update), h (help)
 ```
 
 ### Status Output
@@ -62,24 +63,18 @@ docker exec -it lumenmon-console /app/tui.sh
 
 ### Quick Install
 ```bash
-# Console installation
-curl -sSL https://lumenmon.run | bash
-
-# Agent installation with invite (one-line)
-curl -sSL https://lumenmon.run | LUMENMON_INVITE="<invite_url>" bash
-
-# Manual agent installation
-curl -sSL https://lumenmon.run | bash -s agent
+curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/refs/heads/main/install.sh | bash
 ```
 
-### Installer Scripts
-- `install.sh`: Main entry point, checks requirements, routes to appropriate installer
-- `installer/console.sh`: Console-specific installation
-- `installer/agent.sh`: Agent-specific installation
-- `installer/menu.sh`: Interactive menu for installation options
-- `installer/cli.sh`: Sets up `lumenmon` command symlink
-- `installer/status.sh`: Shared status output functions
-- `installer/uninstall.sh`: Complete removal script
+The installer provides an interactive menu for Console, Agent, or both installations.
+
+### Installer Details
+- `install.sh`: Self-contained installer that downloads compose files from GitHub
+- Downloads from `https://raw.githubusercontent.com/chriopter/lumenmon/refs/heads/main/`
+- Three install modes: "Console with Agent" (recommended), "Console only", "Agent only"
+- Auto-registers local agent in "both" mode via Docker network
+- Installs `lumenmon` CLI symlink to `/usr/local/bin/` or `~/.local/bin/`
+- One-line agent install: `LUMENMON_INVITE="<url>" bash install.sh`
 
 ## Architecture
 
@@ -110,14 +105,15 @@ curl -sSL https://lumenmon.run | bash -s agent
     - `status.sh`: Comprehensive agent status with connectivity checks
   - `data/`: SSH keys and config (gitignored)
 
-- `installer/`: Installation and setup scripts
-  - Modular, self-contained installers following KISS principles
-  - Consistent status output format across all scripts
+- `install.sh`: Self-contained installer in repo root
+  - Downloads compose files from GitHub raw URLs
+  - Interactive menu for Console/Agent/Both
+  - Auto-registration support
 
 - `lumenmon.sh`: Main CLI script in repo root
-  - Smart defaults: no args opens TUI or shows status
+  - Smart defaults: no args opens WebTUI or shows status
   - Single-letter aliases for common commands
-  - 57 lines of clean, maintainable bash
+  - Integrated update and uninstall commands
 
 ### Security Model
 - SSH key-based authentication only (no passwords)

@@ -6,7 +6,7 @@ set -e
 
 # Configuration
 INSTALL_DIR="$HOME/.lumenmon"
-GITHUB_RAW="https://raw.githubusercontent.com/chriopter/lumenmon/main"
+GITHUB_RAW="https://raw.githubusercontent.com/chriopter/lumenmon/refs/heads/main"
 GITHUB_IMAGE_CONSOLE="ghcr.io/chriopter/lumenmon-console:latest"
 GITHUB_IMAGE_AGENT="ghcr.io/chriopter/lumenmon-agent:latest"
 
@@ -137,6 +137,7 @@ install_cli() {
 show_completion() {
     local mode="$1"
     local invite_url="$2"
+    local console_host="$3"
 
     echo ""
     echo -e "\033[1;32m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
@@ -152,7 +153,9 @@ show_completion() {
     fi
 
     if [ "$mode" != "agent" ]; then
-        echo -e "Dashboard: \033[1;36mhttp://localhost:8080\033[0m"
+        # Use configured hostname, fallback to localhost
+        local dashboard_host="${console_host:-localhost}"
+        echo -e "Dashboard: \033[1;36mhttp://${dashboard_host}:8080\033[0m"
         echo ""
     fi
 
@@ -208,7 +211,7 @@ main() {
             fi
 
             install_cli
-            show_completion "both" "$REMOTE_INVITE"
+            show_completion "both" "$REMOTE_INVITE" "$CONSOLE_HOST"
             ;;
 
         2)
@@ -227,7 +230,7 @@ main() {
 
             INVITE_URL=$(generate_invite)
             install_cli
-            show_completion "console" "$INVITE_URL"
+            show_completion "console" "$INVITE_URL" "$CONSOLE_HOST"
             ;;
 
         3)
@@ -245,7 +248,7 @@ main() {
             fi
 
             install_cli
-            show_completion "agent" ""
+            show_completion "agent" "" ""
             ;;
 
         4)

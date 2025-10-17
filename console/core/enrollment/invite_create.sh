@@ -23,7 +23,7 @@ INVITE_URL="ssh://${USERNAME}:${PASSWORD}@${CONSOLE_HOST}:2345/#${HOSTKEY}"
 
 # Output based on mode
 if [ "$1" = "--full" ]; then
-    echo "curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/install.sh | LUMENMON_INVITE='$INVITE_URL' bash"
+    echo "curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/refs/heads/main/install.sh | LUMENMON_INVITE='$INVITE_URL' bash"
 else
     echo "$INVITE_URL"
 fi
