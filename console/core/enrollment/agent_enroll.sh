@@ -43,8 +43,8 @@ create_agent_user() {
     # Unlock the account (set to no password for SSH key-only auth)
     usermod -p '' "$FINGERPRINT"
 
-    # Setup SSH access
-    echo "$PUBLIC_KEY" > "/data/agents/$FINGERPRINT/.ssh/authorized_keys"
+    # Setup SSH access with ForceCommand to gateway
+    echo "command=\"/app/core/ingress/gateway.py\" $PUBLIC_KEY" > "/data/agents/$FINGERPRINT/.ssh/authorized_keys"
 
     # Fix ownership and permissions
     chown -R "$FINGERPRINT:$FINGERPRINT" "/data/agents/$FINGERPRINT"
