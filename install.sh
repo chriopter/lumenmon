@@ -227,13 +227,16 @@ main() {
             # Since both containers are on same Docker network, use internal port
             install_agent "lumenmon-console" "22"
 
-            # Generate invite and auto-register
-            INVITE_URL=$(generate_invite)
+            # Generate invite for local agent registration (URL only, no --full)
+            status_progress "Generating invite for local agent..."
+            sleep 3
+            INVITE_URL=$(docker exec lumenmon-console /app/core/enrollment/invite_create.sh 2>/dev/null)
+
             if [ -n "$INVITE_URL" ]; then
                 register_agent "$INVITE_URL" "true"
                 status_ok "Local agent connected!"
 
-                # Generate second invite for remote agents
+                # Generate second invite for remote agents (with full install command)
                 sleep 1
                 REMOTE_INVITE=$(generate_invite)
             fi
