@@ -4,7 +4,6 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
 -->
 <script>
     let detailViewOpen = false;
-    let detailRefreshInterval = null;
 
     function openDetailView() {
         detailViewOpen = true;
@@ -37,8 +36,8 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
 
         panel.innerHTML = `
             <div class="detail-header">
-                <h2><span class="status-dot ${agent.status}"></span>${agent.hostname || agent.id} <span class="detail-id">${agent.id}</span></h2>
-                <span class="detail-status">${agent.status} · ${agent.age}</span>
+                <h2><span class="status-dot ${agent.status}"></span>${agent.hostname || agent.id}</h2>
+                <span class="detail-status"><span class="detail-status-text">${agent.status} · ${agent.age}</span> · <span class="detail-id">${agent.id}</span></span>
             </div>
             <div class="detail-content">
                 <div class="detail-stats">
@@ -106,14 +105,8 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
             renderCharts(agent);
             loadTsvFiles(agent.id);
 
-            // Start auto-refresh if not already running
-            if (!detailRefreshInterval) {
-                detailRefreshInterval = setInterval(() => {
-                    if (detailViewOpen) {
-                        refreshDetailView();
-                    }
-                }, 1000);
-            }
+            // Register with global clock for synchronized updates
+            window.globalClock.register(refreshDetailView);
         } catch (error) {
             console.error('Error opening detail view:', error);
             addLog(`error opening detail: ${error.message}`, 'error');
@@ -160,10 +153,10 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
                 statLines[2].querySelector('.stat-extra').textContent = `free ${(100 - currentDisk).toFixed(1)}%`;
             }
 
-            // Update header status
-            const detailStatus = document.querySelector('.detail-status');
-            if (detailStatus) {
-                detailStatus.textContent = `${agent.status} · ${agent.age}`;
+            // Update header status (only the status text, not the ID)
+            const detailStatusText = document.querySelector('.detail-status-text');
+            if (detailStatusText) {
+                detailStatusText.textContent = `${agent.status} · ${agent.age}`;
             }
 
             // Update samples count
@@ -180,10 +173,7 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
 
     function closeDetailView() {
         detailViewOpen = false;
-        if (detailRefreshInterval) {
-            clearInterval(detailRefreshInterval);
-            detailRefreshInterval = null;
-        }
+        window.globalClock.unregister(refreshDetailView);
         const panel = document.getElementById('detail-panel');
         panel.classList.add('detail-panel-empty');
         panel.innerHTML = '<span class="detail-placeholder">← Select an agent and press <kbd>Enter</kbd></span>';

@@ -141,5 +141,5 @@ Fetches server-rendered rows every 1s. Provides row selection, navigation functi
     addLog('console started', 'success');
     addLog('loading agents...', 'info');
     fetchAgents();
-    setInterval(fetchAgents, 1000);
+    window.globalClock.register(fetchAgents);
 </script>
