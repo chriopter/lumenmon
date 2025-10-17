@@ -10,17 +10,17 @@ from formatters import generate_tui_sparkline, format_age
 
 DATA_DIR = "/data/agents"
 
-def get_history_from_file(file_path, minutes=60):
-    """Read history from TSV file for the last N minutes."""
+def get_history_from_file(file_path, minutes=None):
+    """Read history from TSV file. If minutes=None, read all available data."""
     history = []
     if not os.path.exists(file_path):
         return history
 
     current_time = int(time.time())
-    cutoff_time = current_time - (minutes * 60)
+    cutoff_time = current_time - (minutes * 60) if minutes else 0
 
-    # Read last 1000 lines to ensure we get all data from last 60 minutes
-    lines = read_last_n_lines(file_path, 1000)
+    # Read last 10000 lines to get all historical data
+    lines = read_last_n_lines(file_path, 10000)
     for line in lines:
         timestamp, value = parse_tsv_line(line)
         if timestamp and value is not None and timestamp >= cutoff_time:
@@ -28,6 +28,12 @@ def get_history_from_file(file_path, minutes=60):
 
     # Sort by timestamp
     history.sort(key=lambda x: x['timestamp'])
+
+    # Downsample to reduce resolution (every 5th point)
+    if len(history) > 100:
+        step = max(1, len(history) // 100)
+        history = history[::step]
+
     return history
 
 def get_agent_metrics(agent_id):
@@ -57,7 +63,7 @@ def get_agent_metrics(agent_id):
             metrics['cpu'] = round(value, 1)
             metrics['lastUpdate'] = max(metrics['lastUpdate'], timestamp)
 
-        metrics['cpuHistory'] = get_history_from_file(cpu_file, 60)
+        metrics['cpuHistory'] = get_history_from_file(cpu_file, None)
 
     # Read Memory
     mem_file = os.path.join(agent_dir, 'generic_mem.tsv')
@@ -68,7 +74,7 @@ def get_agent_metrics(agent_id):
             metrics['memory'] = round(value, 1)
             metrics['lastUpdate'] = max(metrics['lastUpdate'], timestamp)
 
-        metrics['memHistory'] = get_history_from_file(mem_file, 60)
+        metrics['memHistory'] = get_history_from_file(mem_file, None)
 
     # Read Disk
     disk_file = os.path.join(agent_dir, 'generic_disk.tsv')
@@ -79,7 +85,7 @@ def get_agent_metrics(agent_id):
             metrics['disk'] = round(value, 1)
             metrics['lastUpdate'] = max(metrics['lastUpdate'], timestamp)
 
-        metrics['diskHistory'] = get_history_from_file(disk_file, 60)
+        metrics['diskHistory'] = get_history_from_file(disk_file, None)
 
     # Read Hostname
     hostname_file = os.path.join(agent_dir, 'generic_hostname.tsv')
