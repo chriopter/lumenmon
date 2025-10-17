@@ -3,10 +3,7 @@
 # Each collector runs independently and sends data through the established SSH tunnel.
 set -euo pipefail
 
-# Ensure variables are exported for background jobs
-export PULSE BREATHE CYCLE REPORT
-export SSH_SOCKET AGENT_USER CONSOLE_HOST CONSOLE_PORT
-
+# Variables already exported by agent.sh before sourcing this script
 # Start all generic collectors
 echo "[agent] Starting collectors:"
 for collector in collectors/generic/*.sh; do

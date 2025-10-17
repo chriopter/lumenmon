@@ -8,10 +8,10 @@ set -euo pipefail
 
 # Set up environment
 # Connection details come from Docker environment variables set via .env file
-export CONSOLE_HOST="${CONSOLE_HOST:-console}"
-export CONSOLE_PORT="${CONSOLE_PORT:-22}"
-export SSH_SOCKET="/tmp/lumenmon.sock"
-export PULSE="1" BREATHE="10" CYCLE="60" REPORT="3600"
+CONSOLE_HOST="${CONSOLE_HOST:-console}"
+CONSOLE_PORT="${CONSOLE_PORT:-22}"
+SSH_SOCKET="/tmp/lumenmon.sock"
+PULSE="1" BREATHE="10" CYCLE="60" REPORT="3600"
 
 echo "[agent] Starting Lumenmon Agent"
 
@@ -26,6 +26,11 @@ trap cleanup SIGTERM SIGINT EXIT
 
 # Run components
 source core/setup/identity.sh        # Sets AGENT_USER and SSH_KEY
+
+# Export variables needed by collectors (background jobs need explicit export)
+export AGENT_USER SSH_KEY CONSOLE_HOST CONSOLE_PORT SSH_SOCKET
+export PULSE BREATHE CYCLE REPORT
+
 source core/connection/tunnel.sh     # Establishes connection
 source core/connection/collectors.sh # Starts collectors (background jobs)
 core/connection/watchdog.sh          # Monitor and reconnect (blocks forever)
