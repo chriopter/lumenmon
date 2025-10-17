@@ -181,7 +181,7 @@ main() {
     echo "  3) Agent only"
     echo "  4) Exit"
     echo ""
-    read -r -p "  Select [1-4]: " choice </dev/tty
+    read -r -p "  Select [1-4]: " choice </dev/tty || status_error "Failed to read input. Please run installer directly: bash install.sh"
 
     case $choice in
         1)
@@ -192,7 +192,7 @@ main() {
 
             echo "  Enter hostname for agent connections"
             echo "  (This will be in invite URLs for remote agents to connect)"
-            read -r -p "  Hostname [$DETECTED_HOST]: " USER_HOST </dev/tty
+            read -r -p "  Hostname [$DETECTED_HOST]: " USER_HOST </dev/tty || true
             CONSOLE_HOST="${USER_HOST:-$DETECTED_HOST}"
 
             echo ""
@@ -222,7 +222,7 @@ main() {
 
             echo "  Enter hostname for agent connections"
             echo "  (This will be in invite URLs for remote agents to connect)"
-            read -r -p "  Hostname [$DETECTED_HOST]: " USER_HOST </dev/tty
+            read -r -p "  Hostname [$DETECTED_HOST]: " USER_HOST </dev/tty || true
             CONSOLE_HOST="${USER_HOST:-$DETECTED_HOST}"
 
             echo ""
@@ -236,8 +236,8 @@ main() {
         3)
             # Agent only
             echo ""
-            read -r -p "  Enter console hostname: " CONSOLE_HOST </dev/tty
-            read -r -p "  Enter invite URL: " INVITE_URL </dev/tty
+            read -r -p "  Enter console hostname: " CONSOLE_HOST </dev/tty || status_error "Failed to read input"
+            read -r -p "  Enter invite URL: " INVITE_URL </dev/tty || status_error "Failed to read input"
 
             echo ""
             install_agent "$CONSOLE_HOST" "2345"
