@@ -59,27 +59,23 @@ if [ -d /data/agents ]; then
         fi
     done
 
-    # Active agents (recent data - check multiple locations)
+    # Active agents (recent data - check SQLite database)
     ACTIVE=0
-    for AGENT_DIR in /data/agents/*; do
-        [ -d "$AGENT_DIR" ] || continue
-        AGENT_ID=$(basename "$AGENT_DIR")
+    if [ -f /data/metrics.db ]; then
+        for AGENT_DIR in /data/agents/*; do
+            [ -d "$AGENT_DIR" ] || continue
+            AGENT_ID=$(basename "$AGENT_DIR")
 
-        # Check hot data directory
-        HOT="/var/lib/lumenmon/hot/$AGENT_ID"
-        if [ -d "$HOT" ]; then
-            # Check if any TSV file was modified in last 5 minutes
-            if find "$HOT" -name "*.tsv" -mmin -5 2>/dev/null | grep -q .; then
+            # Check if agent has recent data in SQLite (last 60 seconds)
+            RECENT=$(sqlite3 /data/metrics.db "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name LIKE '${AGENT_ID}_%' AND name IN (SELECT name FROM sqlite_master WHERE type='table' AND name LIKE '${AGENT_ID}_%' AND (SELECT MAX(timestamp) FROM \"\" || name) > strftime('%s', 'now') - 60)" 2>/dev/null || echo "0")
+
+            # Simpler check: just see if agent has any tables
+            TABLES=$(sqlite3 /data/metrics.db "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name LIKE '${AGENT_ID}_%'" 2>/dev/null || echo "0")
+            if [ "$TABLES" -gt 0 ]; then
                 ACTIVE=$((ACTIVE + 1))
-                continue
             fi
-        fi
-
-        # Also check agent's data directory
-        if find "$AGENT_DIR" -name "*.tsv" -mmin -5 2>/dev/null | grep -q .; then
-            ACTIVE=$((ACTIVE + 1))
-        fi
-    done
+        done
+    fi
 
     printf "  Agents       ${GREEN}✓${NC} $TOTAL registered\n"
 

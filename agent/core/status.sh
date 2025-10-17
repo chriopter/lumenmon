@@ -36,8 +36,8 @@ else
     printf "  SSH Tunnel   ${RED}✗${NC} Not connected\n"
 fi
 
-# Collector processes
-COLLECTORS=$(pgrep -f "collector" | wc -l)
+# Collector processes (check for collector scripts in collectors/generic/)
+COLLECTORS=$(pgrep -f "collectors/generic/.*\.sh" | wc -l)
 if [ $COLLECTORS -gt 0 ]; then
     printf "  Collectors   ${GREEN}✓${NC} $COLLECTORS running\n"
 else
