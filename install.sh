@@ -140,11 +140,15 @@ register_agent() {
         sleep 1
     done
 
-    # Try registration with better error reporting
-    if docker exec lumenmon-agent /app/core/setup/register.sh "$invite_url" 2>&1 | tee /tmp/register_output | grep -qE "Success|ENROLL"; then
+    # Try registration with full output for debugging
+    REGISTER_OUTPUT=$(docker exec lumenmon-agent /app/core/setup/register.sh "$invite_url" 2>&1)
+    echo "$REGISTER_OUTPUT" | grep -E "\[REGISTER\]" >&2
+
+    if echo "$REGISTER_OUTPUT" | grep -qE "Success|ENROLL"; then
         return 0
     else
-        status_warn "Registration may have failed - check with 'lumenmon status'"
+        echo "[DEBUG] Registration output:" >&2
+        echo "$REGISTER_OUTPUT" >&2
         return 1
     fi
 }
@@ -254,11 +258,17 @@ main() {
 
             # Generate invite for local agent registration (URL only, no --full)
             status_progress "Generating invite for local agent..."
-            INVITE_URL=$(docker exec lumenmon-console /app/core/enrollment/invite_create.sh 2>/dev/null)
+            INVITE_URL=$(docker exec lumenmon-console /app/core/enrollment/invite_create.sh 2>&1 | grep '^ssh://')
 
             if [ -n "$INVITE_URL" ]; then
-                register_agent "$INVITE_URL" "true"
-                status_ok "Local agent connected!"
+                # Debug: show we got an invite
+                echo "[DEBUG] Got invite: ${INVITE_URL:0:50}..." >&2
+
+                if register_agent "$INVITE_URL" "true"; then
+                    status_ok "Local agent connected!"
+                else
+                    status_warn "Auto-registration failed - use 'lumenmon invite' and 'lumenmon register' to connect manually"
+                fi
 
                 # Generate second invite for remote agents (with full install command)
                 sleep 1
