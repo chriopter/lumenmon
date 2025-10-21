@@ -219,9 +219,23 @@ Both `console/core/status.sh` and `agent/core/status.sh` provide comprehensive c
 - Add keyboard shortcuts: `keyboard.html`
 
 ### Debugging
+
+**First step: Always run `lumenmon status`** - it checks for common issues including gateway errors and permissions.
+
+**Collector not sending data:**
+1. Check gateway log: `docker exec lumenmon-console tail -50 /data/gateway.log`
+   - Look for "ERROR" or "EXCEPTION" messages
+   - Common: "readonly database" means `/data` permissions wrong (needs `root:agents 775`)
+2. Check collector error logs: `docker exec lumenmon-agent cat /tmp/collector_cpu.log`
+3. Test manually: `docker exec lumenmon-agent bash -c 'export PULSE=1 ...; collectors/generic/cpu.sh'`
+
+**Database issues:**
+- Gateway log: `/data/gateway.log` - all ingress errors logged here
+- Permissions: `/data` must be `root:agents 775` for SQLite WAL mode
+- Direct queries: `docker exec lumenmon-console sqlite3 /data/metrics.db ".tables"`
+- Check WAL files: `docker exec lumenmon-console ls -la /data/metrics.db*`
+
+**Other issues:**
 - Container logs: `docker logs lumenmon-console` or `lumenmon logs`
-- Agent debug output: Check `agent/data/debug/`
 - SSH issues: Verify keys in `console/data/ssh/` and `agent/data/ssh/`
-- Web dashboard issues: Check Flask logs in console container, verify Caddy is proxying port 5000→8080
-- Database queries: `docker exec lumenmon-console sqlite3 /data/metrics.db`
-- Status check: `lumenmon status` for comprehensive system state
+- Web dashboard: Check Flask logs, verify Caddy proxying port 5000→8080

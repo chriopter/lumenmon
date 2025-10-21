@@ -105,3 +105,15 @@ if [ -f /data/metrics.db ]; then
         printf "               Fix: chown root:agents /data && chmod 775 /data\n"
     fi
 fi
+
+# Check gateway log for recent errors (last 5 minutes)
+if [ -f /data/gateway.log ]; then
+    RECENT_ERRORS=$(tail -100 /data/gateway.log 2>/dev/null | grep -c "ERROR\|EXCEPTION" || echo 0)
+    if [ "$RECENT_ERRORS" -gt 0 ]; then
+        # Get the most recent unique error
+        LAST_ERROR=$(tail -100 /data/gateway.log 2>/dev/null | grep "ERROR\|EXCEPTION" | tail -1 | sed 's/.*\] //')
+        printf "  Gateway Log  ${RED}✗${NC} $RECENT_ERRORS recent errors\n"
+        printf "               Latest: ${LAST_ERROR}\n"
+        printf "               Check: docker exec lumenmon-console tail /data/gateway.log\n"
+    fi
+fi
