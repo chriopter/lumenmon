@@ -5,7 +5,9 @@
       "WebFetch(domain:webtui.ironclad.sh)",
       "Bash(docker ps:*)",
       "Bash(curl:*)",
-      "Bash(docker exec:*)"
+      "Bash(docker exec:*)",
+      "Bash(./dev/auto)",
+      "Bash(docker logs:*)"
     ],
     "deny": [],
     "ask": []
