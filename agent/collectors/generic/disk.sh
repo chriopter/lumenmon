@@ -7,7 +7,7 @@ RHYTHM="CYCLE"    # Uses CYCLE timing from agent.sh
 PREFIX="generic_disk"     # Metric prefix: generic_disk_root_usage
 TYPE="REAL"      # SQLite column type for numeric values
 
-set -euo pipefail
+set -eo pipefail
 
 # Main loop - check disk and send
 while true; do

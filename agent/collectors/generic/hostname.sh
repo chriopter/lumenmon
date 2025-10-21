@@ -7,7 +7,7 @@ RHYTHM="REPORT"   # Uses REPORT timing from agent.sh
 PREFIX="generic_hostname"      # Metric prefix: generic_hostname
 TYPE="TEXT"       # SQLite column type for string values
 
-set -euo pipefail
+set -eo pipefail
 
 # Main loop - gather hostname and send
 while true; do
