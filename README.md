@@ -36,6 +36,11 @@ lumenmon update     # Update CLI, compose files, and images
 lumenmon uninstall  # Remove everything
 ```
 
+## Next / Todos
+
+- Show Invites in Agent List
+- Polish Auto-Installer (PULSE: unbound variable on some systems)
+
 ## How It Works
 
 Agents push metrics via SSH to console. Each agent gets a dedicated SSH account and data goes into SQLite.
