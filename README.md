@@ -42,6 +42,7 @@ lumenmon uninstall  # Remove everything
 - Polish Auto-Installer (PULSE: unbound variable on some systems)
 - Fix Same Host installation
 - Clean Readme
+- Clean scattered logs like .lumenmon/console/data/agents.log
 
 ## How It Works
 
