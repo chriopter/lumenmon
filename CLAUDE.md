@@ -170,6 +170,25 @@ Guidelines:
 - Protocol: Collectors declare type in header: `metric_name.tsv TYPE`
 - Auto-migration: Tables dropped/recreated if type changes
 
+### Metric Collection Timing
+Agent collectors use interval-based timing configured via environment variables:
+
+**Runtime Variables** (set in `agent.sh`):
+- `PULSE=1` - Fast metrics (CPU usage) - 1 second interval
+- `BREATHE=10` - Medium metrics (memory) - 10 second interval
+- `CYCLE=60` - Slow metrics (disk) - 60 second interval
+- `REPORT=3600` - Hourly metrics (hostname, version) - 1 hour interval
+
+**Docker Compose Variables** (Hz-based, in `agent/docker-compose.yml`):
+- `CPU_SAMPLE_HZ=10` - CPU samples per second (100ms resolution)
+- `MEMORY_SAMPLE_HZ=1` - Memory samples per second
+- `DISK_SAMPLE_HZ=0.1` - Disk samples per second (every 10s)
+- `NETWORK_SAMPLE_HZ=0.5` - Network samples per second (every 2s)
+- `PROCESS_SAMPLE_HZ=0.2` - Process samples per second (every 5s)
+- `SYSTEM_SAMPLE_HZ=0.017` - System samples per second (every ~60s)
+
+Note: Current collectors use the runtime variables (PULSE/BREATHE/CYCLE/REPORT). The Hz-based variables are available for future collectors that need sub-second sampling.
+
 ### Status Scripts
 Both `console/core/status.sh` and `agent/core/status.sh` provide comprehensive checks:
 - **Agent**: SSH key, agent ID, console config, network ping, host fingerprint, SSH connection, metrics flow
