@@ -100,13 +100,15 @@ if [ -f /data/metrics.db ]; then
     DATA_GROUP=$(stat -c '%G' /data 2>/dev/null)
     DATA_PERMS=$(stat -c '%a' /data 2>/dev/null)
 
-    if [ "$DATA_GROUP" != "agents" ] || [ "$DATA_PERMS" != "775" ]; then
-        printf "  DB Perms     ${RED}✗${NC} /data permissions incorrect (need root:agents 775, got ${DATA_GROUP} ${DATA_PERMS})\n"
+    if [ "$DATA_GROUP" = "agents" ] && [ "$DATA_PERMS" = "775" ]; then
+        printf "  DB Perms     ${GREEN}✓${NC} Configured\n"
+    else
+        printf "  DB Perms     ${RED}✗${NC} Incorrect (need root:agents 775, got ${DATA_GROUP} ${DATA_PERMS})\n"
         printf "               Fix: chown root:agents /data && chmod 775 /data\n"
     fi
 fi
 
-# Check gateway log for recent errors (last 5 minutes)
+# Check gateway log for recent errors
 if [ -f /data/gateway.log ]; then
     RECENT_ERRORS=$(tail -100 /data/gateway.log 2>/dev/null | grep -c "ERROR\|EXCEPTION" || echo 0)
     if [ "$RECENT_ERRORS" -gt 0 ]; then
@@ -115,5 +117,7 @@ if [ -f /data/gateway.log ]; then
         printf "  Gateway Log  ${RED}✗${NC} $RECENT_ERRORS recent errors\n"
         printf "               Latest: ${LAST_ERROR}\n"
         printf "               Check: docker exec lumenmon-console tail /data/gateway.log\n"
+    else
+        printf "  Gateway Log  ${GREEN}✓${NC} No errors\n"
     fi
 fi
