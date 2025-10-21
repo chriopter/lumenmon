@@ -68,7 +68,7 @@ Agents collect from `/proc`, push through persistent SSH. Console stores in SQLi
 - **Push-only over SSH**: Agents initiate outbound connections. Console never connects to agents. No firewall rules needed, works behind NAT.
 - **MITM-proof enrollment**: Invite links include SSH host key fingerprint. Agents verify before sending credentials. After enrollment, SSH keys pinned to per-agent console users.
 - **Isolated execution**: Runs in Docker. ForceCommand prevents shell access. Per-agent Linux users and file permissions enforce data isolation.
-- Unifi agents.log and gateway.log etc in single experience
+- Unifi agents.log and gateway.log etc in single experience, /data/gateway.log
 
 ### Invite Process
 
