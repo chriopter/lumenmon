@@ -87,23 +87,23 @@ Each sends typed data via SSH: `generic_cpu.tsv REAL\n1729123456 1 23.4`. Consol
 ## Development
 
 ```bash
-# Full auto-setup: reset, start containers, register agent, and launch TUI
+# Full auto-setup: reset, start containers, register agent, and launch WebTUI
 ./dev/auto
 
-# Testing with multiple agents
-./dev/add10      # Spawn 10 agents for testing (requires console running)
+# Multi-agent testing (spawns 3 agents)
+./dev/add3
 
-# Individual commands
-./dev/start      # Start console and agent containers
-./dev/stop       # Stop all containers
-./dev/reset      # Clean everything and restart fresh
-./dev/register   # Register agent with console (requires invite URL)
-./dev/tui        # Launch TUI dashboard
-./dev/logs       # Show container logs
-```
+# Create new release (interactive version bumping)
+./dev/release
 
-```bash
-./dev/updatecss  # Updates bundled WebTUI CSS, Catppuccin theme, and Chart.js
+# Update vendored CSS/JS dependencies
+./dev/updatecss
+
+# For other operations, use the lumenmon CLI:
+lumenmon start    # Start containers
+lumenmon logs     # View logs
+lumenmon register # Register agent
+# See: lumenmon --help
 ```
 
 ---
