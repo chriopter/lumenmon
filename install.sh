@@ -64,10 +64,17 @@ install_console() {
     chmod 755 "$INSTALL_DIR/console/data"
     chmod 700 "$INSTALL_DIR/console/data/ssh"
 
-    # Pull latest image
+    # Pull latest image and show version
     status_progress "Pulling latest console image..."
     cd "$INSTALL_DIR/console"
-    docker compose pull --quiet 2>&1 || true
+    docker compose pull 2>&1 | grep -E "(Pulling|Downloaded|Status:|digest:)" || true
+
+    # Show pulled image version for verification
+    IMAGE=$(docker compose config --format json | grep -o '"image":"[^"]*"' | head -1 | cut -d'"' -f4)
+    if [ -n "$IMAGE" ]; then
+        IMAGE_INFO=$(docker images --format "table {{.Repository}}:{{.Tag}}\t{{.ID}}\t{{.CreatedAt}}" --no-trunc "$IMAGE" | tail -1)
+        echo "[i] Pulled: $IMAGE_INFO" >&2
+    fi
 
     # Start console
     status_progress "Starting console..."
@@ -95,10 +102,17 @@ install_agent() {
     mkdir -p "$INSTALL_DIR/agent/data/ssh"
     chmod 777 "$INSTALL_DIR/agent/data/ssh"
 
-    # Pull latest image
+    # Pull latest image and show version
     status_progress "Pulling latest agent image..."
     cd "$INSTALL_DIR/agent"
-    docker compose pull --quiet 2>&1 || true
+    docker compose pull 2>&1 | grep -E "(Pulling|Downloaded|Status:|digest:)" || true
+
+    # Show pulled image version for verification
+    IMAGE=$(docker compose config --format json | grep -o '"image":"[^"]*"' | head -1 | cut -d'"' -f4)
+    if [ -n "$IMAGE" ]; then
+        IMAGE_INFO=$(docker images --format "table {{.Repository}}:{{.Tag}}\t{{.ID}}\t{{.CreatedAt}}" --no-trunc "$IMAGE" | tail -1)
+        echo "[i] Pulled: $IMAGE_INFO" >&2
+    fi
 
     # Start agent
     status_progress "Starting agent..."
