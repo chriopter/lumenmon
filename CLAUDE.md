@@ -29,16 +29,23 @@ lumenmon uninstall    # Remove all containers and data
 
 ### Development Commands
 ```bash
-# Full auto-setup: reset, start containers, register agent, and launch TUI
+# Full auto-setup: reset, start containers, register agent, and launch WebTUI
 ./dev/auto
 
-# Individual commands
-./dev/start      # Start console and agent containers
-./dev/stop       # Stop all containers
-./dev/reset      # Clean everything and restart fresh
-./dev/register   # Register agent with console (requires invite URL)
-./dev/tui        # Launch TUI dashboard
-./dev/logs       # Show container logs
+# Multi-agent testing (spawns 3 agents)
+./dev/add3
+
+# Create new release (interactive version bumping)
+./dev/release
+
+# Update vendored CSS/JS dependencies
+./dev/updatecss
+
+# For other operations, use the lumenmon CLI:
+lumenmon start    # Start containers
+lumenmon logs     # View logs
+lumenmon register # Register agent
+# See: lumenmon --help
 ```
 
 ### Docker Operations
