@@ -10,8 +10,11 @@ for collector in collectors/generic/*.sh; do
     if [ -f "$collector" ]; then
         name=$(basename "$collector" .sh)
 
-        # Extract RHYTHM from collector script
-        rhythm=$(grep -oP '^RHYTHM="\K[^"]+' "$collector" 2>/dev/null || echo "")
+        # Extract RHYTHM from collector script (BusyBox-compatible grep)
+        # Docker container uses Alpine Linux with BusyBox grep which doesn't support -P (Perl regex)
+        # This applies to ALL installations regardless of host OS, since the container is always Alpine
+        # Solution: Use POSIX-compatible grep -o with cut instead of grep -oP with \K lookbehind
+        rhythm=$(grep -o '^RHYTHM="[^"]*"' "$collector" 2>/dev/null | cut -d'"' -f2 || echo "")
 
         # Display with timing info
         if [ -n "$rhythm" ]; then
