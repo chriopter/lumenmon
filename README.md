@@ -40,6 +40,8 @@ lumenmon uninstall  # Remove everything
 
 - Show Invites in Agent List
 - Polish Auto-Installer (PULSE: unbound variable on some systems)
+- Fix Same Host installation
+- Clean Readme
 
 ## How It Works
 
