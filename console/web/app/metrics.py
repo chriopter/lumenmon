@@ -285,11 +285,14 @@ def get_all_agents():
         agent_ids = set()
         for row in cursor.fetchall():
             table_name = row[0]
-            # Extract agent ID from table name (format: id_xxx_metric_name)
+            # Extract agent ID from table name (format: id_<fingerprint>_metric_name)
+            # Agent ID can have multiple underscores (e.g., id_IRw_VhJwXnck1l)
+            # Metric names always start with 'generic_' so we can find the split point
             if table_name.startswith('id_'):
-                parts = table_name.split('_', 2)  # Split into ['id', 'xxx', 'metric_name']
-                if len(parts) >= 3:
-                    agent_id = f"{parts[0]}_{parts[1]}"  # Reconstruct id_xxx
+                # Find the last occurrence of '_generic_' to split agent ID from metric name
+                generic_idx = table_name.rfind('_generic_')
+                if generic_idx > 0:
+                    agent_id = table_name[:generic_idx]
                     agent_ids.add(agent_id)
 
         conn.close()
