@@ -203,10 +203,10 @@ show_completion() {
     fi
 
     echo "CLI commands:"
-    echo -e "  \033[1;36mlumenmon\033[0m          # Open dashboard"
-    echo -e "  \033[1;36mlumenmon status\033[0m   # Show system status"
-    echo -e "  \033[1;36mlumenmon invite\033[0m   # Generate new invite"
-    echo -e "  \033[1;36mlumenmon update\033[0m   # Update to latest version"
+    # Use lumenmon's own help output (DRY - don't duplicate command list)
+    if command -v lumenmon >/dev/null 2>&1; then
+        lumenmon help | sed 's/^/  /'
+    fi
     echo ""
 }
 
