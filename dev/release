@@ -1,0 +1,60 @@
+#!/bin/bash
+# Interactive release script that creates and pushes a git tag to trigger CI build.
+# Run without arguments to be prompted for version number (with auto-increment suggestion).
+
+set -e
+
+# Get latest version
+LATEST=$(git tag -l 'v*' | sort -V | tail -1)
+
+# Calculate next version
+if [[ -n "$LATEST" ]]; then
+    # Remove 'v' prefix and split into parts
+    CURRENT="${LATEST#v}"
+
+    # Try to parse as major.minor
+    if [[ "$CURRENT" =~ ^([0-9]+)\.([0-9]+)$ ]]; then
+        MAJOR="${BASH_REMATCH[1]}"
+        MINOR="${BASH_REMATCH[2]}"
+        NEXT_MINOR=$((MINOR + 1))
+        SUGGESTED="v${MAJOR}.${NEXT_MINOR}"
+    # Try to parse as single number (e.g., v0.9 -> v0.10)
+    elif [[ "$CURRENT" =~ ^([0-9]+)\.([0-9]+)$ ]]; then
+        SUGGESTED="v${CURRENT%.*}.$((${CURRENT##*.} + 1))"
+    else
+        # Fallback: just increment the last number
+        SUGGESTED="v${CURRENT%.*}.$((${CURRENT##*.} + 1))"
+    fi
+else
+    SUGGESTED="v0.1"
+fi
+
+echo "Latest version: ${LATEST:-none}"
+echo "Suggested: $SUGGESTED"
+echo
+
+# Ask for new version with default
+read -p "Enter new version [$SUGGESTED]: " VERSION
+
+# Use suggested if empty
+if [[ -z "$VERSION" ]]; then
+    VERSION="$SUGGESTED"
+fi
+
+# Add 'v' prefix if missing
+if [[ ! "$VERSION" =~ ^v ]]; then
+    VERSION="v$VERSION"
+fi
+
+echo
+echo "Creating release: $VERSION"
+echo
+
+# Create and push tag
+git tag -a "$VERSION" -m "Release $VERSION"
+git push origin "$VERSION"
+
+echo
+echo "✓ Release $VERSION created and pushed"
+echo "→ GitHub Actions will build and publish images"
+echo "→ View release at: https://github.com/chriopter/lumenmon/releases/tag/$VERSION"
