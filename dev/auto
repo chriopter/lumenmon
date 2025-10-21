@@ -16,7 +16,11 @@ mkdir -p agent/data/{debug,ssh} console/data/{agents,ssh}
 echo "🚀 Starting fresh..."
 echo "CONSOLE_HOST=localhost" > console/.env
 docker compose -f console/docker-compose.yml up -d --build
-CONSOLE_HOST=localhost CONSOLE_PORT=2345 docker compose -f agent/docker-compose.yml up -d --build
+
+# Agent defaults to CONSOLE_HOST=console CONSOLE_PORT=22 (Docker network)
+# Both containers join the same "lumenmon-net" network and communicate internally
+# External port mapping (2345:22) is only for connections from outside Docker
+docker compose -f agent/docker-compose.yml up -d --build
 
 # Step 3: Wait for console to be ready
 echo "⏳ Waiting for console to be ready..."
@@ -24,7 +28,15 @@ sleep 3
 
 # Step 4: Create invite and register agent
 echo "🔑 Creating invite..."
-INVITE=$(docker exec lumenmon-console /app/core/enrollment/invite_create.sh 2>/dev/null | grep "^ssh://")
+
+# Generate invite with Docker network address (console:22)
+# Why console:22 instead of localhost:2345?
+# - Agent connects via Docker network at runtime using CONSOLE_HOST=console CONSOLE_PORT=22
+# - Invite saves SSH host key tied to the hostname:port in the URL
+# - Registration creates known_hosts entry: [console]:22 ssh-ed25519 AAAA...
+# - Runtime connection matches: ssh console:22 → host key verification succeeds
+# - If we used localhost:2345, known_hosts wouldn't match console:22 (different address)
+INVITE=$(docker exec lumenmon-console /app/core/enrollment/invite_create.sh console 22 2>/dev/null | grep "^ssh://")
 if [ -z "$INVITE" ]; then
     echo "❌ Failed to create invite"
     exit 1
