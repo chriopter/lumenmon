@@ -9,7 +9,7 @@ TYPE_OS="TEXT"    # SQLite column type for OS name
 TYPE_KERNEL="TEXT"        # SQLite column type for kernel version
 TYPE_UPTIME="INTEGER"     # SQLite column type for uptime seconds
 
-set -eo pipefail
+set -euo pipefail
 
 # Main loop - gather system info and send
 while true; do

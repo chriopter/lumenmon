@@ -7,7 +7,7 @@ RHYTHM="PULSE"   # Uses PULSE timing from agent.sh
 PREFIX="generic_cpu"      # Metric prefix: generic_cpu_usage
 TYPE="REAL"      # SQLite column type for numeric values
 
-set -eo pipefail
+set -euo pipefail
 
 # Read initial CPU state
 read prev_line < /proc/stat

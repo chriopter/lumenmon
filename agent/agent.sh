@@ -34,6 +34,12 @@ source core/setup/identity.sh        # Sets AGENT_USER and SSH_KEY
 export AGENT_USER SSH_KEY CONSOLE_HOST CONSOLE_PORT SSH_SOCKET
 export PULSE BREATHE CYCLE REPORT
 
+# Verify all required variables are set before starting collectors
+# This catches configuration errors early rather than letting collectors crash
+: ${PULSE:?PULSE not set} ${BREATHE:?BREATHE not set} ${CYCLE:?CYCLE not set} ${REPORT:?REPORT not set}
+: ${AGENT_USER:?AGENT_USER not set} ${SSH_SOCKET:?SSH_SOCKET not set}
+: ${CONSOLE_HOST:?CONSOLE_HOST not set} ${CONSOLE_PORT:?CONSOLE_PORT not set}
+
 source core/connection/tunnel.sh     # Establishes connection
 source core/connection/collectors.sh # Starts collectors (background jobs)
 core/connection/watchdog.sh          # Monitor and reconnect (blocks forever)
