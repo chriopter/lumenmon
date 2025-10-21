@@ -224,8 +224,11 @@ main() {
     echo "  3) Agent only"
     echo "  4) Exit"
     echo ""
-    echo -n "  Select [1-4]: "
+    echo -n "  Select [1-4] (default: 1): "
     read -r choice < /dev/tty 2>/dev/null || status_error "Failed to read input. Please run installer directly: bash install.sh"
+
+    # Default to option 1 if no input
+    choice="${choice:-1}"
 
     case $choice in
         1)
