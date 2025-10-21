@@ -4,6 +4,9 @@
 
 set -e
 
+# Version
+INSTALLER_VERSION="0.12.0"
+
 # Configuration
 INSTALL_DIR="$HOME/.lumenmon"
 GITHUB_RAW="https://raw.githubusercontent.com/chriopter/lumenmon/refs/heads/main"
@@ -210,10 +213,34 @@ show_completion() {
     echo ""
 }
 
+# Get image version info
+get_image_version() {
+    local image="$1"
+    # Pull image quietly to get latest metadata
+    docker pull -q "$image" >/dev/null 2>&1 || return
+    # Get image creation date and short ID
+    docker inspect "$image" --format '{{.Created}} {{.Id}}' 2>/dev/null | \
+        awk '{split($1,d,"T"); split($2,id,":"); printf "%s %s", d[1], substr(id[2],1,12)}'
+}
+
 # Main installation flow
 main() {
     show_logo
     check_requirements
+
+    # Show version info
+    status_progress "Checking latest versions..."
+    CONSOLE_VERSION=$(get_image_version "$GITHUB_IMAGE_CONSOLE")
+    AGENT_VERSION=$(get_image_version "$GITHUB_IMAGE_AGENT")
+
+    echo ""
+    echo "  Installer version: v${INSTALLER_VERSION}"
+    if [ -n "$CONSOLE_VERSION" ]; then
+        echo "  Latest console:    ${CONSOLE_VERSION}"
+    fi
+    if [ -n "$AGENT_VERSION" ]; then
+        echo "  Latest agent:      ${AGENT_VERSION}"
+    fi
 
     echo ""
     echo "  Installation path: $INSTALL_DIR"
@@ -224,10 +251,11 @@ main() {
     echo "  3) Agent only"
     echo "  4) Exit"
     echo ""
-    echo -n "  Select [1-4] (default: 1): "
+    echo -n "  Select [1-4] (default 1): "
     read -r choice < /dev/tty 2>/dev/null || status_error "Failed to read input. Please run installer directly: bash install.sh"
 
-    # Default to option 1 if no input
+    # Default to option 1 if empty or whitespace-only
+    choice=$(echo "$choice" | tr -d '[:space:]')
     choice="${choice:-1}"
 
     case $choice in
