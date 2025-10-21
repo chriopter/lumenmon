@@ -58,6 +58,8 @@ Agents push metrics via SSH to console. Each agent gets a dedicated SSH account 
 
 Agents collect from `/proc`, push through persistent SSH. Console stores in SQLite (`/data/metrics.db`), one table per metric per agent.
 
+**Same-host installations**: When console and agent run on the same machine, they communicate via Docker's internal network (`lumenmon-console:22`), not the external port `localhost:2345`. The installer handles this automatically.
+
 ### Security
 
 - **Push-only over SSH**: Agents initiate outbound connections. Console never connects to agents. No firewall rules needed, works behind NAT.
