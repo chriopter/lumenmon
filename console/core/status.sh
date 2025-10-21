@@ -93,3 +93,15 @@ if [ -d /data/agents ]; then
 else
     printf "  Agents       ${RED}✗${NC} Directory missing\n"
 fi
+
+# Database permissions check (critical for SQLite WAL mode)
+if [ -f /data/metrics.db ]; then
+    # Check if /data directory has correct group ownership and permissions
+    DATA_GROUP=$(stat -c '%G' /data 2>/dev/null)
+    DATA_PERMS=$(stat -c '%a' /data 2>/dev/null)
+
+    if [ "$DATA_GROUP" != "agents" ] || [ "$DATA_PERMS" != "775" ]; then
+        printf "  DB Perms     ${RED}✗${NC} /data permissions incorrect (need root:agents 775, got ${DATA_GROUP} ${DATA_PERMS})\n"
+        printf "               Fix: chown root:agents /data && chmod 775 /data\n"
+    fi
+fi

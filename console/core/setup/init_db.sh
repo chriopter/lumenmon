@@ -33,8 +33,11 @@ chown root:agents "$DB_PATH"
 chown root:agents "${DB_PATH}-wal" 2>/dev/null || true
 chown root:agents "${DB_PATH}-shm" 2>/dev/null || true
 
-# Ensure /data directory is accessible
+# Ensure /data directory is accessible by agents group (required for SQLite WAL mode)
+# SQLite WAL creates temporary files (-shm, -wal) in the same directory as the database
+# Agents need write permission on the directory to create these files
 chmod 775 /data
+chown root:agents /data
 
 echo "[DB] SQLite database initialized at $DB_PATH"
 echo "[DB] Permissions: $(ls -la $DB_PATH)"
