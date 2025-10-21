@@ -70,9 +70,9 @@ install_console() {
     docker compose pull 2>&1 | grep -E "(Pulling|Downloaded|Status:|digest:)" || true
 
     # Show pulled image version for verification
-    IMAGE=$(docker compose config --format json | grep -o '"image":"[^"]*"' | head -1 | cut -d'"' -f4)
+    IMAGE=$(docker compose config 2>/dev/null | grep "image:" | head -1 | awk '{print $2}')
     if [ -n "$IMAGE" ]; then
-        IMAGE_INFO=$(docker images --format "table {{.Repository}}:{{.Tag}}\t{{.ID}}\t{{.CreatedAt}}" --no-trunc "$IMAGE" | tail -1)
+        IMAGE_INFO=$(docker images --format "{{.Repository}}:{{.Tag}} ({{.ID}} created {{.CreatedAt}})" "$IMAGE" 2>/dev/null | head -1)
         echo "[i] Pulled: $IMAGE_INFO" >&2
     fi
 
@@ -108,9 +108,9 @@ install_agent() {
     docker compose pull 2>&1 | grep -E "(Pulling|Downloaded|Status:|digest:)" || true
 
     # Show pulled image version for verification
-    IMAGE=$(docker compose config --format json | grep -o '"image":"[^"]*"' | head -1 | cut -d'"' -f4)
+    IMAGE=$(docker compose config 2>/dev/null | grep "image:" | head -1 | awk '{print $2}')
     if [ -n "$IMAGE" ]; then
-        IMAGE_INFO=$(docker images --format "table {{.Repository}}:{{.Tag}}\t{{.ID}}\t{{.CreatedAt}}" --no-trunc "$IMAGE" | tail -1)
+        IMAGE_INFO=$(docker images --format "{{.Repository}}:{{.Tag}} ({{.ID}} created {{.CreatedAt}})" "$IMAGE" 2>/dev/null | head -1)
         echo "[i] Pulled: $IMAGE_INFO" >&2
     fi
 
