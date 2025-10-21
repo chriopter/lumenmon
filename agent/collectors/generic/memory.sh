@@ -7,7 +7,7 @@ RHYTHM="BREATHE"  # Uses BREATHE timing from agent.sh
 PREFIX="generic_mem"      # Metric prefix: generic_mem_usage
 TYPE="REAL"      # SQLite column type for numeric values
 
-set -euo pipefail
+set -eo pipefail
 
 # Main loop - read memory and send
 while true; do

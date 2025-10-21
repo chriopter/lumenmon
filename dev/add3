@@ -1,10 +1,10 @@
 #!/bin/bash
-# Spawns 10 agent containers and auto-registers them with the console in parallel.
-# Useful for testing multi-agent scenarios and TUI performance.
+# Spawns 3 agent containers and auto-registers them with the console.
+# Useful for testing multi-agent scenarios without overwhelming the system.
 
 set -euo pipefail
 
-echo "🚀 Adding 10 agents to console (in parallel)..."
+echo "🚀 Adding 3 agents to console..."
 
 # Check if console is running
 if ! docker ps | grep -q lumenmon-console; then
@@ -30,7 +30,7 @@ create_agent() {
 
     {
         echo ""
-        echo "📦 Creating agent $i/10: $AGENT_NAME"
+        echo "📦 Creating agent $i/3: $AGENT_NAME"
 
         # Create isolated data directory for this agent
         local AGENT_DATA_DIR="agent/data/agents/$AGENT_NAME"
@@ -44,10 +44,9 @@ create_agent() {
             return 1
         fi
 
-        # Start agent container
+        # Start agent container with proper environment variables
         echo "🚀 Starting $AGENT_NAME..."
-        CONSOLE_HOST=localhost CONSOLE_PORT=2345 AGENT_ID="$AGENT_NAME" \
-            docker run -d \
+        docker run -d \
             --name "lumenmon-$AGENT_NAME" \
             --hostname "$AGENT_NAME" \
             --network host \
@@ -55,17 +54,11 @@ create_agent() {
             -e CONSOLE_HOST=localhost \
             -e CONSOLE_PORT=2345 \
             -e AGENT_ID="$AGENT_NAME" \
-            -e CPU_SAMPLE_HZ=10 \
-            -e MEMORY_SAMPLE_HZ=1 \
-            -e DISK_SAMPLE_HZ=0.1 \
-            -e NETWORK_SAMPLE_HZ=0.5 \
-            -e PROCESS_SAMPLE_HZ=0.2 \
-            -e SYSTEM_SAMPLE_HZ=0.017 \
             ghcr.io/chriopter/lumenmon-agent:latest \
             > /dev/null
 
-        # Wait for agent to start
-        sleep 1
+        # Wait for agent container to initialize
+        sleep 2
 
         # Register agent
         echo "📝 Registering $AGENT_NAME..."
@@ -73,21 +66,13 @@ create_agent() {
     } > "$LOG_FILE" 2>&1
 }
 
-# Create all 10 agents in parallel
-for i in $(seq 1 10); do
-    create_agent $i &
-done
-
-# Wait for all background jobs to complete
-wait
-
-# Display logs in order
-for i in $(seq 1 10); do
-    cat "$TEMP_DIR/agent-$i.log"
+# Create 3 agents sequentially (no need for staggering with just 3)
+for i in $(seq 1 3); do
+    create_agent $i
 done
 
 echo ""
-echo "✅ All 10 agents created and registered!"
+echo "✅ All 3 agents created and registered!"
 echo ""
 echo "📊 View dashboard:"
 echo "   docker exec -it lumenmon-console /app/tui.sh"
