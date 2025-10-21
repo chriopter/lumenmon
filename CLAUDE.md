@@ -4,8 +4,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Lumenmon is a lightweight system monitoring solution with SSH transport and TUI dashboard. It consists of two main components:
-- **Console**: Central monitoring dashboard with SSH server and TUI interface
+Lumenmon is a lightweight system monitoring solution with SSH transport and web-based dashboard. It consists of two main components:
+- **Console**: Central monitoring dashboard with SSH server and web interface (Flask + HTML/JS)
 - **Agent**: Metrics collector that sends data to console via SSH
 
 ## CLI Commands
@@ -49,15 +49,17 @@ docker compose -f console/docker-compose.yml up -d --build
 # Build and run agent (with local console)
 CONSOLE_HOST=localhost CONSOLE_PORT=2345 docker compose -f agent/docker-compose.yml up -d --build
 
-# Access TUI directly (Bash TUI)
-docker exec -it lumenmon-console /app/tui.sh
+# Access web dashboard
+# Open browser to http://localhost:8080 (or use 'lumenmon' to open WebTUI)
 ```
 
-### Bash TUI Development
-- TUI is implemented in Bash under `console/tui/` with modular scripts.
-- No Python/Textual dependencies.
-- CI currently validates shell syntax (`bash -n`) and builds Docker images.
-- Optional: add `shellcheck` locally or in CI for stricter linting.
+### Web Dashboard Development
+- Dashboard is implemented as a Flask API (`console/web/app/`) with HTML/JS frontend (`console/web/public/`)
+- Uses Chart.js for visualizations and Catppuccin theme for styling
+- Keyboard navigation: j/k (navigate), Enter (details), Esc (back), i (invite), r (refresh), d (debug)
+- API server runs on port 5000, proxied via Caddy to port 8080
+- CI validates shell syntax (`bash -n`) and builds Docker images
+- Optional: add `shellcheck` locally or in CI for stricter shell script linting
 
 ## Installation
 
@@ -194,5 +196,6 @@ Both `console/core/status.sh` and `agent/core/status.sh` provide comprehensive c
 - Container logs: `docker logs lumenmon-console` or `lumenmon logs`
 - Agent debug output: Check `agent/data/debug/`
 - SSH issues: Verify keys in `console/data/ssh/` and `agent/data/ssh/`
-- TUI issues: Run directly with `docker exec -it lumenmon-console /app/tui.sh`
+- Web dashboard issues: Check Flask logs in console container, verify Caddy is proxying port 5000→8080
+- Database queries: `docker exec lumenmon-console sqlite3 /data/metrics.db`
 - Status check: `lumenmon status` for comprehensive system state
