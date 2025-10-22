@@ -26,7 +26,7 @@ COPY --chown=metrics:metrics core/ /app/core/
 COPY --chown=metrics:metrics collectors /app/collectors/
 
 # Make everything executable
-RUN chmod +x /app/agent.sh /app/core/*/*.sh /app/core/*/*.py /app/collectors/*/*.sh
+RUN chmod +x /app/agent.sh /app/core/*.sh /app/core/*/*.sh /app/core/*/*.py /app/collectors/*/*.sh
 
 WORKDIR /app
 
