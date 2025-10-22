@@ -111,6 +111,11 @@ Fetches server-rendered rows every 1s. Provides row selection, navigation functi
             if (row) {
                 row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             }
+
+            // Auto-open detail view if not already open, or refresh if open
+            if (typeof openDetailView === 'function') {
+                openDetailView();
+            }
         }
     }
 
