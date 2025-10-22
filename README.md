@@ -99,7 +99,7 @@ The Console container creates a linux user per agent to connect, bounds incoming
 <img width="700" alt="image" src="https://github.com/user-attachments/assets/2e67ead2-e5ce-4291-80d1-db08f7dd6ee7" />
 
 ### Enrollment / Security
-- **Invite system** is based on linux users. Invites are temporary linux users with timestamp in the name (to autodelete them after 60 minutes). 
+- **Invite system** is based on linux users. Invites are temporary linux users with timestamp in the name (to autodelete them after 60 minutes).
 - **Enrollment**: Invite links include the SSH host key (MITM mitigating). After enrollment, SSH keys of agents are pinned as authorized keys. Therefore, the complete authentication is just linux users + standard ssh tooling.
 - **Design** Agents initiate outbound connections. Console can not connect to agents. The Agent is designed in a very KISS manner, based only on bash and easily reviewable. The console where possible as well, but ofc. the flask webserver is not bash but python.
 
@@ -108,6 +108,45 @@ The Console container creates a linux user per agent to connect, bounds incoming
 ssh://username:password@consolehost:port/#hostkey
 ssh://reg_1761133283700:8938fe9d5c32@192.168.10.13:2345/#ssh-ed25519_AAAAC3NzaC1lZDI1NTE5AAAAIGPrge2Vp5PgsgRx9n/Z9prEfttG5xt8MOe1WtjcdhzX
 ```
+
+<details>
+<summary>Enrollment process flow</summary>
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ PHASE 1: INVITE & REGISTRATION                                  │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  Console: lumenmon invite                                       │
+│    ├─> Creates: reg_1698765432123 (temp user, password auth)   │
+│    └─> Returns: ssh://reg_...:password@host:2345/#hostkey      │
+│                                                                 │
+│  Agent: lumenmon register <invite_url>                          │
+│    ├─> SSH with password → sends public key                    │
+│    └─> ForceCommand: enrollment/gateway.sh                     │
+│         └─> Writes: /data/registration_queue/reg_*.key         │
+│                                                                 │
+│  Console: agent_enroll.sh (background, every 5s)                │
+│    ├─> Reads queue files                                        │
+│    ├─> Creates: id_abc123xyz (permanent user, pubkey auth)     │
+│    ├─> Setup: /data/agents/id_*/authorized_keys                │
+│    └─> Deletes: reg_* (temp user)                              │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────┐
+│ PHASE 2: METRICS STREAMING                                      │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  Agent: Continuous SSH connection                               │
+│    ├─> SSH with pubkey → pipes metric data                     │
+│    └─> ForceCommand: ingress/gateway.py                        │
+│         └─> Writes: /data/metrics.db (SQLite)                  │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+</details>
 
 ### Installer
 The installer script** will start the respective docker containers and creates a first invitation. When console and agent run on the same machine (recommended way to run console), they communicate via Docker's internal network (`lumenmon-console:22`), not the external port `localhost:2345`. The installer handles this automatically.
@@ -134,6 +173,7 @@ The installer script** will start the respective docker containers and creates a
 
 ## Next / Todos
 
+- Limit invite user rights in ssh session
 - Show invite remaing time, sort invites below hosts, fix graphs
 - Fix Sparklines if offline
 - Polish Auto-Installer (PULSE: unbound variable on some systems) as well as client installer, output status after client installation via magic link
