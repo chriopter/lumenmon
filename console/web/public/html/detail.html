@@ -53,27 +53,20 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
                 </div>
 
                 <div class="detail-content">
-                    <div class="invite-inline-section">
-                        <div class="invite-inline-box">
-                            <div class="invite-inline-header">┌─ Quick Install (recommended)</div>
-                            <div class="invite-inline-content">
-                                <div class="invite-inline-instruction">│ Copy and run this on target system:</div>
-                                <div class="invite-inline-value" onclick="copyInlineInvite(this)">│ ${installCommand}</div>
-                            </div>
-                            <div class="invite-inline-footer">└─</div>
+                    <div class="invite-simple">
+                        <div class="invite-simple-section">
+                            <div class="invite-simple-label">Quick Install (recommended)</div>
+                            <div class="invite-simple-value" onclick="copyFromElement(this, null, 'install command copied')">${installCommand}</div>
                         </div>
 
-                        <div class="invite-inline-box">
-                            <div class="invite-inline-header">┌─ Manual Registration</div>
-                            <div class="invite-inline-content">
-                                <div class="invite-inline-instruction">│ Copy URL and use: lumenmon register &lt;url&gt;</div>
-                                <div class="invite-inline-value" onclick="copyInlineInvite(this)">│ ${inviteData.invite_url}</div>
-                            </div>
-                            <div class="invite-inline-footer">└─</div>
+                        <div class="invite-simple-section">
+                            <div class="invite-simple-label">Manual Registration</div>
+                            <div class="invite-simple-instruction">lumenmon register &lt;url&gt;</div>
+                            <div class="invite-simple-value" onclick="copyFromElement(this, null, 'invite URL copied')">${inviteData.invite_url}</div>
                         </div>
 
-                        <div class="invite-inline-warning">
-                            ⚠ Copy these credentials NOW - they will NOT be shown again after you close this view
+                        <div class="invite-simple-warning">
+                            ⚠ Copy these credentials - they will be cleared when you close this view
                         </div>
                     </div>
 
@@ -594,8 +587,4 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
         `;
     }
 
-    function copyInlineInvite(element) {
-        // Use shared utility to copy text, stripping the "│ " prefix
-        copyFromElement(element, /^│\s*/, 'invite copied to clipboard');
-    }
 </script>
