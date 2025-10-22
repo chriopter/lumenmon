@@ -53,21 +53,10 @@ lumenmon uninstall  # Remove everything
 
 <img width="700" alt="image" src="https://github.com/user-attachments/assets/2e67ead2-e5ce-4291-80d1-db08f7dd6ee7" />
 
-## Security
-
-**Enrollment:** Invite URLs contain permanent MQTT credentials + TLS certificate fingerprint for agent registration.
-
-**TLS Pinning:** Agents verify server certificate fingerprint during first connection, then pin it for all future connections.
-
-**Network Design:** Agents initiate outbound connections only. Console cannot connect to agents.
-
-**Installation:** When console and agent run on same machine, they communicate via Docker network (`lumenmon-console:8884`) with automatic TLS verification.
-
-## Architecture
-
 <details>
-<summary>Agent structure</summary>
+<summary>Directory structure</summary>
 
+**Agent:**
 ```
 ├── agent.sh (Main entry)
 ├── collectors/ (Data collectors)
@@ -77,11 +66,8 @@ lumenmon uninstall  # Remove everything
 └── data/ (Persistent directory with MQTT credentials)
     └── mqtt/
 ```
-</details>
 
-<details>
-<summary>Console structure</summary>
-
+**Console:**
 ```
 ├── console.sh (Main entry)
 ├── core (Core setup)
@@ -97,6 +83,16 @@ lumenmon uninstall  # Remove everything
     └── public (HTML, CSS, JS)
 ```
 </details>
+
+## Security
+
+**Enrollment:** Invite URLs contain permanent MQTT credentials + TLS certificate fingerprint for agent registration.
+
+**TLS Pinning:** Agents verify server certificate fingerprint during first connection, then pin it for all future connections.
+
+**Network Design:** Agents initiate outbound connections only. Console cannot connect to agents.
+
+**Installation:** When console and agent run on same machine, they communicate via Docker network (`lumenmon-console:8884`) with automatic TLS verification.
 
 ## Development
 
