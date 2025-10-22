@@ -10,6 +10,9 @@ from management import management_bp
 import os
 import random
 import string
+import subprocess
+import threading
+import time
 
 # Configure template and static directories
 template_dir = os.path.join(os.path.dirname(__file__), '..', 'public', 'html')
@@ -24,6 +27,22 @@ app.register_blueprint(agents_bp)
 app.register_blueprint(invites_bp)
 app.register_blueprint(debug_bp)
 app.register_blueprint(management_bp)
+
+# Background cleanup for expired invites
+def cleanup_expired_invites():
+    """Run invite cleanup script every 60 seconds to remove expired reg_* users."""
+    cleanup_script = '/app/core/enrollment/invite_cleanup.sh'
+    while True:
+        try:
+            subprocess.run([cleanup_script], check=False, capture_output=True)
+        except Exception as e:
+            print(f"[cleanup] Error running invite cleanup: {e}")
+        time.sleep(60)
+
+# Start cleanup thread
+cleanup_thread = threading.Thread(target=cleanup_expired_invites, daemon=True)
+cleanup_thread.start()
+print("[cleanup] Invite cleanup thread started (runs every 60s)")
 
 @app.route('/', methods=['GET'])
 def index():

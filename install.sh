@@ -192,7 +192,7 @@ show_completion() {
     echo ""
 
     if [ "$mode" != "agent" ] && [ -n "$invite_url" ]; then
-        echo -e "\033[1mInvite URL for remote agents\033[0m (expires in 5 minutes):"
+        echo -e "\033[1mInvite URL for remote agents\033[0m (expires in 60 minutes):"
         echo ""
         echo -e "\033[1;36m$invite_url\033[0m"
         echo ""

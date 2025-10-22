@@ -40,7 +40,7 @@ PASSWORD=$(openssl rand -hex 6)
 # Create user (groups already exist from Docker build)
 useradd -m -s /bin/sh -G registration "$USERNAME"
 echo "${USERNAME}:${PASSWORD}" | chpasswd
-echo "$PASSWORD" > "/tmp/.invite_${USERNAME}"
+echo "$PASSWORD" > "/home/${USERNAME}/.invite_password"
 
 # Get ED25519 host key only
 HOSTKEY=$(awk '{print $1"_"$2}' /data/ssh/ssh_host_ed25519_key.pub)
@@ -55,5 +55,5 @@ else
     echo "$INVITE_URL"
 fi
 
-# Cleanup after 5 minutes (properly detached)
-nohup sh -c "sleep 300 && userdel -r $USERNAME 2>/dev/null && rm -f /tmp/.invite_${USERNAME}" </dev/null >/dev/null 2>&1 &
+# Note: Automatic cleanup runs every 60 seconds via Flask background thread
+# Invites expire after 60 minutes based on username timestamp

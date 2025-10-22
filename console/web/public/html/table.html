@@ -27,12 +27,46 @@ Fetches server-rendered rows every 1s. Provides row selection, navigation functi
 
     async function fetchAgents() {
         try {
-            const response = await fetch('/api/agents/table');
+            const response = await fetch('/api/entities');
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            const html = await response.text();
+            const data = await response.json();
 
             const tbody = document.getElementById('agents-tbody');
-            tbody.innerHTML = html;
+
+            // Render entities
+            if (data.entities && data.entities.length > 0) {
+                let html = '';
+                data.entities.forEach((entity, index) => {
+                    const selected = index === 0 ? 'selected' : '';
+                    const validClass = entity.valid ? '' : 'entity-invalid';
+
+                    if (entity.type === 'invite') {
+                        // Render invite row
+                        const statusDot = entity.valid ? 'online' : 'offline';
+                        html += `<tr class="agent-row entity-invite ${selected} ${validClass}" data-index="${index}" data-entity-id="${entity.id}" data-entity-type="invite" data-valid="${entity.valid}">`;
+                        html += `<td><span class="status-dot ${statusDot}" title="${entity.valid ? 'active invite' : 'invalid'}"></span>${entity.id} ◷</td>`;
+                        html += `<td colspan="3"></td>`;
+                        html += `</tr>`;
+                    } else {
+                        // Render agent row
+                        const statusDot = entity.status || 'offline';
+                        const hostname = entity.hostname || entity.id;
+                        const cpu = entity.cpu || 0;
+                        const memory = entity.memory || 0;
+                        const disk = entity.disk || 0;
+
+                        html += `<tr class="agent-row ${selected} ${validClass}" data-index="${index}" data-entity-id="${entity.id}" data-entity-type="agent" data-hostname="${hostname}" data-status="${statusDot}" data-valid="${entity.valid}">`;
+                        html += `<td title="ID: ${entity.id}"><span class="status-dot ${statusDot}" title="${statusDot}"></span>${hostname}</td>`;
+                        html += `<td>${cpu.toFixed(1)}%</td>`;
+                        html += `<td>${memory.toFixed(1)}%</td>`;
+                        html += `<td>${disk.toFixed(1)}%</td>`;
+                        html += `</tr>`;
+                    }
+                });
+                tbody.innerHTML = html;
+            } else {
+                tbody.innerHTML = `<tr><td colspan="4" class="no-data">no agents connected</td></tr>`;
+            }
 
             attachRowHandlers();
 
@@ -48,13 +82,13 @@ Fetches server-rendered rows every 1s. Provides row selection, navigation functi
 
             const currentCount = rows.length;
             if (previousAgentCount !== 0 && currentCount > previousAgentCount) {
-                addLog(`agent connected (total: ${currentCount})`, 'success');
+                addLog(`entity added (total: ${currentCount})`, 'success');
             } else if (previousAgentCount !== 0 && currentCount < previousAgentCount) {
-                addLog(`agent disconnected (total: ${currentCount})`, 'error');
+                addLog(`entity removed (total: ${currentCount})`, 'error');
             }
             previousAgentCount = currentCount;
 
-            // Auto-open detail view on first load if agents exist
+            // Auto-open detail view on first load if entities exist
             if (isFirstLoad && currentCount > 0) {
                 isFirstLoad = false;
                 setTimeout(() => {
@@ -71,7 +105,7 @@ Fetches server-rendered rows every 1s. Provides row selection, navigation functi
             console.error('Error:', error);
             const tbody = document.getElementById('agents-tbody');
             tbody.innerHTML = `<tr><td colspan="4" class="no-data">error: ${error.message}</td></tr>`;
-            addLog(`error fetching agents: ${error.message}`, 'error');
+            addLog(`error fetching entities: ${error.message}`, 'error');
         }
     }
 
@@ -81,6 +115,11 @@ Fetches server-rendered rows every 1s. Provides row selection, navigation functi
             row.addEventListener('click', () => {
                 const index = parseInt(row.dataset.index);
                 selectRow(index);
+
+                // If it's an invite, copy URL on click
+                if (row.dataset.entityType === 'invite') {
+                    copyInviteUrl(row.dataset.entityId);
+                }
             });
         });
     }
@@ -128,7 +167,9 @@ Fetches server-rendered rows every 1s. Provides row selection, navigation functi
 
         try {
             return {
-                id: row.dataset.agentId,
+                id: row.dataset.entityId || row.dataset.agentId,
+                type: row.dataset.entityType || 'agent',
+                valid: row.dataset.valid === 'true',
                 hostname: row.dataset.hostname || '',
                 status: row.dataset.status,
                 age: row.dataset.age,
@@ -137,13 +178,32 @@ Fetches server-rendered rows every 1s. Provides row selection, navigation functi
                 diskHistory: row.dataset.diskHistory ? JSON.parse(row.dataset.diskHistory) : []
             };
         } catch (error) {
-            console.error('Error parsing agent data:', error);
-            console.log('Row data:', {
-                cpuHistory: row.dataset.cpuHistory,
-                memHistory: row.dataset.memHistory,
-                diskHistory: row.dataset.diskHistory
-            });
+            console.error('Error parsing entity data:', error);
             return null;
+        }
+    }
+
+    async function copyInviteUrl(inviteId) {
+        try {
+            const response = await fetch(`/api/invites/${inviteId}/url`);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const data = await response.json();
+
+            if (data.success) {
+                // Check if clipboard is available
+                if (navigator.clipboard) {
+                    await navigator.clipboard.writeText(data.install_command);
+                    addLog('invite command copied to clipboard', 'success');
+                } else {
+                    addLog('clipboard not available (requires https)', 'error');
+                    addLog(`invite: ${data.install_command}`, 'info');
+                }
+            } else {
+                addLog(`copy failed: ${data.error}`, 'error');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            addLog(`error copying invite: ${error.message}`, 'error');
         }
     }
 
