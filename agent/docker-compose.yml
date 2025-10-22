@@ -8,6 +8,7 @@ services:
       - lumenmon
     volumes:
       - ./data/ssh:/home/metrics/.ssh
+      - /etc/hostname:/host/etc/hostname:ro
     environment:
       - CONSOLE_HOST=${CONSOLE_HOST:-console}
       - CONSOLE_PORT=${CONSOLE_PORT:-22}

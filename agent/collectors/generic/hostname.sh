@@ -11,8 +11,13 @@ set -euo pipefail
 
 # Main loop - gather hostname and send
 while true; do
-    # Get system hostname
-    hostname=$(hostname)
+    # Get host system hostname (not container hostname)
+    # Requires /etc/hostname mount in docker-compose.yml
+    if [ -f /host/etc/hostname ]; then
+        hostname=$(cat /host/etc/hostname)
+    else
+        hostname="unknown"
+    fi
 
     # Send hostname metric to console with type declaration
     timestamp=$(date +%s)
