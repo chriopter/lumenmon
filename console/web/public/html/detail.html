@@ -17,6 +17,12 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
             const panel = document.getElementById('detail-panel');
             panel.classList.remove('detail-panel-empty');
 
+            // Check if this is an invite
+            if (agent.type === 'invite') {
+                renderInviteDetailView(agent, panel);
+                return;
+            }
+
             // Get current values from history
             const currentCpu = agent.cpuHistory && agent.cpuHistory.length > 0 ? agent.cpuHistory[agent.cpuHistory.length - 1].value : 0;
             const currentMem = agent.memHistory && agent.memHistory.length > 0 ? agent.memHistory[agent.memHistory.length - 1].value : 0;
@@ -37,7 +43,7 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
         panel.innerHTML = `
             <div class="detail-header">
                 <h2><span class="status-dot ${agent.status}"></span>${agent.hostname || agent.id}</h2>
-                <span class="detail-status">${agent.id} · ${agent.status} · ${agent.age}</span>
+                <span class="detail-status">${agent.id}</span>
             </div>
             <div class="detail-content">
                 <div class="detail-stats">
@@ -99,11 +105,16 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
                         <span class="loading-text">Loading TSV files...</span>
                     </div>
                 </div>
+
+                <div id="system-status-container">
+                    <span class="loading-text">Loading system status...</span>
+                </div>
             </div>
         `;
 
             renderCharts(agent);
             loadTsvFiles(agent.id);
+            loadSystemStatus(agent.id, agent.type || 'agent');
         } catch (error) {
             console.error('Error opening detail view:', error);
             addLog(`error opening detail: ${error.message}`, 'error');
@@ -153,7 +164,7 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
             // Update header status
             const detailStatus = document.querySelector('.detail-status');
             if (detailStatus) {
-                detailStatus.textContent = `${agent.id} · ${agent.status} · ${agent.age}`;
+                detailStatus.textContent = agent.id;
             }
 
             // Update samples count
@@ -360,6 +371,152 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
             console.error('Error loading TSV files:', error);
             const tsvFilesList = document.getElementById('tsv-files-list');
             tsvFilesList.innerHTML = '<span class="error-text">Failed to load TSV files</span>';
+        }
+    }
+
+    async function loadSystemStatus(entityId, entityType) {
+        try {
+            const response = await fetch('/api/entities');
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+            const data = await response.json();
+            const entity = data.entities.find(e => e.id === entityId);
+
+            const container = document.getElementById('system-status-container');
+
+            if (!entity) {
+                container.innerHTML = '';
+                return;
+            }
+
+            const checkIcon = (val) => val ? '✓' : '✗';
+
+            let html = `
+                <div class="system-status-section">
+                    <h3>Agent Status</h3>
+                    <div class="system-status-simple">
+                        <div class="stat-column">
+                            <div class="stat-line">
+                                <span class="stat-label">ID</span>
+                                <span class="stat-value">${entity.id}</span>
+                            </div>
+                            <div class="stat-line">
+                                <span class="stat-label">TYPE</span>
+                                <span class="stat-value">${entity.type}</span>
+                            </div>
+            `;
+
+            if (entity.type === 'agent' && entity.hostname) {
+                html += `
+                            <div class="stat-line">
+                                <span class="stat-label">HOSTNAME</span>
+                                <span class="stat-value">${entity.hostname}</span>
+                            </div>
+                `;
+            }
+
+            html += `
+                        </div>
+                        <div class="stat-column">
+                            <div class="stat-line">
+                                <span class="stat-label">USER</span>
+                                <span class="stat-value">${checkIcon(entity.has_user)}</span>
+                            </div>
+            `;
+
+            if (entity.type === 'agent') {
+                html += `
+                            <div class="stat-line">
+                                <span class="stat-label">FOLDER</span>
+                                <span class="stat-value">${checkIcon(entity.has_folder)}</span>
+                            </div>
+                            <div class="stat-line">
+                                <span class="stat-label">DATABASE</span>
+                                <span class="stat-value">${checkIcon(entity.has_table)}</span>
+                            </div>
+                `;
+            } else {
+                html += `
+                            <div class="stat-line">
+                                <span class="stat-label">PASSWORD</span>
+                                <span class="stat-value">${checkIcon(entity.has_password)}</span>
+                            </div>
+                `;
+            }
+
+            html += `
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            container.innerHTML = html;
+        } catch (error) {
+            console.error('Error loading system status:', error);
+            const container = document.getElementById('system-status-container');
+            container.innerHTML = '';
+        }
+    }
+
+    async function renderInviteDetailView(invite, panel) {
+        panel.innerHTML = `
+            <div class="detail-header">
+                <h2><span class="status-dot online"></span>Invite: ${invite.id}</h2>
+                <span class="detail-status">${invite.id}</span>
+            </div>
+            <div class="detail-content">
+                <div class="invite-details-section">
+                    <h3>Invite URL</h3>
+                    <div id="invite-url-container">
+                        <span class="loading-text">Loading invite URL...</span>
+                    </div>
+                </div>
+
+                <div id="system-status-container">
+                    <span class="loading-text">Loading status...</span>
+                </div>
+            </div>
+        `;
+
+        // Fetch and display invite URL
+        try {
+            const response = await fetch(`/api/invites/${invite.id}/url`);
+            if (response.ok) {
+                const data = await response.json();
+                const container = document.getElementById('invite-url-container');
+
+                container.innerHTML = `
+                    <div class="invite-url-box">
+                        <div class="invite-url-label">SSH URL:</div>
+                        <div class="invite-url-value" onclick="copyToClipboard(this.textContent)">${data.invite_url}</div>
+                    </div>
+                    <div class="invite-url-box">
+                        <div class="invite-url-label">Full Install Command:</div>
+                        <div class="invite-url-value invite-url-command" onclick="copyToClipboard(this.textContent)">${data.install_command}</div>
+                    </div>
+                `;
+            } else {
+                document.getElementById('invite-url-container').innerHTML = '<span class="error-text">Failed to load invite URL</span>';
+            }
+        } catch (error) {
+            console.error('Error loading invite URL:', error);
+            document.getElementById('invite-url-container').innerHTML = '<span class="error-text">Error loading invite URL</span>';
+        }
+
+        // Load system status
+        loadSystemStatus(invite.id, 'invite');
+    }
+
+    function copyToClipboard(text) {
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(text).then(() => {
+                addLog('copied to clipboard', 'success');
+            }).catch(err => {
+                console.error('Copy failed:', err);
+                addLog('clipboard not available', 'error');
+            });
+        } else {
+            addLog('clipboard not available (requires https)', 'error');
         }
     }
 </script>

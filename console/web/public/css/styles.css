@@ -848,3 +848,97 @@ footer {
 .sqlite-data-table tbody tr:hover {
     background: var(--background1);
 }
+
+/* ============================================================ */
+/* System Status Section */
+/* ============================================================ */
+.system-status-section {
+    margin-top: 2rem;
+    padding-top: 0;
+    border-top: 1px solid var(--foreground2);
+    position: relative;
+}
+
+.system-status-section h3 {
+    position: absolute;
+    top: -0.6rem;
+    left: 0.5rem;
+    margin: 0;
+    padding: 0 0.5rem;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    color: var(--foreground2);
+    background: var(--background0);
+}
+
+.system-status-simple {
+    padding-top: 0.75rem;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+}
+
+/* ============================================================ */
+/* Entity (Agent + Invite) Styling */
+/* ============================================================ */
+.entity-invite {
+    font-style: italic;
+}
+
+.entity-invalid {
+    opacity: 0.6;
+}
+
+.invite-label {
+    color: var(--foreground2);
+    font-size: 0.75rem;
+    text-align: right;
+    font-style: italic;
+}
+
+/* ============================================================ */
+/* Invite Detail View */
+/* ============================================================ */
+.invite-details-section {
+    margin-bottom: 2rem;
+}
+
+.invite-details-section h3 {
+    margin: 0 0 1rem 0;
+    font-size: 0.9rem;
+    color: var(--foreground1);
+    text-transform: lowercase;
+}
+
+.invite-url-box {
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    border-radius: 6px;
+    background: var(--background1);
+}
+
+.invite-url-label {
+    font-size: 0.75rem;
+    color: var(--foreground2);
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+}
+
+.invite-url-value {
+    font-family: monospace;
+    font-size: 0.8rem;
+    color: var(--accent1);
+    word-break: break-all;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 4px;
+    background: var(--background0);
+}
+
+.invite-url-value:hover {
+    background: var(--background2);
+}
+
+.invite-url-command {
+    color: var(--foreground1);
+}

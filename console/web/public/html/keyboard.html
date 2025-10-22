@@ -18,7 +18,12 @@ Binds ↑/↓/j/k (navigation), Enter (detail), Esc (close), i (invite), r (refr
             moveSelection(-1);
         } else if (key === 'enter') {
             e.preventDefault();
-            openDetailView();
+            const selected = getSelectedAgent();
+            if (selected && selected.type === 'invite') {
+                copyInviteUrl(selected.id);
+            } else {
+                openDetailView();
+            }
         } else if (key === 'escape') {
             e.preventDefault();
             // Close delete modal if open, otherwise close detail view

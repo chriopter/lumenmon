@@ -10,25 +10,22 @@ import os
 invites_bp = Blueprint('invites', __name__)
 
 def get_active_invites():
-    """Get list of active invites from /tmp/.invite_* files."""
+    """Get list of active invites from user home directories."""
     invites = []
 
-    invite_files = glob.glob('/tmp/.invite_*')
-    for filepath in invite_files:
-        if os.path.isfile(filepath):
-            username = os.path.basename(filepath).replace('.invite_', '')
+    # Look for all reg_* home directories
+    agent_dirs = glob.glob('/home/reg_*')
+    for homedir in agent_dirs:
+        if os.path.isdir(homedir):
+            username = os.path.basename(homedir)
+            password_file = os.path.join(homedir, '.invite_password')
 
-            # Read password from file
-            try:
-                with open(filepath, 'r') as f:
-                    password = f.read().strip()
-
+            # Check if password file exists
+            if os.path.isfile(password_file):
                 invites.append({
                     'username': username,
-                    'filepath': filepath
+                    'password_file': password_file
                 })
-            except Exception as e:
-                print(f"Error reading invite {filepath}: {e}")
 
     return invites
 
@@ -110,6 +107,50 @@ def create_invite_full():
             'success': False,
             'error': 'Invite creation timed out'
         }), 500
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@invites_bp.route('/api/invites/<username>/url', methods=['GET'])
+def get_invite_url(username):
+    """Get the invite URL for a specific invite user (for copying)."""
+    try:
+        # Read password from user's home directory
+        password_file = f"/home/{username}/.invite_password"
+
+        if not os.path.isfile(password_file):
+            return jsonify({
+                'success': False,
+                'error': 'Invite not found or expired'
+            }), 404
+
+        with open(password_file, 'r') as f:
+            password = f.read().strip()
+
+        # Get host key
+        with open('/data/ssh/ssh_host_ed25519_key.pub', 'r') as f:
+            parts = f.read().strip().split()
+            hostkey = f"{parts[0]}_{parts[1]}"
+
+        # Get host from environment or default to localhost
+        invite_host = os.environ.get('CONSOLE_HOST', 'localhost')
+        invite_port = os.environ.get('CONSOLE_PORT', '2345')
+
+        # Build invite URL
+        invite_url = f"ssh://{username}:{password}@{invite_host}:{invite_port}/#{hostkey}"
+
+        # Build full install command
+        install_command = f"curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/refs/heads/main/install.sh | LUMENMON_INVITE='{invite_url}' bash"
+
+        return jsonify({
+            'success': True,
+            'username': username,
+            'invite_url': invite_url,
+            'install_command': install_command
+        })
+
     except Exception as e:
         return jsonify({
             'success': False,
