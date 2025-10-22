@@ -36,6 +36,10 @@ FINGERPRINT=$(cat "$FINGERPRINT_FILE")
 # Build invite URL
 INVITE_URL="lumenmon://$USERNAME:$PASSWORD@$CONSOLE_HOST:8884#$FINGERPRINT"
 
+# Output bare URL first (for installer to parse)
+echo "$INVITE_URL"
+echo ""
+
 # Output invite information
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "Agent Registration Invite"
