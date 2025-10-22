@@ -36,18 +36,13 @@ lumenmon update     # Update CLI, compose files, and images
 lumenmon uninstall  # Remove everything
 ```
 
-## Next / Todos
-
-- Show invite remaing time, sort invites below hosts, fix graphs
-- Fix Sparklines if offline
-- Polish Auto-Installer (PULSE: unbound variable on some systems) as well as client installer, output status after client installation via magic link
-- Fix Same Host installation
-- Clean Readme
-- Clean scattered logs like .lumenmon/console/data/agents.log
-- Unifi agents.log and gateway.log etc in single experience, /data/gateway.log
 
 
 ## How It Works
+### Containers
+The Agent container runs collector script based on a configured intervall, connects via SSH multiplex to the console and pushes the data to an gateway. Everything is bash.
+
+*The Console container creates a linux user per agent to connect, bounds incoming SSH connects via ForceCommand to gateway.py which writes incoming data to an SQLite. A flask Server is delivered via Caddy for the WebTUI.
 
 ```
 ┌─────────────┐               ┌─────────────┐
@@ -57,20 +52,6 @@ lumenmon uninstall  # Remove everything
 │ • Mem 10s   │  Metric Data  │ • SQLite DB │
 │ • Disk 60s  │               │ • WebTUI    │
 └─────────────┘               └─────────────┘                 
-```
-**The Agent container** runs collector script based on a configured intervall, connects via SSH multiplex to the console and pushes the data to an gateway. Everything is bash.
-
-**The Console container** creates a linux user per agent to connect, bounds incoming SSH connects via ForceCommand to gateway.py which writes incoming data to an SQLite. A flask Server is delivered via Caddy for the WebTUI.
-
-**The data structure** is quite simple, the agent pipes data from scripts against the gateway via SSH (Prefix, data type, interval and actual data). The gateway will create the necessary sqlite tables based on the prefix. If the data type e.g. changes, the table is recreated.
-
-**Invite system** is based on linux users. Invites are temporary linux users with timestamp in the name (to autodelete them after 60 minutes). The console SSH key is pinned from very first connection on to mitigate MITM. When an agent enrolls with such an invite, a permanent user is created and the agents ssh key is pinned on the host as well. The container recreates the user on container start from the data dir. Therefore, the complete authentication is just linux users + standard ssh tooling.
-
-
-```
-**Invite link logic**
-ssh://username:password@consolehost:port/#hostkey
-ssh://reg_1761133283700:8938fe9d5c32@192.168.10.13:2345/#ssh-ed25519_AAAAC3NzaC1lZDI1NTE5AAAAIGPrge2Vp5PgsgRx9n/Z9prEfttG5xt8MOe1WtjcdhzX
 ```
 
 <details>
@@ -87,6 +68,7 @@ ssh://reg_1761133283700:8938fe9d5c32@192.168.10.13:2345/#ssh-ed25519_AAAAC3NzaC1
 ```
 
 </details>
+
 
 
 
@@ -112,32 +94,28 @@ ssh://reg_1761133283700:8938fe9d5c32@192.168.10.13:2345/#ssh-ed25519_AAAAC3NzaC1
 
 </details>
 
+### Data structure
 
+**The data structure** is quite simple, the agent pipes data from scripts against the gateway via SSH (Prefix, timestamp, data type, interval and actual data). The gateway will create the necessary sqlite tables based on the prefix. If the data type e.g. changes, the table is recreated.
 
-**Same-host installations**: When console and agent run on the same machine, they communicate via Docker's internal network (`lumenmon-console:22`), not the external port `localhost:2345`. The installer handles this automatically.
+<img width="700" alt="image" src="https://github.com/user-attachments/assets/2e67ead2-e5ce-4291-80d1-db08f7dd6ee7" />
 
 ### Security
-
-- **Push-only over SSH**: Agents initiate outbound connections. Console never connects to agents. No firewall rules needed, works behind NAT.
-- **MITM-proof enrollment**: Invite links include SSH host key fingerprint. Agents verify before sending credentials. After enrollment, SSH keys pinned to per-agent console users.
+**Invite system** is based on linux users. Invites are temporary linux users with timestamp in the name (to autodelete them after 60 minutes). 
+- **MITM-proof enrollment**: Invite links include SSH host key fingerprint. Agents verify before sending credentials. After enrollment, SSH keys pinned to per-agent console users.the data dir. Therefore, the complete authentication is just linux users + standard ssh tooling.
+- **Push-only over SSH**: Agents initiate outbound connections. Console never connects to agents.
 - **Isolated execution**: Runs in Docker. ForceCommand prevents shell access. Per-agent Linux users and file permissions enforce data isolation.
+- **Design** The Agent is designed in a very KISS manner, based only on bash and easily reviewable. The console where possible as well, but ofc. the flask webserver is not bash but python.
 
-### Invite Process
+```
+**Invite link logic**
+ssh://username:password@consolehost:port/#hostkey
+ssh://reg_1761133283700:8938fe9d5c32@192.168.10.13:2345/#ssh-ed25519_AAAAC3NzaC1lZDI1NTE5AAAAIGPrge2Vp5PgsgRx9n/Z9prEfttG5xt8MOe1WtjcdhzX
+```
 
-Console creates temp user `reg_<timestamp>` with 5-min expiry. Magic link: `ssh://user:pass@host:2345/#ed25519_hostkey` (host key prevents MITM). Agent sends public key via password auth, console creates permanent user `id_<fingerprint>` with key-based access. Agent connects via persistent SSH control socket, all collectors multiplex through it.
 
-### Collector Execution
+**The installer script** will start the respective docker containers and creates a first invitation. When console and agent run on the same machine (recommended way to run console), they communicate via Docker's internal network (`lumenmon-console:22`), not the external port `localhost:2345`. The installer handles this automatically.
 
-Collectors are bash scripts (`collectors/*/*.sh`) running `while true; do sleep $RHYTHM; <read /proc>; done` loops. Each collector uses a timing variable set by agent:
-
-| Rhythm | Interval | Purpose |
-|--------|----------|---------|
-| PULSE | 1s | Fast-changing metrics (CPU) |
-| BREATHE | 60s | Moderate metrics (memory) |
-| CYCLE | 300s | Slow-changing (disk usage) |
-| REPORT | 3600s | CPU-heavy operations (update status) |
-
-Each sends typed data via SSH: `generic_cpu.tsv REAL\n1729123456 1 23.4`. Console ForceCommand gateway writes to SQLite (`/data/metrics.db`) with type-safe columns. Web dashboard queries database for real-time display.
 
 ## Development
 
@@ -156,5 +134,17 @@ Each sends typed data via SSH: `generic_cpu.tsv REAL\n1729123456 1 23.4`. Consol
 ```
 
 ---
+
+
+## Next / Todos
+
+- Show invite remaing time, sort invites below hosts, fix graphs
+- Fix Sparklines if offline
+- Polish Auto-Installer (PULSE: unbound variable on some systems) as well as client installer, output status after client installation via magic link
+- Fix Same Host installation
+- Clean Readme
+- Clean scattered logs like .lumenmon/console/data/agents.log
+- Unifi agents.log and gateway.log etc in single experience, /data/gateway.log
+
 
 Based on WebTUI, Flask, Docker, OpenSSH.
