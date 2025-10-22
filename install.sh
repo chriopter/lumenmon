@@ -382,8 +382,13 @@ if [ -n "$LUMENMON_INVITE" ]; then
     echo ""
 
     install_agent "$HOST"
-    register_agent "$URL" "yes"  # Auto-accept certificate for scripted installs
-    status_ok "Agent connected!"
+
+    if register_agent "$URL" "yes"; then
+        status_ok "Agent connected!"
+    else
+        status_error "Agent registration failed - check logs with: docker logs lumenmon-agent"
+    fi
+
     install_cli
 
     echo ""
