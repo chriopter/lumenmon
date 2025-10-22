@@ -88,6 +88,7 @@ The Console container runs an MQTT broker (Mosquitto) to receive data, writes it
     ├── app (Flask app)
     ├── config (Caddy Config)
     └── public (HTML, CS, JS)
+```
 
 </details>
 

@@ -33,8 +33,20 @@ Fetches server-rendered rows every 1s. Provides row selection, navigation functi
 
             // Render entities
             if (data.entities && data.entities.length > 0) {
+                // Sort: valid agents first (alphabetically), then invites/pending
+                const sortedEntities = [...data.entities].sort((a, b) => {
+                    // Valid agents come before invalid/invites
+                    if (a.valid && !b.valid) return -1;
+                    if (!a.valid && b.valid) return 1;
+
+                    // Within same validity, sort alphabetically
+                    const aName = (a.hostname || a.id).toLowerCase();
+                    const bName = (b.hostname || b.id).toLowerCase();
+                    return aName.localeCompare(bName);
+                });
+
                 let html = '';
-                data.entities.forEach((entity, index) => {
+                sortedEntities.forEach((entity, index) => {
                     const selected = index === 0 ? 'selected' : '';
                     const validClass = entity.valid ? '' : 'entity-invalid';
 
