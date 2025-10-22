@@ -4,6 +4,7 @@ services:
     build: .
     container_name: lumenmon-agent
     hostname: agent-${AGENT_ID:-default}
+    restart: unless-stopped
     networks:
       - lumenmon
     volumes:
