@@ -5,7 +5,7 @@
 set -e
 
 # Version
-INSTALLER_VERSION="0.12.0"
+INSTALLER_VERSION="0.13.0"
 
 # Configuration
 INSTALL_DIR="$HOME/.lumenmon"
@@ -187,31 +187,68 @@ show_completion() {
     local console_host="$3"
 
     echo ""
-    echo -e "\033[1;32m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
-    echo -e "\033[1;32m✓ Lumenmon installed!\033[0m"
-    echo -e "\033[1;32m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "✓ Lumenmon installed!"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo ""
 
-    if [ "$mode" != "agent" ] && [ -n "$invite_url" ]; then
-        echo -e "\033[1mInvite URL for remote agents\033[0m (expires in 60 minutes):"
-        echo ""
-        echo -e "\033[1;36m$invite_url\033[0m"
-        echo ""
-    fi
-
-    if [ "$mode" != "agent" ]; then
-        # Use configured hostname, fallback to localhost
-        local dashboard_host="${console_host:-localhost}"
-        echo -e "Dashboard: \033[1;36mhttp://${dashboard_host}:8080\033[0m"
-        echo ""
-    fi
-
-    echo "CLI commands:"
-    # Use lumenmon's own help output (DRY - don't duplicate command list)
+    # Show current status
     if command -v lumenmon >/dev/null 2>&1; then
-        lumenmon help | sed 's/^/  /'
+        # Wait a moment for services to stabilize
+        sleep 2
+        lumenmon status
+        echo ""
     fi
+
+    # CLI commands section
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "Use Lumenmon"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo ""
+    echo "CLI commands:"
+    echo "  lumenmon           - Open WebTUI (or status if not running)"
+    echo "  lumenmon start     - Start console and/or agent"
+    echo "  lumenmon status    - Show system status"
+    echo "  lumenmon logs      - View logs"
+    echo "  lumenmon invite    - Generate agent invite"
+    echo "  lumenmon register  - Register agent with invite"
+    echo "  lumenmon update    - Pull latest containers and restart"
+    echo "  lumenmon uninstall - Remove everything"
+    echo ""
+
+    # Invite section (for console installations)
+    if [ "$mode" != "agent" ] && [ -n "$invite_url" ]; then
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "Agent Registration Invite"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo ""
+        # Parse invite URL to extract components
+        if [[ "$invite_url" =~ lumenmon://([^:]+):([^@]+)@([^:#]+):?([0-9]*)#(.+)$ ]]; then
+            local agent_id="${BASH_REMATCH[1]}"
+            local fingerprint="${BASH_REMATCH[5]}"
+            echo "Agent ID: $agent_id"
+            echo "Certificate Fingerprint: $fingerprint"
+            echo ""
+        fi
+        echo "One-Click Install (copy to target machine):"
+        echo ""
+        echo "  curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/refs/heads/main/install.sh | \\"
+        echo "    LUMENMON_INVITE=\"$invite_url\" bash"
+        echo ""
+        echo "Or manual registration (if lumenmon already installed):"
+        echo ""
+        echo "  lumenmon register \"$invite_url\""
+        echo ""
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo ""
+    fi
+
+    # Dashboard URL (for console installations)
+    if [ "$mode" != "agent" ]; then
+        local dashboard_host="${console_host:-localhost}"
+        echo "Dashboard: http://${dashboard_host}:8080"
+        echo ""
+    fi
 }
 
 # Get image version info
@@ -399,10 +436,7 @@ if [ -n "$LUMENMON_INVITE" ]; then
     fi
 
     install_cli
-
-    echo ""
-    echo -e "\033[1;32m✓ Agent installation complete!\033[0m"
-    echo ""
+    show_completion "agent" "" ""
 else
     main
 fi
