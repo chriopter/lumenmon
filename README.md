@@ -110,7 +110,7 @@ lumenmon://id_114d3809:Ckce3bOVkLdHfmx5uAKmGZeMppIWdYHK@lumenmon-console:8884#47
 ```
 
 ### Installer
-The installer script will start the respective docker containers and create a first invitation. When console and agent run on the same machine (recommended setup), they communicate via Docker's internal network (`lumenmon-console:8884`), with TLS certificate verification handled automatically. The installer auto-accepts the TLS certificate for local installations.
+The installer script will start the respective docker containers and create a first invitation. When console and agent run on the same machine (recommended setup to monitor console machine as well), they communicate via Docker's internal network (`lumenmon-console:8884`), with TLS certificate verification handled automatically. The installer auto-accepts the TLS certificate for local installations.
 
 
 ## Development
