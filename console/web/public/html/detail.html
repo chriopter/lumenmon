@@ -327,16 +327,21 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
             const tsvFilesList = document.getElementById('tsv-files-list');
 
             if (!data.tsv_files || data.tsv_files.length === 0) {
-                tsvFilesList.innerHTML = '<span class="no-data-text">No TSV files found</span>';
+                tsvFilesList.innerHTML = '<span class="no-data-text">no database entries found</span>';
                 return;
             }
+
+            // Store previous values for flash detection
+            const previousValues = window.tsvPreviousValues || {};
+            const currentValues = {};
 
             // Data arrives pre-sorted from backend
             // Build the comprehensive TSV files table
             let html = '<table id="tsv-table"><thead><tr>';
             html += '<td>NAME</td>';
-            html += '<td>TYPE</td>';
             html += '<td>VALUE</td>';
+            html += '<td>INTERVAL</td>';
+            html += '<td>TYPE</td>';
             html += '<td>LAST UPDATE</td>';
             html += '<td>DATA SPAN</td>';
             html += '<td># SAMPLES</td>';
@@ -346,9 +351,17 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
                 const metricName = file.metric_name || file.filename.replace('.tsv', '');
                 const type = file.type || 'TEXT';
                 const value = file.value !== undefined ? file.value : '-';
+                const interval = file.interval || '-';
                 const timestampAge = file.timestamp_age || '-';
                 const dataSpan = file.data_span || '-';
                 const sampleCount = file.line_count || '-';
+
+                // Track current value for next comparison
+                currentValues[metricName] = value;
+
+                // Detect if value changed (flash effect)
+                const flashClass = (previousValues[metricName] !== undefined &&
+                                   previousValues[metricName] !== value) ? 'value-flash' : '';
 
                 // Color code by type
                 let typeClass = 'type-text';
@@ -357,13 +370,17 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
 
                 html += `<tr>`;
                 html += `<td class="tsv-filename">${metricName}</td>`;
+                html += `<td class="tsv-value ${flashClass}">${value}</td>`;
+                html += `<td>${interval}s</td>`;
                 html += `<td class="${typeClass}">${type}</td>`;
-                html += `<td class="tsv-value">${value}</td>`;
-                html += `<td>${timestampAge}</td>`;
+                html += `<td class="db-content-separator">${timestampAge}</td>`;
                 html += `<td>${dataSpan}</td>`;
                 html += `<td>${sampleCount}</td>`;
                 html += `</tr>`;
             });
+
+            // Store current values for next refresh
+            window.tsvPreviousValues = currentValues;
 
             html += '</tbody></table>';
             tsvFilesList.innerHTML = html;

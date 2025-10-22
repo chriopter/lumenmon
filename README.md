@@ -38,8 +38,8 @@ lumenmon uninstall  # Remove everything
 
 ## Next / Todos
 
-- Restart after Reboot
-- Show Invites in Agent List
+
+- Fix Sparklines if offline
 - Polish Auto-Installer (PULSE: unbound variable on some systems) as well as client installer, output status after client installation via magic link
 - Fix Same Host installation
 - Clean Readme

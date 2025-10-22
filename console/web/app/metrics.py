@@ -231,8 +231,8 @@ def get_agent_tsv_files(agent_id):
                 if type_match:
                     value_type = type_match.group(1).upper()
 
-            # Get latest value and count
-            cursor.execute(f'SELECT timestamp, value FROM "{table_name}" ORDER BY timestamp DESC LIMIT 1')
+            # Get latest value, interval, and count
+            cursor.execute(f'SELECT timestamp, interval, value FROM "{table_name}" ORDER BY timestamp DESC LIMIT 1')
             latest = cursor.fetchone()
 
             cursor.execute(f'SELECT COUNT(*) FROM "{table_name}"')
@@ -248,16 +248,17 @@ def get_agent_tsv_files(agent_id):
                 data_span = _format_duration(latest[0] - oldest[0]) if oldest else "N/A"
 
                 # Format value based on type
-                formatted_value = latest[1]
-                if value_type in ('REAL', 'INTEGER') and isinstance(latest[1], (int, float)):
-                    formatted_value = round(latest[1], 1)
+                formatted_value = latest[2]
+                if value_type in ('REAL', 'INTEGER') and isinstance(latest[2], (int, float)):
+                    formatted_value = round(latest[2], 1)
 
                 tables.append({
                     'filename': f"{metric_name}.tsv",
                     'metric_name': metric_name,
                     'table_name': table_name,
                     'type': value_type,
-                    'lastLine': f"{latest[0]} - {latest[1]}",
+                    'interval': latest[1],
+                    'lastLine': f"{latest[0]} - {latest[2]}",
                     'timestamp': latest[0],
                     'timestamp_age': timestamp_age,
                     'value': formatted_value,
