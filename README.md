@@ -35,6 +35,8 @@ lumenmon uninstall  # Remove everything
 
 ## How It Works
 
+There are two docker containers:
+
 **Agent** collects system metrics (CPU, memory, disk) and publishes to console via MQTT with TLS.
 
 **Console** receives data via MQTT broker, stores in SQLite, and serves a web dashboard.
