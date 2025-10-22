@@ -304,6 +304,8 @@ main() {
             if [ -n "$INVITE_URL" ]; then
                 if register_agent "$INVITE_URL"; then
                     status_ok "Local agent connected!"
+                    # Restart agent to load credentials and start collectors
+                    docker restart lumenmon-agent >/dev/null 2>&1
                 else
                     status_warn "Auto-registration failed - use 'lumenmon invite' and 'lumenmon register' to connect manually"
                 fi
@@ -385,6 +387,8 @@ if [ -n "$LUMENMON_INVITE" ]; then
 
     if register_agent "$URL" "yes"; then
         status_ok "Agent connected!"
+        # Restart agent to load credentials and start collectors
+        docker restart lumenmon-agent >/dev/null 2>&1
     else
         status_error "Agent registration failed - check logs with: docker logs lumenmon-agent"
     fi
