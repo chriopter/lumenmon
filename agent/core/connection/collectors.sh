@@ -1,6 +1,6 @@
 #!/bin/bash
 # Starts all metric collector scripts in collectors/generic/ directory as background processes.
-# Each collector runs independently and sends data through the established SSH tunnel.
+# Each collector runs independently and sends data through the established MQTT connection.
 set -euo pipefail
 
 # Variables already exported by agent.sh before sourcing this script

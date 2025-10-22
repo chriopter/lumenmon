@@ -28,4 +28,42 @@ Provides addLog(message, level) function for inline event logging. Max 50 entrie
             logEntries.removeChild(logEntries.firstChild);
         }
     }
+
+    // MQTT message tracking
+    let lastMqttCount = 0;
+    let mqttCheckInterval = null;
+
+    async function checkMqttMessages() {
+        try {
+            const response = await fetch('/api/mqtt/test');
+            const data = await response.json();
+
+            if (data.count > lastMqttCount) {
+                // New messages arrived
+                const newMessages = data.messages.slice(lastMqttCount);
+                newMessages.forEach(msg => {
+                    // Parse message format: "[timestamp] topic: payload"
+                    const match = msg.match(/\[([^\]]+)\]\s+([^:]+):\s+(.+)/);
+                    if (match) {
+                        const topic = match[2];
+                        const payload = match[3];
+                        addLog(`MQTT ${topic}: ${payload}`, 'mqtt');
+                    } else {
+                        addLog(`MQTT: ${msg}`, 'mqtt');
+                    }
+                });
+                lastMqttCount = data.count;
+            }
+        } catch (error) {
+            // Silently ignore MQTT errors (endpoint might not be available)
+        }
+    }
+
+    // Start MQTT polling when page loads
+    window.addEventListener('load', () => {
+        // Initial check
+        checkMqttMessages();
+        // Poll every 2 seconds
+        mqttCheckInterval = setInterval(checkMqttMessages, 2000);
+    });
 </script>

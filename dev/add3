@@ -34,35 +34,35 @@ create_agent() {
 
         # Create isolated data directory for this agent
         local AGENT_DATA_DIR="agent/data/agents/$AGENT_NAME"
-        mkdir -p "$AGENT_DATA_DIR/ssh"
+        mkdir -p "$AGENT_DATA_DIR/mqtt"
 
         # Create invite
         echo "🔑 Creating invite for $AGENT_NAME..."
-        local INVITE=$(docker exec lumenmon-console /app/core/enrollment/invite_create.sh 2>/dev/null | grep "^ssh://")
+        local INVITE=$(docker exec lumenmon-console /app/core/enrollment/invite_create.sh 2>&1 | grep "lumenmon register" | sed 's/.*lumenmon register "\(.*\)"/\1/')
         if [ -z "$INVITE" ]; then
             echo "❌ Failed to create invite for $AGENT_NAME"
             return 1
         fi
 
-        # Start agent container with proper environment variables
+        # Start agent container on lumenmon-net network
         echo "🚀 Starting $AGENT_NAME..."
         docker run -d \
             --name "lumenmon-$AGENT_NAME" \
             --hostname "$AGENT_NAME" \
-            --network host \
-            -v "$(pwd)/$AGENT_DATA_DIR/ssh:/home/metrics/.ssh" \
-            -e CONSOLE_HOST=localhost \
-            -e CONSOLE_PORT=2345 \
-            -e AGENT_ID="$AGENT_NAME" \
+            --network lumenmon-net \
+            -v "$(pwd)/$AGENT_DATA_DIR/mqtt:/data/mqtt" \
             ghcr.io/chriopter/lumenmon-agent:latest \
             > /dev/null
 
         # Wait for agent container to initialize
         sleep 2
 
-        # Register agent
+        # Register agent with auto-accept certificate
         echo "📝 Registering $AGENT_NAME..."
-        docker exec "lumenmon-$AGENT_NAME" /app/core/setup/register.sh "$INVITE" 2>&1 | grep -E "\[REGISTER\]|ERROR" || true
+        echo "yes" | docker exec -i "lumenmon-$AGENT_NAME" /app/core/setup/register.sh "$INVITE" 2>&1 | grep -E "\[register\]|ERROR|✓" || true
+
+        # Restart agent to start collectors
+        docker restart "lumenmon-$AGENT_NAME" > /dev/null
     } > "$LOG_FILE" 2>&1
 }
 

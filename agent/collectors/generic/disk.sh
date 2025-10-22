@@ -1,26 +1,21 @@
 #!/bin/bash
-# Collects root filesystem usage percentage from df and sends via SSH every CYCLE interval (60s).
-# Outputs to generic_disk.tsv on console with timestamp, interval, and usage value.
+# Collects root filesystem usage percentage from df and publishes via MQTT.
+# Reports disk usage for / at CYCLE interval (60s).
 
 # Config
-RHYTHM="CYCLE"    # Uses CYCLE timing from agent.sh
-PREFIX="generic_disk"     # Metric prefix: generic_disk_root_usage
-TYPE="REAL"      # SQLite column type for numeric values
+RHYTHM="CYCLE"         # Uses CYCLE timing from agent.sh (60s)
+METRIC="generic_disk"  # Metric name: generic_disk
+TYPE="REAL"            # SQLite column type for decimal values
 
 set -euo pipefail
+source /app/core/mqtt/publish.sh
 
-# Main loop - check disk and send
 while true; do
-    # Get disk usage for root filesystem
-    # df output: filesystem size used available percentage mountpoint
-    read -r filesystem size used available percentage mountpoint <<< $(df -P / | tail -1)
+    # Get disk usage for root filesystem (remove % sign)
+    usage=$(df -P / | tail -1 | awk '{print $5}' | tr -d '%')
 
-    # Remove the % sign from percentage
-    usage=${percentage%\%}
-
-    # Send to console with type declaration
-    echo -e "${PREFIX}.tsv $TYPE\n$(date +%s) $CYCLE $usage" | \
-        ssh -S $SSH_SOCKET $AGENT_USER@$CONSOLE_HOST 2>/dev/null
+    # Publish
+    publish_metric "$METRIC" "$usage" "$TYPE"
 
     sleep $CYCLE
 done

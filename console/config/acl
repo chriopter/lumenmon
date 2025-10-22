@@ -1,0 +1,6 @@
+# Mosquitto ACL - Pattern-based topic isolation
+# Applied only to port 8884 (external TLS listener with authentication)
+# Port 1883 (internal, no ACL) allows full anonymous access for mqtt_to_sqlite.py
+
+# All authenticated agents: write-only access to their own metrics
+pattern write metrics/%u/#

@@ -1,59 +1,63 @@
 #!/bin/bash
-# Creates temporary registration account and generates invite URL with credentials and host key.
-# The invite URL tells agents WHERE to connect and HOW to authenticate during registration.
-#
-# IMPORTANT: Hostname/port in invite must match where agent will connect at runtime!
-# - Same-host Docker setups: Use internal network address (console:22 or lumenmon-console:22)
-# - Remote agents: Use external address (public IP or hostname:2345)
-# - This prevents SSH known_hosts mismatches (invite saves the host key for that specific address)
-#
-# Usage: invite_create.sh [--full] [hostname] [port]
-#   --full: Output full install command instead of URL only
-#   hostname: Where agents will connect (default: $CONSOLE_HOST or localhost)
-#   port: SSH port agents will use (default: 2345 for external, 22 for Docker internal)
-#
-# Examples:
-#   invite_create.sh                          # Remote agents: ssh://reg@localhost:2345/...
-#   invite_create.sh --full                   # Remote agents with install command
-#   invite_create.sh console 22               # Local Docker agent (dev/auto)
-#   invite_create.sh lumenmon-console 22      # Local Docker agent (installer)
-#   invite_create.sh --full 192.168.1.10 2345 # Remote with custom host
+# Generates agent registration invite with permanent credentials and certificate fingerprint.
+# Creates username, permanent password, and builds invite URL for agent registration.
+set -euo pipefail
 
-echo "[INVITE] Creating registration invite" >&2
+FINGERPRINT_FILE="/data/mqtt/fingerprint"
+PASSWORD_FILE="/data/mqtt/passwd"
+CONSOLE_HOST="${CONSOLE_HOST:-localhost}"
 
-# Parse --full flag (optional first parameter)
-FULL_MODE=false
-if [ "$1" = "--full" ]; then
-    FULL_MODE=true
-    shift  # Remove --full from $1, so hostname becomes $1, port becomes $2
+# Check if certificate exists
+if [ ! -f "$FINGERPRINT_FILE" ]; then
+    echo "ERROR: Certificate fingerprint not found. Run init_mqtt_cert.sh first."
+    exit 1
 fi
 
-# Get invite hostname and port from parameters or sensible defaults
-# For same-host Docker: caller passes "console 22" or "lumenmon-console 22"
-# For remote agents: no params uses localhost:2345 (or $CONSOLE_HOST:2345 if set)
-INVITE_HOST="${1:-${CONSOLE_HOST:-localhost}}"
-INVITE_PORT="${2:-2345}"
+# Generate random username (agent ID format)
+USERNAME="id_$(openssl rand -hex 4)"
 
-USERNAME="reg_$(date +%s%3N)"
-PASSWORD=$(openssl rand -hex 6)
+# Generate strong permanent password
+PASSWORD="$(openssl rand -base64 32 | tr -d '/+=' | head -c 32)"
 
-# Create user (groups already exist from Docker build)
-useradd -m -s /bin/sh -G registration "$USERNAME"
-echo "${USERNAME}:${PASSWORD}" | chpasswd
-echo "$PASSWORD" > "/home/${USERNAME}/.invite_password"
-
-# Get ED25519 host key only
-HOSTKEY=$(awk '{print $1"_"$2}' /data/ssh/ssh_host_ed25519_key.pub)
-
-# Build URL with specified or default hostname:port
-INVITE_URL="ssh://${USERNAME}:${PASSWORD}@${INVITE_HOST}:${INVITE_PORT}/#${HOSTKEY}"
-
-# Output based on mode
-if [ "$FULL_MODE" = true ]; then
-    echo "curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/refs/heads/main/install.sh | LUMENMON_INVITE='$INVITE_URL' bash"
-else
-    echo "$INVITE_URL"
+# Add credentials to mosquitto password file
+if [ ! -f "$PASSWORD_FILE" ]; then
+    touch "$PASSWORD_FILE"
 fi
 
-# Note: Automatic cleanup runs every 60 seconds via Flask background thread
-# Invites expire after 60 minutes based on username timestamp
+mosquitto_passwd -b "$PASSWORD_FILE" "$USERNAME" "$PASSWORD" 2>/dev/null
+
+# Reload mosquitto to pick up new password
+pkill -HUP mosquitto 2>/dev/null || true
+sleep 0.5  # Brief pause to allow reload to complete
+
+# Load certificate fingerprint
+FINGERPRINT=$(cat "$FINGERPRINT_FILE")
+
+# Build invite URL
+INVITE_URL="lumenmon://$USERNAME:$PASSWORD@$CONSOLE_HOST:8884#$FINGERPRINT"
+
+# Output invite information
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "Agent Registration Invite"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+echo "Agent ID: $USERNAME"
+echo "Certificate Fingerprint: $FINGERPRINT"
+echo ""
+echo "One-Click Install (copy to target machine):"
+echo ""
+echo "  curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/refs/heads/main/install.sh | \\"
+echo "    LUMENMON_INVITE=\"$INVITE_URL\" bash"
+echo ""
+echo "Or manual registration (if lumenmon already installed):"
+echo ""
+echo "  lumenmon register \"$INVITE_URL\""
+echo ""
+echo "Security:"
+echo "  • Credentials are permanent (no rotation needed)"
+echo "  • ACL enforces topic isolation (write-only to metrics/$USERNAME/#)"
+echo "  • Keep this URL secure - it contains credentials"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+# Also output machine-readable JSON for Flask API
+echo "{\"username\":\"$USERNAME\",\"url\":\"$INVITE_URL\",\"fingerprint\":\"$FINGERPRINT\"}" > /tmp/last_invite.json

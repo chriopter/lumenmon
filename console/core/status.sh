@@ -1,6 +1,6 @@
 #!/bin/sh
-# Displays console health status with color-coded checks for SSH, keys, agents, and data flow.
-# Shows host key, registered agents, active connections, and recent metric activity.
+# Displays console health status with color-coded checks for MQTT, certificates, agents, and data flow.
+# Shows MQTT broker status, registered agents, and recent metric activity.
 
 # Colors
 GREEN='\033[0;32m'
@@ -13,85 +13,64 @@ echo "Console:"
 # Container
 printf "  Container    ${GREEN}✓${NC} Running\n"
 
-# SSH daemon
-if pgrep -f sshd >/dev/null; then
-    printf "  SSH Server   ${GREEN}✓${NC} Port ${CONSOLE_PORT:-2345}\n"
+# MQTT certificate
+if [ -f /data/mqtt/server.crt ]; then
+    printf "  TLS Cert     ${GREEN}✓${NC} Configured\n"
 else
-    printf "  SSH Server   ${RED}✗${NC} Not running\n"
+    printf "  TLS Cert     ${RED}✗${NC} Missing\n"
 fi
 
-# Host key
-if [ -f /data/ssh/ssh_host_ed25519_key ]; then
-    printf "  Host Key     ${GREEN}✓${NC} Configured\n"
+# MQTT broker (check if mosquitto is running and listening on 8884)
+if pgrep mosquitto >/dev/null 2>&1; then
+    printf "  MQTT Broker  ${GREEN}✓${NC} Port 8884 (TLS)\n"
 else
-    printf "  Host Key     ${RED}✗${NC} Missing\n"
+    printf "  MQTT Broker  ${RED}✗${NC} Not running\n"
 fi
 
-# Agent SSH keys
-if [ -d /data/agents ]; then
-    KEYS=0
-    for AGENT_DIR in /data/agents/*; do
-        [ -d "$AGENT_DIR" ] || continue
-        if [ -f "$AGENT_DIR/.ssh/authorized_keys" ]; then
-            KEYS=$((KEYS + 1))
-        fi
-    done
-    if [ $KEYS -gt 0 ]; then
-        printf "  Agent Keys   ${GREEN}✓${NC} $KEYS configured\n"
+# MQTT password file
+if [ -f /data/mqtt/passwd ]; then
+    PASSWD_COUNT=$(wc -l < /data/mqtt/passwd 2>/dev/null || echo 0)
+    if [ "$PASSWD_COUNT" -gt 0 ]; then
+        printf "  MQTT Users   ${GREEN}✓${NC} $PASSWD_COUNT configured\n"
     else
-        printf "  Agent Keys   ${YELLOW}⚠${NC} None configured\n"
+        printf "  MQTT Users   ${YELLOW}⚠${NC} None configured\n"
     fi
 else
-    printf "  Agent Keys   ${RED}✗${NC} No agents dir\n"
+    printf "  MQTT Users   ${RED}✗${NC} No passwd file\n"
 fi
 
-# Agents
-if [ -d /data/agents ]; then
-    TOTAL=$(ls /data/agents 2>/dev/null | wc -l)
+# Agents (count unique agent IDs from database tables)
+if [ -f /data/metrics.db ]; then
+    TOTAL=$(sqlite3 /data/metrics.db "SELECT COUNT(DISTINCT SUBSTR(name, 1, 11)) FROM sqlite_master WHERE type='table' AND name LIKE 'id_%'" 2>/dev/null || echo "0")
 
-    # Connected agents (have active processes)
-    CONNECTED=0
-    for AGENT_DIR in /data/agents/*; do
-        [ -d "$AGENT_DIR" ] || continue
-        AGENT_ID=$(basename "$AGENT_DIR")
-        if pgrep -u "$AGENT_ID" >/dev/null 2>&1; then
-            CONNECTED=$((CONNECTED + 1))
-        fi
-    done
-
-    # Active agents (recent data - check SQLite database)
+    # Active agents (with data less than 10 seconds old)
     ACTIVE=0
-    if [ -f /data/metrics.db ]; then
-        for AGENT_DIR in /data/agents/*; do
-            [ -d "$AGENT_DIR" ] || continue
-            AGENT_ID=$(basename "$AGENT_DIR")
+    NOW=$(date +%s)
+    # Get all unique agent IDs
+    AGENT_IDS=$(sqlite3 /data/metrics.db "SELECT DISTINCT SUBSTR(name, 1, 11) FROM sqlite_master WHERE type='table' AND name LIKE 'id_%_generic_cpu'" 2>/dev/null)
 
-            # Check if agent has recent data in SQLite (last 60 seconds)
-            RECENT=$(sqlite3 /data/metrics.db "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name LIKE '${AGENT_ID}_%' AND name IN (SELECT name FROM sqlite_master WHERE type='table' AND name LIKE '${AGENT_ID}_%' AND (SELECT MAX(timestamp) FROM \"\" || name) > strftime('%s', 'now') - 60)" 2>/dev/null || echo "0")
+    for AGENT_ID in $AGENT_IDS; do
+        # Check if agent has recent CPU data (last 10 seconds)
+        LAST_TS=$(sqlite3 /data/metrics.db "SELECT MAX(timestamp) FROM ${AGENT_ID}_generic_cpu" 2>/dev/null || echo "0")
+        AGE=$((NOW - LAST_TS))
+        if [ "$AGE" -lt 10 ]; then
+            ACTIVE=$((ACTIVE + 1))
+        fi
+    done
 
-            # Simpler check: just see if agent has any tables
-            TABLES=$(sqlite3 /data/metrics.db "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name LIKE '${AGENT_ID}_%'" 2>/dev/null || echo "0")
-            if [ "$TABLES" -gt 0 ]; then
-                ACTIVE=$((ACTIVE + 1))
-            fi
-        done
+    if [ "$TOTAL" -gt 0 ]; then
+        printf "  Agents       ${GREEN}✓${NC} $TOTAL registered\n"
+    else
+        printf "  Agents       ${YELLOW}⚠${NC} None registered\n"
     fi
 
-    printf "  Agents       ${GREEN}✓${NC} $TOTAL registered\n"
-
-    if [ $CONNECTED -gt 0 ]; then
-        printf "  Connections  ${GREEN}✓${NC} $CONNECTED active\n"
+    if [ "$ACTIVE" -gt 0 ]; then
+        printf "  Online Now   ${GREEN}✓${NC} $ACTIVE active\n"
     else
-        printf "  Connections  ${YELLOW}⚠${NC} None active\n"
-    fi
-
-    if [ $ACTIVE -gt 0 ]; then
-        printf "  Data Flow    ${GREEN}✓${NC} $ACTIVE sending\n"
-    else
-        printf "  Data Flow    ${YELLOW}⚠${NC} No recent data\n"
+        printf "  Online Now   ${YELLOW}⚠${NC} None active\n"
     fi
 else
-    printf "  Agents       ${RED}✗${NC} Directory missing\n"
+    printf "  Agents       ${RED}✗${NC} Database missing\n"
 fi
 
 # Database permissions check (critical for SQLite WAL mode)

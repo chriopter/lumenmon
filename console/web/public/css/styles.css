@@ -64,6 +64,11 @@ body {
     color: var(--accent4);
 }
 
+.log-level-mqtt {
+    color: var(--accent5);
+    font-style: italic;
+}
+
 .invite-url-log {
     color: var(--accent1);
     cursor: pointer;
@@ -520,16 +525,16 @@ footer {
 }
 
 /* ============================================================ */
-/* TSV Files Section */
+/* Metrics Section */
 /* ============================================================ */
-.tsv-files-section {
+.metrics-section {
     margin-top: 1rem;
     padding-top: 0;
     border-top: 1px solid var(--foreground2);
     position: relative;
 }
 
-.tsv-files-section h3 {
+.metrics-section h3 {
     position: absolute;
     top: -0.6rem;
     left: 0.5rem;
@@ -541,13 +546,13 @@ footer {
     background: var(--background0);
 }
 
-.tsv-files-list {
+.metrics-list {
     padding-top: 0.75rem;
     font-family: monospace;
     font-size: 0.75rem;
 }
 
-#tsv-table {
+#metrics-table {
     width: 100%;
     border-collapse: collapse;
     border-spacing: 0;
@@ -556,20 +561,20 @@ footer {
 }
 
 /* Override WebTUI table border system */
-#tsv-table {
+#metrics-table {
     --table-border-width: 0 !important;
     --table-border-color: transparent !important;
 }
 
-#tsv-table:before,
-#tsv-table tr th:before,
-#tsv-table tr td:before,
-#tsv-table tr th:after,
-#tsv-table tr td:after {
+#metrics-table:before,
+#metrics-table tr th:before,
+#metrics-table tr td:before,
+#metrics-table tr th:after,
+#metrics-table tr td:after {
     display: none !important;
 }
 
-#tsv-table thead td {
+#metrics-table thead td {
     padding: 0.25rem 0.35rem;
     text-transform: uppercase;
     font-weight: bold;
@@ -577,18 +582,18 @@ footer {
     font-size: 0.7rem;
 }
 
-#tsv-table tbody td {
+#metrics-table tbody td {
     padding: 0.25rem 0.35rem;
     font-size: 0.75rem;
     color: var(--foreground1);
 }
 
-.tsv-filename {
+.metric-name {
     color: var(--accent2);
     font-weight: bold;
 }
 
-.tsv-value {
+.metric-value {
     color: var(--accent1);
     font-weight: bold;
 }

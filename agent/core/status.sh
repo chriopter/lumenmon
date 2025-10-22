@@ -1,6 +1,6 @@
 #!/bin/sh
-# Displays agent health status with color-coded checks for config, network, SSH, and collectors.
-# Shows container state, console connectivity, SSH tunnel status, and running collector count.
+# Displays agent health status with color-coded checks for MQTT credentials, connection, and metrics flow.
+# Shows certificate status, MQTT connection test, and data sending verification.
 
 # Colors
 GREEN='\033[0;32m'
@@ -13,35 +13,63 @@ echo "Agent:"
 # Container
 printf "  Container    ${GREEN}✓${NC} Running\n"
 
-# Configuration
-if [ -n "$CONSOLE_HOST" ]; then
-    printf "  Config       ${GREEN}✓${NC} $CONSOLE_HOST:${CONSOLE_PORT:-22}\n"
+# MQTT credentials
+MQTT_DATA_DIR="/data/mqtt"
+if [ -f "$MQTT_DATA_DIR/username" ] && [ -f "$MQTT_DATA_DIR/password" ] && [ -f "$MQTT_DATA_DIR/host" ]; then
+    AGENT_ID=$(cat "$MQTT_DATA_DIR/username")
+    MQTT_HOST=$(cat "$MQTT_DATA_DIR/host")
+    printf "  Agent ID     ${GREEN}✓${NC} $AGENT_ID\n"
+    printf "  MQTT Host    ${GREEN}✓${NC} $MQTT_HOST:8884\n"
 else
-    printf "  Config       ${RED}✗${NC} Not configured\n"
-    exit
+    printf "  Credentials  ${RED}✗${NC} Not registered\n"
+    exit 1
 fi
 
-# Network test
-if nc -zw1 "$CONSOLE_HOST" "${CONSOLE_PORT:-22}" 2>/dev/null; then
-    printf "  Network      ${GREEN}✓${NC} Console reachable\n"
+# Server certificate
+if [ -f "$MQTT_DATA_DIR/server.crt" ]; then
+    printf "  Server Cert  ${GREEN}✓${NC} Saved (pinned)\n"
 else
-    printf "  Network      ${RED}✗${NC} Cannot reach console\n"
+    printf "  Server Cert  ${RED}✗${NC} Missing\n"
 fi
 
-# SSH tunnel
-SSH_COUNT=$(pgrep -f "ssh.*$CONSOLE_HOST" | wc -l)
-if [ $SSH_COUNT -gt 0 ]; then
-    printf "  SSH Tunnel   ${GREEN}✓${NC} Established\n"
-else
-    printf "  SSH Tunnel   ${RED}✗${NC} Not connected\n"
+# Certificate fingerprint verification
+if [ -f "$MQTT_DATA_DIR/fingerprint" ]; then
+    EXPECTED_FP=$(cat "$MQTT_DATA_DIR/fingerprint")
+    ACTUAL_FP=$(echo | openssl s_client -connect "$MQTT_HOST:8884" -servername "$MQTT_HOST" 2>/dev/null | \
+        openssl x509 -noout -fingerprint -sha256 2>/dev/null | cut -d= -f2 || echo "")
+
+    if [ -n "$ACTUAL_FP" ]; then
+        if [ "$ACTUAL_FP" = "$EXPECTED_FP" ]; then
+            printf "  Fingerprint  ${GREEN}✓${NC} Match\n"
+        else
+            printf "  Fingerprint  ${RED}✗${NC} Mismatch\n"
+        fi
+    else
+        printf "  Fingerprint  ${RED}✗${NC} Cannot connect\n"
+    fi
 fi
 
-# Collector processes (check for collector scripts in collectors/generic/)
-COLLECTORS=$(pgrep -f "collectors/generic/.*\.sh" | wc -l)
-if [ $COLLECTORS -gt 0 ]; then
+# MQTT connection test
+MQTT_USERNAME=$(cat "$MQTT_DATA_DIR/username")
+MQTT_PASSWORD=$(cat "$MQTT_DATA_DIR/password")
+
+printf "  Connection   "
+if mosquitto_pub \
+    -h "$MQTT_HOST" -p 8884 \
+    -u "$MQTT_USERNAME" -P "$MQTT_PASSWORD" \
+    --cafile "$MQTT_DATA_DIR/server.crt" \
+    -t "metrics/${MQTT_USERNAME}/status_test" \
+    -m '{"value":1,"type":"INTEGER"}' \
+    2>/dev/null; then
+    printf "${GREEN}✓${NC} Connected\n"
+else
+    printf "${RED}✗${NC} Failed\n"
+fi
+
+# Check if collectors are running
+COLLECTORS=$(pgrep -f "collectors/" 2>/dev/null | wc -l)
+if [ "$COLLECTORS" -gt 0 ]; then
     printf "  Collectors   ${GREEN}✓${NC} $COLLECTORS running\n"
 else
     printf "  Collectors   ${YELLOW}⚠${NC} None running\n"
 fi
-
-# Metrics flow check removed - /tmp is flushed too fast for reliable tracking

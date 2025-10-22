@@ -203,7 +203,7 @@ case "$1" in
         echo ""
         echo "This will remove:"
         echo "  • All containers (console and agent)"
-        echo "  • All data (metrics database, SSH keys, configs)"
+        echo "  • All data (metrics database, MQTT credentials, configs)"
         echo "  • All network configurations"
         echo "  • CLI installation"
         echo ""

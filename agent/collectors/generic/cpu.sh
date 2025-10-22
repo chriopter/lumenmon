@@ -1,35 +1,34 @@
 #!/bin/bash
-# Collects CPU usage percentage from /proc/stat and sends via SSH every PULSE interval (1s).
-# Outputs to generic_cpu.tsv on console with timestamp, interval, and usage value.
+# Collects CPU usage percentage from /proc/stat and publishes via MQTT.
+# Calculates usage by comparing idle time between samples at PULSE interval (1s).
 
 # Config
-RHYTHM="PULSE"   # Uses PULSE timing from agent.sh
-PREFIX="generic_cpu"      # Metric prefix: generic_cpu_usage
-TYPE="REAL"      # SQLite column type for numeric values
+RHYTHM="PULSE"         # Uses PULSE timing from agent.sh (1s)
+METRIC="generic_cpu"   # Metric name: generic_cpu
+TYPE="REAL"            # SQLite column type for decimal values
 
 set -euo pipefail
+source /app/core/mqtt/publish.sh
 
 # Read initial CPU state
 read prev_line < /proc/stat
 prev_cpu=($prev_line)
 
-# Main loop - KISS CPU usage calculation
+# Main loop
 while true; do
     sleep $PULSE
 
-    # Read current CPU state
+    # Read current state
     read curr_line < /proc/stat
     curr_cpu=($curr_line)
 
-    # Simple calculation: just need total and idle
-    # Fields after "cpu": user nice system idle (rest are optional)
+    # Calculate totals
     prev_total=$((${prev_cpu[1]} + ${prev_cpu[2]} + ${prev_cpu[3]} + ${prev_cpu[4]} + ${prev_cpu[5]:-0} + ${prev_cpu[6]:-0} + ${prev_cpu[7]:-0}))
     curr_total=$((${curr_cpu[1]} + ${curr_cpu[2]} + ${curr_cpu[3]} + ${curr_cpu[4]} + ${curr_cpu[5]:-0} + ${curr_cpu[6]:-0} + ${curr_cpu[7]:-0}))
-
     prev_idle=${prev_cpu[4]}
     curr_idle=${curr_cpu[4]}
 
-    # Calculate CPU usage
+    # Calculate usage percentage
     total_d=$((curr_total - prev_total))
     idle_d=$((curr_idle - prev_idle))
 
@@ -39,10 +38,9 @@ while true; do
         usage="0.0"
     fi
 
-    # Send to console with type declaration
-    echo -e "${PREFIX}.tsv $TYPE\n$(date +%s) $PULSE $usage" | \
-        ssh -S $SSH_SOCKET $AGENT_USER@$CONSOLE_HOST 2>/dev/null
+    # Publish
+    publish_metric "$METRIC" "$usage" "$TYPE"
 
-    # Save current as previous for next iteration
+    # Save for next iteration
     prev_cpu=("${curr_cpu[@]}")
 done
