@@ -269,6 +269,9 @@ def get_agent_tsv_files(agent_id):
     except Exception:
         pass
 
+    # Sort alphabetically by metric name
+    tables.sort(key=lambda x: x['metric_name'].lower())
+
     return tables
 
 def get_all_agents():
