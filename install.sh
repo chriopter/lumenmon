@@ -352,8 +352,13 @@ main() {
             install_agent "$CONSOLE_HOST"
 
             if [ -n "$INVITE_URL" ]; then
-                register_agent "$INVITE_URL" "no"  # Don't auto-accept for remote installs
-                status_ok "Agent connected!"
+                if register_agent "$INVITE_URL" "no"; then  # Don't auto-accept for remote installs
+                    status_ok "Agent connected!"
+                    # Restart agent to load credentials and start collectors
+                    docker restart lumenmon-agent >/dev/null 2>&1
+                else
+                    status_warn "Registration failed - check connection and try: lumenmon register"
+                fi
             fi
 
             install_cli
