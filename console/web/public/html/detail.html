@@ -3,11 +3,10 @@ Detail view panel component with Chart.js line charts for CPU, memory, and disk 
 Reads agent data from table row data attributes. Functions: openDetailView(), closeDetailView(), renderCharts().
 -->
 <script>
-    let detailViewOpen = false;
-    const chartInstances = {}; // Store chart instances for proper cleanup
+    // UI state managed in window.app (index.html)
 
     function openDetailView() {
-        detailViewOpen = true;
+        window.app.ui.detailViewOpen = true;
         const agent = getSelectedAgent();
         if (!agent) {
             console.error('No agent selected');
@@ -41,20 +40,83 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
             const memSparkline = generateSparkline(memValues.slice(-8));
             const diskSparkline = generateSparkline(diskValues.slice(-8));
 
-        // If agent is pending (not valid), show minimal invite-only view
+        // If agent is pending (not valid), show normal layout with invite URLs
         if (!agent.valid && agent.pending_invite) {
+            const inviteData = agent.pending_invite;
+            const installCommand = inviteData.install_command ||
+                `curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/refs/heads/main/install.sh | LUMENMON_INVITE="${inviteData.invite_url}" bash`;
+
             panel.innerHTML = `
                 <div class="detail-header">
-                    <h2>${agent.id}</h2>
+                    <h2><span class="status-dot offline"></span>${agent.id} (pending)</h2>
+                    <span class="detail-status">${agent.id}</span>
                 </div>
-                <div class="detail-content" style="padding: 40px 20px; text-align: center;">
-                    <p style="margin-bottom: 20px; color: var(--text); font-family: monospace;">
-                        To add ${agent.id}, copy the invite URL:
-                    </p>
-                    <button class="invite-copy-btn" onclick="copyPendingInviteToClipboard('${agent.pending_invite.invite_url}', this)"
-                            style="padding: 12px 24px; background: var(--surface0); color: var(--text); border: 1px solid var(--overlay0); cursor: pointer; font-family: monospace; font-size: 14px;">
-                        Copy Invite URL
-                    </button>
+
+                <div class="detail-content">
+                    <div class="invite-inline-section">
+                        <div class="invite-inline-box">
+                            <div class="invite-inline-header">┌─ Quick Install (recommended)</div>
+                            <div class="invite-inline-content">
+                                <div class="invite-inline-instruction">│ Copy and run this on target system:</div>
+                                <div class="invite-inline-value" onclick="copyInlineInvite(this)">│ ${installCommand}</div>
+                            </div>
+                            <div class="invite-inline-footer">└─</div>
+                        </div>
+
+                        <div class="invite-inline-box">
+                            <div class="invite-inline-header">┌─ Manual Registration</div>
+                            <div class="invite-inline-content">
+                                <div class="invite-inline-instruction">│ Copy URL and use: lumenmon register &lt;url&gt;</div>
+                                <div class="invite-inline-value" onclick="copyInlineInvite(this)">│ ${inviteData.invite_url}</div>
+                            </div>
+                            <div class="invite-inline-footer">└─</div>
+                        </div>
+
+                        <div class="invite-inline-warning">
+                            ⚠ Copy these credentials NOW - they will NOT be shown again after you close this view
+                        </div>
+                    </div>
+
+                    <div class="detail-stats">
+                        <div class="stat-column">
+                            <div class="stat-line">
+                                <span class="stat-label">CPU</span>
+                                <span class="stat-value">--</span>
+                                <span class="stat-extra">waiting for data...</span>
+                            </div>
+                            <div class="stat-line">
+                                <span class="stat-label">MEM</span>
+                                <span class="stat-value">--</span>
+                                <span class="stat-extra">waiting for data...</span>
+                            </div>
+                            <div class="stat-line">
+                                <span class="stat-label">DISK</span>
+                                <span class="stat-value">--</span>
+                                <span class="stat-extra">waiting for data...</span>
+                            </div>
+                        </div>
+                        <div class="stat-column">
+                            <div class="stat-line">
+                                <span class="stat-label">STATUS</span>
+                                <span class="stat-value">pending</span>
+                                <span class="stat-extra">invite sent</span>
+                            </div>
+                            <div class="stat-line">
+                                <span class="stat-label">CONNECTION</span>
+                                <span class="stat-value">--</span>
+                                <span class="stat-extra">not connected</span>
+                            </div>
+                            <div class="stat-line">
+                                <span class="stat-label">INVITE</span>
+                                <span class="stat-value">active</span>
+                                <span class="stat-extra">expires on connect</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="pending-agent-note">
+                        Agent invite active. Waiting for agent to connect and send first metrics.
+                    </div>
                 </div>
             `;
             return;
@@ -142,7 +204,7 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
     }
 
     function refreshDetailView() {
-        if (!detailViewOpen) return;
+        if (!window.app.ui.detailViewOpen) return;
 
         const agent = getSelectedAgent();
         if (!agent) return;
@@ -200,7 +262,7 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
     }
 
     function closeDetailView() {
-        detailViewOpen = false;
+        window.app.ui.detailViewOpen = false;
         const panel = document.getElementById('detail-panel');
         panel.classList.add('detail-panel-empty');
         panel.innerHTML = '<span class="detail-placeholder">← Select an agent and press <kbd>Enter</kbd></span>';
@@ -223,8 +285,8 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
         if (!ctx) return;
 
         // Destroy existing chart if it exists
-        if (chartInstances[canvasId]) {
-            chartInstances[canvasId].destroy();
+        if (window.app.charts[canvasId]) {
+            window.app.charts[canvasId].destroy();
         }
 
         // Extract timestamps and values
@@ -237,7 +299,7 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
             return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
         });
 
-        chartInstances[canvasId] = new Chart(ctx, {
+        window.app.charts[canvasId] = new Chart(ctx, {
             type: 'line',
             data: {
                 labels: labels,
@@ -509,6 +571,7 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
     }
 
     async function renderInviteDetailView(invite, panel) {
+        // SECURITY: Invite URLs shown ONCE at creation, never retrievable
         panel.innerHTML = `
             <div class="detail-header">
                 <h2><span class="status-dot online"></span>Invite: ${invite.id}</h2>
@@ -516,73 +579,23 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
             </div>
             <div class="detail-content">
                 <div class="invite-details-section">
-                    <h3>Invite URL</h3>
-                    <div id="invite-url-container">
-                        <span class="loading-text">Loading invite URL...</span>
+                    <div class="invite-status-info">
+                        <div class="invite-status-title">Invite Status: Active</div>
+                        <div class="invite-status-text">
+                            This invite is waiting for an agent to connect.
+                            <br><br>
+                            The invite URL with credentials was shown once when created and cannot be retrieved again for security reasons.
+                            <br><br>
+                            To generate a new invite URL, press <kbd>i</kbd>
+                        </div>
                     </div>
-                </div>
-
-                <div id="system-status-container">
-                    <span class="loading-text">Loading status...</span>
                 </div>
             </div>
         `;
-
-        // Fetch and display invite URL
-        try {
-            const response = await fetch(`/api/invites/${invite.id}/url`);
-            if (response.ok) {
-                const data = await response.json();
-                const container = document.getElementById('invite-url-container');
-
-                container.innerHTML = `
-                    <div class="invite-url-box">
-                        <div class="invite-url-label">Registration URL:</div>
-                        <div class="invite-url-value" onclick="copyToClipboard(this.textContent)">${data.invite_url}</div>
-                    </div>
-                    <div class="invite-url-box">
-                        <div class="invite-url-label">Full Install Command:</div>
-                        <div class="invite-url-value invite-url-command" onclick="copyToClipboard(this.textContent)">${data.install_command}</div>
-                    </div>
-                `;
-            } else {
-                document.getElementById('invite-url-container').innerHTML = '<span class="error-text">Failed to load invite URL</span>';
-            }
-        } catch (error) {
-            console.error('Error loading invite URL:', error);
-            document.getElementById('invite-url-container').innerHTML = '<span class="error-text">Error loading invite URL</span>';
-        }
-
-        // Load system status
-        loadSystemStatus(invite.id, 'invite');
     }
 
-    function copyToClipboard(text) {
-        if (navigator.clipboard) {
-            navigator.clipboard.writeText(text).then(() => {
-                addLog('copied to clipboard', 'success');
-            }).catch(err => {
-                console.error('Copy failed:', err);
-                addLog('clipboard not available', 'error');
-            });
-        } else {
-            addLog('clipboard not available (requires https)', 'error');
-        }
-    }
-
-    function copyPendingInviteToClipboard(inviteUrl, buttonElement) {
-        if (navigator.clipboard) {
-            navigator.clipboard.writeText(inviteUrl).then(() => {
-                const originalText = buttonElement.textContent;
-                buttonElement.textContent = '✓ Copied!';
-                addLog('invite URL copied to clipboard', 'success');
-                setTimeout(() => { buttonElement.textContent = originalText; }, 2000);
-            }).catch(err => {
-                console.error('Copy failed:', err);
-                addLog('clipboard copy failed', 'error');
-            });
-        } else {
-            addLog('clipboard not available (requires https)', 'error');
-        }
+    function copyInlineInvite(element) {
+        // Use shared utility to copy text, stripping the "│ " prefix
+        copyFromElement(element, /^│\s*/, 'invite copied to clipboard');
     }
 </script>

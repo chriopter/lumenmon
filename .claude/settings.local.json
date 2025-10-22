@@ -17,7 +17,9 @@
       "Bash(docker rm:*)",
       "Bash(docker rmi:*)",
       "Bash(docker build:*)",
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "Bash(awk:*)",
+      "Bash(xargs:*)"
     ],
     "deny": [],
     "ask": []

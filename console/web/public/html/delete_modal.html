@@ -91,7 +91,7 @@ Functions: openDeleteConfirmation(), closeDeleteConfirmation(), confirmDelete()
 </style>
 
 <script>
-    let agentToDelete = null;
+    // UI state managed in window.app (index.html)
 
     function openDeleteConfirmation() {
         const agent = getSelectedAgent();
@@ -100,7 +100,7 @@ Functions: openDeleteConfirmation(), closeDeleteConfirmation(), confirmDelete()
             return;
         }
 
-        agentToDelete = agent;
+        window.app.ui.agentToDelete = agent;
 
         // Update modal content
         const agentInfo = document.getElementById('delete-agent-info');
@@ -118,7 +118,7 @@ Functions: openDeleteConfirmation(), closeDeleteConfirmation(), confirmDelete()
     function closeDeleteConfirmation() {
         const modal = document.getElementById('delete-modal');
         modal.style.display = 'none';
-        agentToDelete = null;
+        window.app.ui.agentToDelete = null;
 
         // Remove Enter key listener
         document.removeEventListener('keydown', deleteModalKeyHandler);
@@ -135,13 +135,13 @@ Functions: openDeleteConfirmation(), closeDeleteConfirmation(), confirmDelete()
     }
 
     async function confirmDelete() {
-        if (!agentToDelete) {
+        if (!window.app.ui.agentToDelete) {
             closeDeleteConfirmation();
             return;
         }
 
-        const agentId = agentToDelete.id;
-        const displayName = agentToDelete.hostname || agentId;
+        const agentId = window.app.ui.agentToDelete.id;
+        const displayName = window.app.ui.agentToDelete.hostname || agentId;
 
         closeDeleteConfirmation();
         addLog(`deleting agent ${displayName}...`, 'info');
@@ -168,6 +168,6 @@ Functions: openDeleteConfirmation(), closeDeleteConfirmation(), confirmDelete()
             console.error('Delete exception:', error);
         }
 
-        agentToDelete = null;
+        window.app.ui.agentToDelete = null;
     }
 </script>

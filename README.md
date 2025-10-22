@@ -133,5 +133,6 @@ The installer script will start the respective docker containers and create a fi
 
 ## Next / Todos
 - Fix Sparklines if offline
+- Data Stream from SQLite to flask.
 
 Based on WebTUI, Flask, Docker, OpenSSH.

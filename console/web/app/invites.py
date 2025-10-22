@@ -68,12 +68,16 @@ def create_invite():
             except:
                 pass  # Best effort cleanup
 
-            # Store invite in RAM until agent connects (shown in detail view)
+            # Generate install command
+            one_click = f'curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/refs/heads/main/install.sh | LUMENMON_INVITE="{invite_data["url"]}" bash'
+
+            # Store invite data IN RAM for detail view display
             agent_id = invite_data['username']
             store_invite(agent_id, {
                 'username': invite_data['username'],
+                'fingerprint': invite_data['fingerprint'],
                 'invite_url': invite_data['url'],
-                'fingerprint': invite_data['fingerprint']
+                'install_command': one_click
             })
 
             return jsonify({
@@ -127,22 +131,25 @@ def create_invite_full():
             except:
                 pass  # Best effort cleanup
 
-            # Store invite in RAM until agent connects (shown in detail view)
+            # Generate full install command
+            one_click = f'curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/refs/heads/main/install.sh | LUMENMON_INVITE="{invite_data["url"]}" bash'
+
+            # Store invite data IN RAM (including URLs) for detail view display
+            # NOTE: This is stored temporarily so detail view can show it, but
+            # cleared when agent connects or on container restart
             agent_id = invite_data['username']
             store_invite(agent_id, {
                 'username': invite_data['username'],
+                'fingerprint': invite_data['fingerprint'],
                 'invite_url': invite_data['url'],
-                'fingerprint': invite_data['fingerprint']
+                'install_command': one_click
             })
-
-            # Return full one-click install command
-            one_click = f'curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/refs/heads/main/install.sh | LUMENMON_INVITE="{invite_data["url"]}" bash'
 
             return jsonify({
                 'success': True,
                 'username': invite_data['username'],
                 'invite_url': invite_data['url'],
-                'one_click_install': one_click,
+                'install_command': one_click,
                 'fingerprint': invite_data['fingerprint'],
                 'message': 'Invite created successfully. Copy this command now - it will not be shown again.'
             })
@@ -163,5 +170,6 @@ def create_invite_full():
             'error': str(e)
         }), 500
 
-# Note: No endpoint to retrieve passwords after creation - security best practice
-# Invite URLs with passwords are shown ONCE at creation time only
+# SECURITY: No endpoint to retrieve invite URLs after creation
+# Invite URLs with passwords are shown ONCE at creation time, never stored
+# Only metadata (username, fingerprint) is stored in RAM for status tracking
