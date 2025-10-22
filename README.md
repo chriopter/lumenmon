@@ -99,18 +99,9 @@ The Console container runs an MQTT broker (Mosquitto) to receive data, writes it
 <img width="700" alt="image" src="https://github.com/user-attachments/assets/2e67ead2-e5ce-4291-80d1-db08f7dd6ee7" />
 
 ## Enrollment / Security
-- **Invite system** generates permanent MQTT credentials + TLS certificate fingerprint.
-- **Enrollment**: Invite links include the TLS certificate fingerprint (MITM mitigating). After enrollment, agents pin the server certificate and use permanent username/password. Therefore, the complete authentication is TLS cert pinning + standard MQTT credentials.
+- **Invite system** generates permanent MQTT credentials + TLS certificate fingerprint and formats them in invite links. After enrollment, agents pin the server certificate (self signed certificate for MQTT) and use permanent username/password. 
 - **Design** Agents initiate outbound connections. Console cannot connect to agents. The Agent is designed in a very KISS manner, based only on bash and easily reviewable. The console where possible as well, but ofc. the flask webserver is python.
-
-```
-**Invite link logic**
-lumenmon://{agent_id}:{password}@{host}:8884#{fingerprint}
-lumenmon://id_114d3809:Ckce3bOVkLdHfmx5uAKmGZeMppIWdYHK@lumenmon-console:8884#47:09:21:51:0E:41:4D:E6:A5:00:21:92:31:A9:E7:38:3E:62:9A:58:17:56:F3:FE:DE:3E:EB:09:39:B2:DD:9E
-```
-
-### Installer
-The installer script will start the respective docker containers and create a first invitation. When console and agent run on the same machine (recommended setup to monitor console machine as well), they communicate via Docker's internal network (`lumenmon-console:8884`), with TLS certificate verification handled automatically. The installer auto-accepts the TLS certificate for local installations.
+- **Installer** script will start the respective docker containers and create invites for new clients. When console and agent run on the same machine, they communicate via Docker's internal network (`lumenmon-console:8884`).
 
 
 ## Development
