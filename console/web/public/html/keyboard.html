@@ -1,6 +1,6 @@
 <!--
 Keyboard navigation event handler for TUI-style shortcuts.
-Binds ↑/↓/j/k (navigation), Enter (detail), Esc (close), i (invite), r (refresh), h/? (help).
+Binds ↑/↓/j/k (navigation), Enter (detail), Esc (close), i (invite), r (refresh), d (delete).
 -->
 <script>
     document.addEventListener('keydown', (e) => {
@@ -21,10 +21,10 @@ Binds ↑/↓/j/k (navigation), Enter (detail), Esc (close), i (invite), r (refr
             openDetailView();
         } else if (key === 'escape') {
             e.preventDefault();
-            // Close debug view if open, otherwise close detail view
-            const debugModal = document.getElementById('debug-modal');
-            if (debugModal && debugModal.style.display !== 'none') {
-                closeDebugView();
+            // Close delete modal if open, otherwise close detail view
+            const deleteModal = document.getElementById('delete-modal');
+            if (deleteModal && deleteModal.style.display !== 'none') {
+                closeDeleteConfirmation();
             } else {
                 closeDetailView();
             }
@@ -37,7 +37,7 @@ Binds ↑/↓/j/k (navigation), Enter (detail), Esc (close), i (invite), r (refr
             addLog('manual refresh', 'info');
         } else if (key === 'd' && !e.ctrlKey && !e.metaKey && !e.altKey) {
             e.preventDefault();
-            openDebugView();
+            openDeleteConfirmation();
         }
     });
 </script>

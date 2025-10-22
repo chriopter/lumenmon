@@ -6,6 +6,7 @@ from flask import Flask, jsonify, render_template
 from agents import agents_bp
 from invites import invites_bp
 from debug import debug_bp
+from management import management_bp
 import os
 import random
 import string
@@ -22,6 +23,7 @@ app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 app.register_blueprint(agents_bp)
 app.register_blueprint(invites_bp)
 app.register_blueprint(debug_bp)
+app.register_blueprint(management_bp)
 
 @app.route('/', methods=['GET'])
 def index():

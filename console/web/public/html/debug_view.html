@@ -1,20 +1,25 @@
 <!--
-Debug view showing system users and database agents - simple TUI style.
-Functions: openDebugView(), closeDebugView(), loadDebugData()
+Delete confirmation modal for removing agents completely.
+Functions: openDeleteConfirmation(), closeDeleteConfirmation(), confirmDelete()
 -->
-<div id="debug-modal" class="debug-modal" style="display: none;">
-    <div class="debug-content">
-        <div class="debug-header">
-            <span>system debug - <kbd>esc</kbd> to close</span>
+<div id="delete-modal" class="delete-modal" style="display: none;">
+    <div class="delete-content">
+        <div class="delete-header">
+            <span>⚠ delete agent - <kbd>esc</kbd> to cancel</span>
         </div>
-        <div id="debug-body" class="debug-body">
-            <span class="loading-text">loading...</span>
+        <div id="delete-body" class="delete-body">
+            <p class="delete-question">Delete agent and all data?</p>
+            <p class="delete-agent-info" id="delete-agent-info">agent</p>
+            <div class="delete-buttons">
+                <span class="delete-option" onclick="closeDeleteConfirmation()">[Cancel]</span>
+                <span class="delete-option delete-confirm" onclick="confirmDelete()">[Delete]</span>
+            </div>
         </div>
     </div>
 </div>
 
 <style>
-.debug-modal {
+.delete-modal {
     position: fixed;
     top: 0;
     left: 0;
@@ -27,143 +32,142 @@ Functions: openDebugView(), closeDebugView(), loadDebugData()
     justify-content: center;
 }
 
-.debug-content {
-    background: var(--background0);
-    border: 1px solid #89b4fa;
+.delete-content {
+    background: var(--background1);
+    border: 1px solid #f38ba8;
     border-radius: 6px;
     width: 90%;
-    max-width: 800px;
-    max-height: 80vh;
-    display: flex;
-    flex-direction: column;
-}
-
-.debug-header {
-    padding: 0.5rem 1rem;
-    border-bottom: 1px solid var(--foreground2);
-    color: #89b4fa;
-    font-family: monospace;
-    font-size: 0.85rem;
-}
-
-.debug-body {
+    max-width: 500px;
     padding: 1rem;
-    overflow-y: auto;
-    color: var(--foreground1);
     font-family: monospace;
-    font-size: 0.8rem;
+}
+
+.delete-header {
+    color: #f38ba8;
+    font-size: 0.85rem;
+    margin-bottom: 1rem;
+}
+
+.delete-body {
+    color: var(--foreground1);
+    font-size: 0.85rem;
     line-height: 1.6;
 }
 
-.debug-body::-webkit-scrollbar {
-    width: 8px;
+.delete-question {
+    margin-bottom: 0.75rem;
 }
 
-.debug-body::-webkit-scrollbar-track {
-    background: var(--background1);
+.delete-agent-info {
+    color: #89b4fa;
+    margin-bottom: 1rem;
 }
 
-.debug-body::-webkit-scrollbar-thumb {
-    background: var(--foreground2);
-    border-radius: 4px;
+.delete-buttons {
+    display: flex;
+    gap: 2rem;
+    margin-top: 1rem;
+    justify-content: center;
 }
 
-.debug-section {
-    margin-bottom: 1.5rem;
+.delete-option {
+    font-family: monospace;
+    font-size: 0.85rem;
+    cursor: pointer;
+    color: var(--foreground1);
 }
 
-.debug-section-title {
-    color: var(--foreground2);
-    text-transform: uppercase;
-    margin-bottom: 0.5rem;
-    font-size: 0.75rem;
+.delete-option:hover {
+    color: #89b4fa;
 }
 
-.debug-line {
-    padding: 0.15rem 0;
-}
-
-.debug-line.has-db {
-    color: #a6e3a1;
-}
-
-.debug-line.no-user {
+.delete-confirm {
     color: #f38ba8;
+}
+
+.delete-confirm:hover {
+    color: #f5c2e7;
 }
 </style>
 
 <script>
-    async function openDebugView() {
-        const modal = document.getElementById('debug-modal');
+    let agentToDelete = null;
+
+    function openDeleteConfirmation() {
+        const agent = getSelectedAgent();
+        if (!agent) {
+            addLog('no agent selected', 'error');
+            return;
+        }
+
+        agentToDelete = agent;
+
+        // Update modal content
+        const agentInfo = document.getElementById('delete-agent-info');
+        const displayName = agent.hostname || agent.id;
+        agentInfo.textContent = `${displayName} (${agent.id})`;
+
+        // Show modal
+        const modal = document.getElementById('delete-modal');
         modal.style.display = 'flex';
-        await loadDebugData();
+
+        // Add Enter key listener for this modal
+        document.addEventListener('keydown', deleteModalKeyHandler);
     }
 
-    function closeDebugView() {
-        const modal = document.getElementById('debug-modal');
+    function closeDeleteConfirmation() {
+        const modal = document.getElementById('delete-modal');
         modal.style.display = 'none';
+        agentToDelete = null;
+
+        // Remove Enter key listener
+        document.removeEventListener('keydown', deleteModalKeyHandler);
     }
 
-    async function loadDebugData() {
-        const body = document.getElementById('debug-body');
-        body.innerHTML = '<span class="loading-text">loading...</span>';
+    function deleteModalKeyHandler(e) {
+        const modal = document.getElementById('delete-modal');
+        if (modal.style.display === 'none') return;
+
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            confirmDelete();
+        }
+    }
+
+    async function confirmDelete() {
+        if (!agentToDelete) {
+            closeDeleteConfirmation();
+            return;
+        }
+
+        const agentId = agentToDelete.id;
+        const displayName = agentToDelete.hostname || agentId;
+
+        closeDeleteConfirmation();
+        addLog(`deleting agent ${displayName}...`, 'info');
 
         try {
-            const response = await fetch('/api/debug/system');
-            if (!response.ok) {
-                throw new Error(`HTTP error ${response.status}`);
+            const response = await fetch(`/api/agents/${agentId}`, {
+                method: 'DELETE'
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                addLog(`agent deleted: ${displayName}`, 'success');
+                // Refresh agent list after short delay
+                setTimeout(() => {
+                    fetchAgents();
+                }, 1000);
+            } else {
+                addLog(`deletion failed: ${result.message}`, 'error');
+                console.error('Delete error:', result);
             }
-
-            const data = await response.json();
-            renderDebugData(data);
         } catch (error) {
-            console.error('Error loading debug data:', error);
-            body.innerHTML = '<span class="error-text">failed to load debug data</span>';
-        }
-    }
-
-    function renderDebugData(data) {
-        const body = document.getElementById('debug-body');
-
-        // Build a map of agent IDs to table counts
-        const tableCountsByAgent = {};
-        data.database_agents.agents.forEach(agent => {
-            tableCountsByAgent[agent.agent_id] = agent.table_count;
-        });
-
-        let html = '';
-
-        // Section 1: All users with table counts
-        html += '<div class="debug-section">';
-        html += '<div class="debug-section-title">system users: (green = has database tables)</div>';
-
-        if (data.system_users.count === 0) {
-            html += '<div class="debug-line">no users found</div>';
-        } else {
-            data.system_users.users.forEach(user => {
-                const tableCount = tableCountsByAgent[user.username] || 0;
-                const hasDb = tableCount > 0;
-                const className = hasDb ? 'debug-line has-db' : 'debug-line';
-                const countStr = hasDb ? ` (${tableCount} tables)` : ' (no tables)';
-                html += `<div class="${className}">${user.username}${countStr}</div>`;
-            });
+            addLog(`deletion error: ${error.message}`, 'error');
+            console.error('Delete exception:', error);
         }
 
-        html += '</div>';
-
-        // Section 2: DB agents without users
-        const orphanedAgents = data.mismatches.tables_without_users.agents;
-        if (orphanedAgents.length > 0) {
-            html += '<div class="debug-section">';
-            html += '<div class="debug-section-title">orphaned database agents: (tables exist but no system user)</div>';
-
-            orphanedAgents.forEach(agentId => {
-                const tableCount = tableCountsByAgent[agentId] || 0;
-                html += `<div class="debug-line no-user">${agentId} (${tableCount} tables)</div>`;
-            });
-            html += '</div>';
-        }
-
-        body.innerHTML = html;
+        agentToDelete = null;
     }
 </script>
