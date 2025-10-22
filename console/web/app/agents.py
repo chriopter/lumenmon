@@ -131,7 +131,10 @@ def get_all_entities():
                     'status': metrics.get('status', 'offline'),
                     'age': metrics.get('age', 0),
                     'age_formatted': metrics.get('age_formatted', ''),
-                    'lastUpdate': metrics.get('lastUpdate', 0)
+                    'lastUpdate': metrics.get('lastUpdate', 0),
+                    'cpuSparkline': metrics.get('cpuSparkline', ''),
+                    'memSparkline': metrics.get('memSparkline', ''),
+                    'diskSparkline': metrics.get('diskSparkline', '')
                 })
             except Exception as e:
                 print(f"Error getting metrics for {entity_id}: {e}")
