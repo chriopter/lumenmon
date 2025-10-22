@@ -90,23 +90,15 @@ Agents publish JSON to MQTT topics → Console gateway writes to SQLite (one tab
 
 <img width="700" alt="image" src="https://github.com/user-attachments/assets/2e67ead2-e5ce-4291-80d1-db08f7dd6ee7" />
 
-## Security
+### Security
 
-### Enrollment
+**Enrollment:** Invite URLs contain permanent MQTT credentials + TLS certificate fingerprint for agent registration.
 
-Invite URLs contain permanent MQTT credentials + TLS certificate fingerprint for agent registration.
+**TLS Pinning:** Agents verify server certificate fingerprint during first connection, then pin it for all future connections.
 
-### TLS Pinning
+**Network Design:** Agents initiate outbound connections only. Console cannot connect to agents.
 
-Agents verify server certificate fingerprint during first connection, then pin it for all future connections.
-
-### Network Design
-
-Agents initiate outbound connections only. Console cannot connect to agents.
-
-### Installation
-
-When console and agent run on same machine, they communicate via Docker network (`lumenmon-console:8884`) with automatic TLS verification.
+**Installation:** When console and agent run on same machine, they communicate via Docker network (`lumenmon-console:8884`) with automatic TLS verification.
 
 ## Development
 
