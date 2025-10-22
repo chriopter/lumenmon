@@ -10,7 +10,7 @@
 
 It's too damn complicated to quickly setup system monitoring for a few servers.
 
-Lumenmon fixes that. It's a simple monitoring tool, that you can install in under 30 seconds.
+Lumenmon fixes that. It's a simple monitoring tool inside a docker container, that you can install in under 30 seconds.
 
 ## Quick Start
 
