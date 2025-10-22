@@ -1,54 +1,131 @@
-#!/bin/sh
-# Registers agent with console using invite URL (ssh://user:pass@host:port/#hostkey).
-# Parses invite, sends agent's public key to console, saves host key for future connections.
-[ $# -ne 1 ] && echo "Usage: $0 URL" && exit 1
+#!/bin/bash
+# Interactive agent registration with certificate fingerprint verification.
+# Parses invite URL, verifies MQTT server certificate, saves permanent credentials.
+set -euo pipefail
 
-echo "[REGISTER] Processing invite" >&2
+INVITE_URL="$1"
+MQTT_DATA_DIR="/data/mqtt"
 
-# Parse URL: ssh://user:pass@host:port/#hostkey
-URL="$1"
-URL="${URL#ssh://}"  # Remove scheme
-USER_PASS="${URL%%@*}"
-HOST_PORT="${URL#*@}"
-HOST_PORT="${HOST_PORT%%/*}"
-HOSTKEY="${URL#*#}"
-
-USERNAME="${USER_PASS%%:*}"
-PASSWORD="${USER_PASS#*:}"
-HOST="${HOST_PORT%%:*}"
-PORT="${HOST_PORT#*:}"
-
-echo "[REGISTER] Connecting to ${HOST}:${PORT} as ${USERNAME}" >&2
-
-# No host rewriting needed - agent uses network_mode: host
-
-# Get our key
-PUBLIC_KEY=$(cat /home/metrics/.ssh/id_*.pub 2>/dev/null | head -1)
-[ -z "$PUBLIC_KEY" ] && echo "[REGISTER] ERROR: No SSH key found" >&2 && exit 1
-
-echo "[REGISTER] Found key: $(echo "$PUBLIC_KEY" | cut -c1-50)..." >&2
-
-# Save ED25519 host key
-KNOWN_HOSTS="/tmp/known_hosts_$$"
-# For port 22, don't use bracket notation (SSH default)
-if [ "$PORT" = "22" ]; then
-    echo "$HOST ${HOSTKEY//_/ }" > "$KNOWN_HOSTS"
-else
-    echo "[$HOST]:$PORT ${HOSTKEY//_/ }" > "$KNOWN_HOSTS"
-fi
-
-echo "[REGISTER] Sending key to console..." >&2
-if echo "$PUBLIC_KEY" | sshpass -p "$PASSWORD" \
-    ssh -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$KNOWN_HOSTS" \
-    -o PreferredAuthentications=password -o PubkeyAuthentication=no \
-    -p "$PORT" "${USERNAME}@${HOST}" 2>&1; then
-    mkdir -p /home/metrics/.ssh
-    mv "$KNOWN_HOSTS" /home/metrics/.ssh/known_hosts
-
-    echo "[REGISTER] Success! Host key saved." >&2
-else
-    ERROR=$?
-    rm -f "$KNOWN_HOSTS"
-    echo "[REGISTER] Failed with exit code: $ERROR" >&2
+# Parse URI: lumenmon://username:password@host:port#fingerprint
+if [[ ! "$INVITE_URL" =~ lumenmon://([^:]+):([^@]+)@([^:#]+):?([0-9]*)\#(.+)$ ]]; then
+    echo "ERROR: Invalid invite URL format. Expected: lumenmon://user:pass@host:port#fingerprint"
     exit 1
 fi
+
+USERNAME="${BASH_REMATCH[1]}"
+PASSWORD="${BASH_REMATCH[2]}"
+MQTT_HOST="${BASH_REMATCH[3]}"
+MQTT_PORT="${BASH_REMATCH[4]:-8884}"  # Default to 8884 if not specified
+EXPECTED_FP="${BASH_REMATCH[5]}"
+
+echo "[register] ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "[register] Agent Registration"
+echo "[register] ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "[register] Username: $USERNAME"
+echo "[register] MQTT Host: $MQTT_HOST"
+echo ""
+
+# Get actual server certificate fingerprint
+echo "[register] Connecting to MQTT server to verify certificate..."
+ACTUAL_FP=$(echo | openssl s_client \
+    -connect "$MQTT_HOST:8884" \
+    -servername "$MQTT_HOST" 2>/dev/null | \
+    openssl x509 -noout -fingerprint -sha256 2>/dev/null | \
+    cut -d= -f2 || echo "")
+
+if [ -z "$ACTUAL_FP" ]; then
+    echo "[register] ERROR: Could not connect to MQTT server at $MQTT_HOST:8884"
+    echo "[register] Check network connectivity and hostname"
+    exit 1
+fi
+
+# Download and save the server certificate
+echo "[register] Downloading server certificate..."
+SERVER_CERT=$(echo | openssl s_client \
+    -connect "$MQTT_HOST:8884" \
+    -servername "$MQTT_HOST" 2>/dev/null | \
+    sed -n '/-----BEGIN CERTIFICATE-----/,/-----END CERTIFICATE-----/p')
+
+if [ -z "$SERVER_CERT" ]; then
+    echo "[register] ERROR: Could not download server certificate"
+    exit 1
+fi
+
+# Display fingerprint comparison
+echo "[register] ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "[register] Certificate Fingerprint Verification"
+echo "[register] ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+echo "[register] Expected: $EXPECTED_FP"
+echo "[register] Actual:   $ACTUAL_FP"
+echo ""
+
+if [ "$ACTUAL_FP" = "$EXPECTED_FP" ]; then
+    echo "[register] Status: ✓ MATCH"
+    echo ""
+    echo "[register] The certificate fingerprint matches the invite."
+else
+    echo "[register] Status: ✗ MISMATCH"
+    echo ""
+    echo "[register] WARNING: Certificate fingerprint does not match!"
+    echo "[register]"
+    echo "[register] This could indicate:"
+    echo "[register]   - Man-in-the-middle attack"
+    echo "[register]   - Certificate was rotated on console"
+    echo "[register]   - Connection through reverse proxy"
+    echo "[register]   - Wrong hostname in invite"
+    echo ""
+fi
+
+echo "[register] ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+# Ask user for confirmation
+read -p "[register] Accept this certificate? (yes/no): " RESPONSE
+
+if [ "$RESPONSE" != "yes" ]; then
+    echo "[register] Registration aborted by user"
+    exit 1
+fi
+
+echo ""
+echo "[register] ✓ Certificate accepted by user"
+
+# Create mqtt data directory
+mkdir -p "$MQTT_DATA_DIR"
+
+# Save credentials
+echo "$USERNAME" > "$MQTT_DATA_DIR/username"
+echo "$PASSWORD" > "$MQTT_DATA_DIR/password"
+echo "$ACTUAL_FP" > "$MQTT_DATA_DIR/fingerprint"
+echo "$MQTT_HOST" > "$MQTT_DATA_DIR/host"
+
+# Save server certificate for TLS connections
+echo "$SERVER_CERT" > "$MQTT_DATA_DIR/server.crt"
+chmod 644 "$MQTT_DATA_DIR/server.crt"
+
+echo "[register] ✓ Credentials saved"
+echo "[register] ✓ Server certificate saved (pinned for TLS)"
+
+# Test connection with credentials
+echo "[register] Testing connection..."
+mosquitto_pub \
+    -h "$MQTT_HOST" -p 8884 \
+    -u "$USERNAME" -P "$PASSWORD" \
+    --cafile "$MQTT_DATA_DIR/server.crt" \
+    -t "metrics/$USERNAME/registration_test" \
+    -m '{"value":1,"type":"INTEGER"}' 2>&1 | head -5
+
+if [ $? -eq 0 ]; then
+    echo "[register] ✓ Connection test successful!"
+else
+    echo "[register] ⚠ Connection test failed, but credentials are saved"
+fi
+
+echo ""
+echo "[register] ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "[register] Registration Complete!"
+echo "[register] ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "[register] Agent ID: $USERNAME"
+echo "[register] MQTT Host: $MQTT_HOST:8884"
+echo "[register] Credentials saved to: $MQTT_DATA_DIR/"
+echo "[register] ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

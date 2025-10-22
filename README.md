@@ -38,23 +38,25 @@ lumenmon uninstall  # Remove everything
 
 ## How It Works
 ### Containers
-The Agent container runs collector script based on a configured intervall, connects via SSH multiplex to the console and pushes the data to an gateway. Everything is bash.
+The Agent container runs collector scripts at configured intervals, publishes metrics to the console via MQTT with TLS. JSON.
 
-The Console container creates a linux user per agent to connect, bounds incoming SSH connects via ForceCommand to gateway.py which writes incoming data to an SQLite. A flask Server is delivered via Caddy for the WebTUI.
+The Console container runs an MQTT broker (Mosquitto) to receive data, writes it to SQLite and serves a WebTUI via Flask / Caddy.
 
 ```
 ┌─────────────┐               ┌─────────────┐
 │   Agent     │──────────────►│   Console   │
-├─────────────┤   SSH Tunnel  ├─────────────┤
-│ • CPU 1s    │──────────────►│ • SSH Server│──► Web Dashboard
+├─────────────┤  MQTT/TLS     ├─────────────┤
+│ • CPU 1s    │──────────────►│ • MQTT 8884 │──► Web Dashboard
 │ • Mem 10s   │  Metric Data  │ • SQLite DB │
 │ • Disk 60s  │               │ • WebTUI    │
-└─────────────┘               └─────────────┘                 
+└─────────────┘               └─────────────┘
 ```
+
+
 
 <details>
 
-<summary>Agent file structure</summary>
+<summary>Agent app structure</summary>
 
 ```
 ├── agent.sh (Main entry)
@@ -62,94 +64,52 @@ The Console container creates a linux user per agent to connect, bounds incoming
 │   ├── generic (Scripts running on all system)
 │   └── ... (Scripts running dependent on environment, decided by collectors.sh)
 ├── core/ (Scripts to register with server, start connection, start collectors)
-└── data/ (Persistent directory with SSH Identity)
+└── data/ (Persistent directory with MQTT credentials)
+    └── mqtt/
 ```
 
 </details>
 
 
-
-
-
 <details>
 
-<summary>Console file structure</summary>
+<summary>Console app structure</summary>
 
 ```
 ├── console.sh (Main entry)
 ├── core (Core setup)
-│   ├── enrollment (Bash scripts to create invitations, enroll users etc.)
-│   ├── ingress (gateway.py and ssh server config)
-│   ├── setup (server setup, including re-creation of users on container start) 
+│   ├── enrollment (Bash scripts to create invitations and agent registration)
+│   ├── mqtt (MQTT broker gateway and subscriber)
+│   ├── setup (Server setup and certificate generation) 
 ├── data (Persistent data dir)
-│   ├── agents (per agent user folder, containing authorized ssh keys)
-│   └── ssh (console ssh identity)
+│   ├── metrics.db (SQLite metrics database)
+│   └── mqtt (MQTT credentials and TLS certificates)
 └── web (Web server)
     ├── app (Flask app)
     ├── config (Caddy Config)
     └── public (HTML, CS, JS)
-```
 
 </details>
 
 ### Data structure
 
-**The data structure** is quite simple, the agent pipes data from scripts against the gateway via SSH (Prefix, timestamp, data type, interval and actual data). The gateway will create the necessary sqlite tables based on the prefix. If the data type e.g. changes, the table is recreated.
+**The data structure** is quite simple, agents publish JSON metrics to MQTT topics. The gateway subscribes to all agent topics and writes data to SQLite tables (one per agent per metric). If the data type changes, the table is recreated.
 
 <img width="700" alt="image" src="https://github.com/user-attachments/assets/2e67ead2-e5ce-4291-80d1-db08f7dd6ee7" />
 
-### Enrollment / Security
-- **Invite system** is based on linux users. Invites are temporary linux users with timestamp in the name (to autodelete them after 60 minutes).
-- **Enrollment**: Invite links include the SSH host key (MITM mitigating). After enrollment, SSH keys of agents are pinned as authorized keys. Therefore, the complete authentication is just linux users + standard ssh tooling.
-- **Design** Agents initiate outbound connections. Console can not connect to agents. The Agent is designed in a very KISS manner, based only on bash and easily reviewable. The console where possible as well, but ofc. the flask webserver is not bash but python.
+## Enrollment / Security
+- **Invite system** generates permanent MQTT credentials + TLS certificate fingerprint.
+- **Enrollment**: Invite links include the TLS certificate fingerprint (MITM mitigating). After enrollment, agents pin the server certificate and use permanent username/password. Therefore, the complete authentication is TLS cert pinning + standard MQTT credentials.
+- **Design** Agents initiate outbound connections. Console cannot connect to agents. The Agent is designed in a very KISS manner, based only on bash and easily reviewable. The console where possible as well, but ofc. the flask webserver is python.
 
 ```
 **Invite link logic**
-ssh://username:password@consolehost:port/#hostkey
-ssh://reg_1761133283700:8938fe9d5c32@192.168.10.13:2345/#ssh-ed25519_AAAAC3NzaC1lZDI1NTE5AAAAIGPrge2Vp5PgsgRx9n/Z9prEfttG5xt8MOe1WtjcdhzX
+lumenmon://{agent_id}:{password}@{host}:8884#{fingerprint}
+lumenmon://id_114d3809:Ckce3bOVkLdHfmx5uAKmGZeMppIWdYHK@lumenmon-console:8884#47:09:21:51:0E:41:4D:E6:A5:00:21:92:31:A9:E7:38:3E:62:9A:58:17:56:F3:FE:DE:3E:EB:09:39:B2:DD:9E
 ```
-
-<details>
-<summary>Enrollment process flow</summary>
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│ PHASE 1: INVITE & REGISTRATION                                  │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  Console: lumenmon invite                                       │
-│    ├─> Creates: reg_1698765432123 (temp user, password auth)   │
-│    └─> Returns: ssh://reg_...:password@host:2345/#hostkey      │
-│                                                                 │
-│  Agent: lumenmon register <invite_url>                          │
-│    ├─> SSH with password → sends public key                    │
-│    └─> ForceCommand: enrollment/gateway.sh                     │
-│         └─> Writes: /data/registration_queue/reg_*.key         │
-│                                                                 │
-│  Console: agent_enroll.sh (background, every 5s)                │
-│    ├─> Reads queue files                                        │
-│    ├─> Creates: id_abc123xyz (permanent user, pubkey auth)     │
-│    ├─> Setup: /data/agents/id_*/authorized_keys                │
-│    └─> Deletes: reg_* (temp user)                              │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────┐
-│ PHASE 2: METRICS STREAMING                                      │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  Agent: Continuous SSH connection                               │
-│    ├─> SSH with pubkey → pipes metric data                     │
-│    └─> ForceCommand: ingress/gateway.py                        │
-│         └─> Writes: /data/metrics.db (SQLite)                  │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-</details>
 
 ### Installer
-The installer script** will start the respective docker containers and creates a first invitation. When console and agent run on the same machine (recommended way to run console), they communicate via Docker's internal network (`lumenmon-console:22`), not the external port `localhost:2345`. The installer handles this automatically.
+The installer script will start the respective docker containers and create a first invitation. When console and agent run on the same machine (recommended setup), they communicate via Docker's internal network (`lumenmon-console:8884`), with TLS certificate verification handled automatically. The installer auto-accepts the TLS certificate for local installations.
 
 
 ## Development
@@ -165,22 +125,13 @@ The installer script** will start the respective docker containers and creates a
 ./dev/release
 
 # Update vendored CSS/JS dependencies
-./dev/updatecss
+./dev/updatedeps
 ```
 
 ---
 
 
 ## Next / Todos
-
-- Limit invite user rights in ssh session
-- Show invite remaing time, sort invites below hosts, fix graphs
 - Fix Sparklines if offline
-- Polish Auto-Installer (PULSE: unbound variable on some systems) as well as client installer, output status after client installation via magic link
-- Fix Same Host installation
-- Clean Readme
-- Clean scattered logs like .lumenmon/console/data/agents.log
-- Unifi agents.log and gateway.log etc in single experience, /data/gateway.log
-
 
 Based on WebTUI, Flask, Docker, OpenSSH.

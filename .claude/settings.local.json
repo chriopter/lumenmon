@@ -7,13 +7,23 @@
       "Bash(docker exec:*)",
       "Bash(./dev/auto)",
       "Bash(docker logs:*)",
-      "Bash(./dev/add10:*)"
+      "Bash(./dev/add10:*)",
+      "Bash(docker compose:*)",
+      "Bash(./dev/add3:*)",
+      "Read(//tmp/**)",
+      "Bash(docker restart:*)",
+      "Bash(python3:*)",
+      "Bash(docker stop:*)",
+      "Bash(docker rm:*)",
+      "Bash(docker rmi:*)",
+      "Bash(docker build:*)",
+      "Bash(tree:*)"
     ],
     "deny": [],
     "ask": []
   },
   "sandbox": {
-    "enabled": true,
-    "autoAllowBashIfSandboxed": true
+    "autoAllowBashIfSandboxed": true,
+    "enabled": true
   }
 }

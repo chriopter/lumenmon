@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Lumenmon is a lightweight system monitoring solution with SSH transport and web-based dashboard. It consists of two main components:
-- **Console**: Central monitoring dashboard with SSH server and web interface (Flask + HTML/JS)
-- **Agent**: Metrics collector that sends data to console via SSH
+Lumenmon is a lightweight system monitoring solution with MQTT transport and web-based dashboard. It consists of two main components:
+- **Console**: Central monitoring dashboard with MQTT broker and web interface (Flask + HTML/JS)
+- **Agent**: Metrics collector that publishes data to console via MQTT with TLS
 
 ## CLI Commands
 
@@ -24,8 +24,8 @@ lumenmon uninstall    # Remove all containers and data
 ```
 
 ### Status Output
-- **Console**: Shows SSH key, service port, authorized keys, active invites, connected agents, active agents
-- **Agent**: Shows SSH key, agent ID, console config, network connectivity, host fingerprint, SSH connection, metrics flow
+- **Console**: Shows TLS certificate fingerprint, MQTT broker status, active invites, connected agents, active agents
+- **Agent**: Shows agent ID, console config, MQTT credentials status, network connectivity, TLS verification, MQTT connection, metrics flow
 
 ### Development Commands
 ```bash
@@ -39,7 +39,7 @@ lumenmon uninstall    # Remove all containers and data
 ./dev/release
 
 # Update vendored CSS/JS dependencies
-./dev/updatecss
+./dev/updatedeps
 
 # For other operations, use the lumenmon CLI:
 lumenmon start    # Start containers
@@ -54,7 +54,7 @@ lumenmon register # Register agent
 docker compose -f console/docker-compose.yml up -d --build
 
 # Build and run agent (with local console)
-CONSOLE_HOST=localhost CONSOLE_PORT=2345 docker compose -f agent/docker-compose.yml up -d --build
+CONSOLE_HOST=localhost docker compose -f agent/docker-compose.yml up -d --build
 
 # Access web dashboard
 # Open browser to http://localhost:8080 (or use 'lumenmon' to open WebTUI)
@@ -87,10 +87,16 @@ The installer provides an interactive menu for Console, Agent, or both installat
 
 ## Architecture
 
+### Ports
+- **8080**: Web dashboard (HTTP via Caddy)
+- **8884**: MQTT broker with TLS (Mosquitto)
+- **9001**: WebSocket (internal, for future MQTT web client)
+- **5000**: Flask API (internal, proxied by Caddy)
+
 ### Data Flow
 1. Agents collect metrics at intervals (CPU: 1s, Memory: 10s, Disk: 60s)
-2. Metrics sent via SSH with type declarations (ForceCommand gateway)
-3. Console gateway writes to SQLite database (`/data/metrics.db`)
+2. Metrics published to MQTT topics as JSON with type declarations
+3. Console gateway subscribes to topics and writes to SQLite database (`/data/metrics.db`)
 4. Web dashboard queries SQLite for real-time display
 5. Tables: one per metric per agent (`id_xxx_metric_name`)
 
@@ -99,20 +105,32 @@ The installer provides an interactive menu for Console, Agent, or both installat
   - `web/`: Flask web dashboard (port 5000, proxied via Caddy on 8080)
     - `app/`: Python API server
       - `db.py`: Database connection helpers
-      - `ssh_status.py`: SSH connection checking
+      - `mqtt_status.py`: MQTT connection checking
       - `metrics.py`: Metric reading and aggregation
       - `agents.py`, `invites.py`, `debug.py`: API blueprints
     - `public/`: HTML templates, CSS, JavaScript
-  - `core/`: Shell scripts for SSH, enrollment, ingress
-    - `ingress/gateway.py`: SSH ForceCommand handler (writes to SQLite)
+  - `core/`: Shell scripts for MQTT, enrollment, and status
+    - `mqtt/mqtt_to_sqlite.py`: MQTT subscriber (writes to SQLite)
+    - `enrollment/invite_create.sh`: Generate agent invites
     - `status.sh`: Comprehensive console status checks
-  - `data/`: Persistent database and SSH keys (gitignored)
+  - `data/`: Persistent databases and MQTT certificates (gitignored)
+    - `metrics.db`: Metric data storage
+    - `mqtt/`:
+      - `passwd`: Agent credentials (mosquitto password file)
+      - `server.crt`: TLS certificate (public)
+      - `server.key`: TLS private key (chmod 600)
+      - `fingerprint`: SHA256 fingerprint for agent verification
 
 - `agent/`: Metrics collector container
   - `collectors/`: Metric collection scripts (CPU, memory, disk)
   - `core/`: Registration and connection scripts
     - `status.sh`: Comprehensive agent status with connectivity checks
-  - `data/`: SSH keys and config (gitignored)
+  - `data/mqtt/`: MQTT credentials (gitignored)
+    - `username`: Agent ID
+    - `password`: MQTT password (permanent)
+    - `host`: Console hostname
+    - `fingerprint`: Expected server certificate fingerprint
+    - `server.crt`: Server TLS certificate (pinned)
 
 - `install.sh`: Self-contained installer in repo root
   - Downloads compose files from GitHub raw URLs
@@ -125,10 +143,9 @@ The installer provides an interactive menu for Console, Agent, or both installat
   - Integrated update and uninstall commands
 
 ### Security Model
-- SSH key-based authentication only (no passwords)
-- Per-agent Linux users in console container
-- ForceCommand prevents shell access
-- Agent data isolated by user permissions
+- TLS certificate pinning (agents verify broker certificate fingerprint)
+- Per-agent MQTT credentials (permanent username + password)
+- Agent data isolated by MQTT topic ACLs (write-only to own topics)
 
 ## Code Style Guidelines
 
@@ -140,8 +157,8 @@ Every shell script must start with a concise 2-line comment after the shebang:
 Example:
 ```bash
 #!/bin/bash
-# Generates or loads agent SSH keypair and derives unique agent ID from key fingerprint.
-# Sets SSH_KEY (private key path) and AGENT_USER (agent ID) variables. Sourced by agent.sh during startup.
+# Generates unique agent ID and manages MQTT credentials for authentication.
+# Sets AGENT_ID and CREDENTIALS_FILE variables. Sourced by agent.sh during startup.
 ```
 
 Guidelines:
@@ -156,17 +173,19 @@ Guidelines:
 ### Console Web Dashboard (`console/web/`)
 - Flask API server with HTML/JavaScript frontend
 - Real-time agent monitoring with Chart.js visualizations
-- Keyboard navigation (j/k, Enter, Esc, i=invite, r=refresh, d=debug)
+- Keyboard navigation (j/k, Enter, Esc, i=invite, r=refresh, s=SQL viewer, m=MQTT explorer)
 - Status indicators: green (online), yellow (stale), red (offline)
-- Status logic: checks SSH connections + data freshness
+- Status logic: checks MQTT connections + data freshness
 - Detail view: CPU/memory/disk charts, all metrics table
-- Debug view (d key): system users vs database agents
 
-### SSH Enrollment Flow
+### MQTT Enrollment Flow
 1. Console creates invite: `/app/core/enrollment/invite_create.sh`
+   - Generates permanent credentials and includes TLS certificate fingerprint
+   - Returns: `lumenmon://USERNAME:PASSWORD@HOST:8884#FINGERPRINT`
 2. Agent registers: `/app/core/setup/register.sh <invite_url>`
-3. Console creates dedicated user and sets up SSH access
-4. Agent connects and starts streaming metrics
+   - Parses invite URI and extracts credentials
+   - Verifies TLS certificate fingerprint (user confirms match)
+   - Saves credentials permanently and starts streaming metrics
 
 ### Metric Storage (SQLite)
 - Database: `/data/metrics.db` (SQLite3 with WAL mode)
@@ -174,7 +193,7 @@ Guidelines:
 - Table naming: `{agent_id}_{metric_name}` (e.g., `id_abc123_generic_cpu`)
 - Schema: `(timestamp INTEGER PRIMARY KEY, value TYPE)`
 - Types: REAL (numeric), TEXT (strings), INTEGER (whole numbers)
-- Protocol: Collectors declare type in header: `metric_name.tsv TYPE`
+- Protocol: Collectors publish JSON with type field: `{"timestamp": 123, "value": 42, "type": "REAL"}`
 - Auto-migration: Tables dropped/recreated if type changes
 
 ### Metric Collection Timing
@@ -198,18 +217,36 @@ Note: Current collectors use the runtime variables (PULSE/BREATHE/CYCLE/REPORT).
 
 ### Status Scripts
 Both `console/core/status.sh` and `agent/core/status.sh` provide comprehensive checks:
-- **Agent**: SSH key, agent ID, console config, network ping, host fingerprint, SSH connection, metrics flow
-- **Console**: Host key, SSH service, authorized keys, active invites, connected agents, active agents (< 60s data)
-- Compact output format with clear status indicators: ✓ (success), ✗ (failure), ⚠ (warning), ○ (neutral)
+- **Agent**: Agent ID, MQTT host, TLS certificate (pinned), certificate fingerprint verification, MQTT connection test, running collectors
+- **Console**: TLS certificate, MQTT broker on port 8884, MQTT user count, registered agents, online agents (< 10s data)
+- Compact output format with clear status indicators: ✓ (success), ✗ (failure), ⚠ (warning)
+
+### Online Status Detection
+Agents are classified as online/stale/offline based on data freshness:
+- **Online** (green): Data < 2 seconds old - agent actively sending metrics
+- **Stale** (yellow): Data 2-10 seconds old - connection may be degraded
+- **Offline** (red): Data > 10 seconds old - agent not responding
+- Since CPU metrics arrive every 1s (PULSE), the 2s threshold provides immediate detection
 
 ## Common Tasks
 
 ### Adding New Metrics
 1. Create collector script in `agent/collectors/` (or `agent/collectors/generic/`)
-2. Add TYPE config: REAL (numeric), TEXT (string), INTEGER (whole number)
-3. Send data with type header: `echo -e "metric_name.tsv $TYPE\n$timestamp $interval $value" | ssh ...`
-4. Ensure collector is started by `agent/core/connection/collectors.sh`
+2. Choose type: REAL (numeric), TEXT (string), INTEGER (whole number)
+3. Publish JSON to MQTT: `mosquitto_pub -t "agent/$AGENT_ID/metric_name" -m '{"timestamp":123,"value":42,"type":"REAL"}'`
+4. Ensure collector is started by `agent.sh`
 5. Metric appears automatically in web dashboard "All Values" table
+
+### Deleting Agents
+Delete an agent completely using the web dashboard:
+1. Press `d` key while agent is selected
+2. Confirm deletion
+3. Backend performs complete cleanup:
+   - Drops all SQLite tables for agent (`id_xxx_*`)
+   - Removes MQTT credentials from `/data/mqtt/passwd`
+   - Triggers mosquitto password reload (SIGHUP)
+4. Agent can no longer authenticate or send data
+5. Implementation: `console/web/app/management.py` → `DELETE /api/agents/<agent_id>`
 
 ### Modifying Web Dashboard
 - API endpoints: `console/web/app/*.py` (Flask blueprints)
@@ -231,11 +268,17 @@ Both `console/core/status.sh` and `agent/core/status.sh` provide comprehensive c
 
 **Database issues:**
 - Gateway log: `/data/gateway.log` - all ingress errors logged here
-- Permissions: `/data` must be `root:agents 775` for SQLite WAL mode
+- Permissions: `/data` must have proper permissions for SQLite WAL mode
 - Direct queries: `docker exec lumenmon-console sqlite3 /data/metrics.db ".tables"`
 - Check WAL files: `docker exec lumenmon-console ls -la /data/metrics.db*`
 
+**MQTT issues:**
+- Check broker status: `docker exec lumenmon-console ps aux | grep mosquitto`
+- Check MQTT logs: `docker logs lumenmon-console | grep mosquitto`
+- Verify credentials: `docker exec lumenmon-console cat /data/mqtt/credentials` (agent)
+- Test connection: `docker exec lumenmon-agent mosquitto_pub -h lumenmon-console -p 8884 ...`
+
 **Other issues:**
 - Container logs: `docker logs lumenmon-console` or `lumenmon logs`
-- SSH issues: Verify keys in `console/data/ssh/` and `agent/data/ssh/`
 - Web dashboard: Check Flask logs, verify Caddy proxying port 5000→8080
+- Debug viewers: Press 's' for SQL viewer, 'm' for MQTT topic explorer

@@ -5,7 +5,6 @@
 import time
 import re
 from db import get_db_connection, table_exists
-from ssh_status import is_ssh_connected
 from formatters import generate_tui_sparkline, format_age
 
 def _format_duration(seconds):
@@ -39,15 +38,15 @@ def get_history_from_db(agent_id, metric_name):
 
         cursor = conn.cursor()
         cursor.execute(
-            f'SELECT timestamp, interval, value FROM "{table_name}" ORDER BY timestamp'
+            f'SELECT timestamp, value FROM "{table_name}" ORDER BY timestamp'
         )
 
         for row in cursor.fetchall():
             # Try to convert to float, if it fails keep as string
             try:
-                value = round(float(row[2]), 1)
+                value = round(float(row[1]), 1)
             except (ValueError, TypeError):
-                value = row[2]
+                value = row[1]
 
             history.append({
                 'timestamp': row[0],
@@ -67,7 +66,7 @@ def get_history_from_db(agent_id, metric_name):
     return history
 
 def get_latest_value(agent_id, metric_name):
-    """Get the most recent value, timestamp, and interval for a metric."""
+    """Get the most recent value and timestamp for a metric."""
     table_name = f"{agent_id}_{metric_name}"
 
     try:
@@ -76,11 +75,11 @@ def get_latest_value(agent_id, metric_name):
         # Check if table exists
         if not table_exists(conn, table_name):
             conn.close()
-            return None, None, None
+            return None, None
 
         cursor = conn.cursor()
         cursor.execute(
-            f'SELECT timestamp, interval, value FROM "{table_name}" ORDER BY timestamp DESC LIMIT 1'
+            f'SELECT timestamp, value FROM "{table_name}" ORDER BY timestamp DESC LIMIT 1'
         )
 
         row = cursor.fetchone()
@@ -89,14 +88,14 @@ def get_latest_value(agent_id, metric_name):
         if row:
             # Try to convert to float
             try:
-                value = round(float(row[2]), 1)
+                value = round(float(row[1]), 1)
             except (ValueError, TypeError):
-                value = row[2]
-            return row[0], row[1], value
+                value = row[1]
+            return row[0], value
     except Exception:
         pass
 
-    return None, None, None
+    return None, None
 
 def get_latest_hostname(agent_id):
     """Get the most recent hostname value."""
@@ -143,21 +142,21 @@ def get_agent_metrics(agent_id):
     }
 
     # Read CPU
-    timestamp, interval, value = get_latest_value(agent_id, 'generic_cpu')
+    timestamp, value = get_latest_value(agent_id, 'generic_cpu')
     if timestamp and value is not None:
         metrics['cpu'] = value
         metrics['lastUpdate'] = max(metrics['lastUpdate'], timestamp)
     metrics['cpuHistory'] = get_history_from_db(agent_id, 'generic_cpu')
 
     # Read Memory
-    timestamp, interval, value = get_latest_value(agent_id, 'generic_mem')
+    timestamp, value = get_latest_value(agent_id, 'generic_mem')
     if timestamp and value is not None:
         metrics['memory'] = value
         metrics['lastUpdate'] = max(metrics['lastUpdate'], timestamp)
     metrics['memHistory'] = get_history_from_db(agent_id, 'generic_mem')
 
     # Read Disk
-    timestamp, interval, value = get_latest_value(agent_id, 'generic_disk')
+    timestamp, value = get_latest_value(agent_id, 'generic_disk')
     if timestamp and value is not None:
         metrics['disk'] = value
         metrics['lastUpdate'] = max(metrics['lastUpdate'], timestamp)
@@ -166,29 +165,26 @@ def get_agent_metrics(agent_id):
     # Read Hostname
     metrics['hostname'] = get_latest_hostname(agent_id)
 
-    # Calculate age and status based on SSH connection + data freshness
+    # Calculate age and status based on data freshness
     current_time = int(time.time())
-    ssh_connected = is_ssh_connected(agent_id)
 
     if metrics['lastUpdate'] > 0:
         metrics['age'] = current_time - metrics['lastUpdate']
 
-        # Determine status based on SSH connection AND data freshness
-        if ssh_connected and metrics['age'] < 10:
-            # SSH connected + fresh data = online
+        # Determine status based on data freshness (MQTT architecture)
+        # CPU metric arrives every 1s (PULSE), so we use tight thresholds
+        if metrics['age'] < 2:
+            # Data < 2s old = online (actively sending)
             metrics['status'] = 'online'
-        elif ssh_connected and metrics['age'] < 60:
-            # SSH connected but data getting stale = warning
-            metrics['status'] = 'stale'
-        elif not ssh_connected and metrics['age'] < 10:
-            # No SSH but very recent data (just disconnected?) = stale
+        elif metrics['age'] < 10:
+            # Data 2-10s old = stale (connection degraded)
             metrics['status'] = 'stale'
         else:
-            # No SSH connection or very old data = offline
+            # Data > 10s old = offline (not responding)
             metrics['status'] = 'offline'
     else:
         # No data at all
-        metrics['status'] = 'offline' if not ssh_connected else 'stale'
+        metrics['status'] = 'offline'
 
     # Add formatted fields for HTML templates
     metrics['age_formatted'] = format_age(metrics['age'])
@@ -203,7 +199,7 @@ def get_agent_metrics(agent_id):
 
     return metrics
 
-def get_agent_tsv_files(agent_id):
+def get_agent_tables(agent_id):
     """Get all metric tables for an agent with their latest data and schema info."""
     tables = []
 

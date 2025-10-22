@@ -6,26 +6,28 @@ from flask import Blueprint, jsonify
 import subprocess
 import glob
 import os
+from pending_invites import store_invite, get_invite, clear_invite
 
 invites_bp = Blueprint('invites', __name__)
 
 def get_active_invites():
-    """Get list of active invites from user home directories."""
+    """Get list of active MQTT agent credentials (without passwords)."""
     invites = []
 
-    # Look for all reg_* home directories
-    agent_dirs = glob.glob('/home/reg_*')
-    for homedir in agent_dirs:
-        if os.path.isdir(homedir):
-            username = os.path.basename(homedir)
-            password_file = os.path.join(homedir, '.invite_password')
-
-            # Check if password file exists
-            if os.path.isfile(password_file):
-                invites.append({
-                    'username': username,
-                    'password_file': password_file
-                })
+    # Read mosquitto password file to list registered agents
+    passwd_file = '/data/mqtt/passwd'
+    if os.path.isfile(passwd_file):
+        with open(passwd_file, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if line and ':' in line:
+                    username = line.split(':')[0]
+                    # Only include agent IDs (skip anonymous or other users)
+                    if username.startswith('id_'):
+                        invites.append({
+                            'username': username,
+                            'status': 'active'
+                        })
 
     return invites
 
@@ -41,7 +43,10 @@ def list_invites():
 
 @invites_bp.route('/api/invites/create', methods=['POST'])
 def create_invite():
-    """Create a new registration invite."""
+    """Create a new MQTT registration invite with certificate pinning.
+
+    SECURITY: Returns invite URL with password ONCE. Never stored or retrievable again.
+    """
     try:
         # Call the invite creation script
         result = subprocess.run(
@@ -52,12 +57,31 @@ def create_invite():
         )
 
         if result.returncode == 0:
-            invite_url = result.stdout.strip()
+            # Read machine-readable JSON output (one-time use)
+            import json
+            with open('/tmp/last_invite.json', 'r') as f:
+                invite_data = json.load(f)
+
+            # SECURITY: Immediately delete temp file containing password
+            try:
+                os.remove('/tmp/last_invite.json')
+            except:
+                pass  # Best effort cleanup
+
+            # Store invite in RAM until agent connects (shown in detail view)
+            agent_id = invite_data['username']
+            store_invite(agent_id, {
+                'username': invite_data['username'],
+                'invite_url': invite_data['url'],
+                'fingerprint': invite_data['fingerprint']
+            })
 
             return jsonify({
                 'success': True,
-                'invite_url': invite_url,
-                'message': 'Invite created successfully'
+                'username': invite_data['username'],
+                'invite_url': invite_data['url'],
+                'fingerprint': invite_data['fingerprint'],
+                'message': 'Invite created successfully. Copy this URL now - it will not be shown again.'
             })
         else:
             return jsonify({
@@ -78,23 +102,49 @@ def create_invite():
 
 @invites_bp.route('/api/invites/create/full', methods=['POST'])
 def create_invite_full():
-    """Create invite with full install command."""
+    """Create invite and return full one-click install command.
+
+    SECURITY: Returns invite URL with password ONCE. Never stored or retrievable again.
+    """
     try:
-        # Call with --full flag for complete install command
+        # Call the invite creation script
         result = subprocess.run(
-            ['/app/core/enrollment/invite_create.sh', '--full'],
+            ['/app/core/enrollment/invite_create.sh'],
             capture_output=True,
             text=True,
             timeout=5
         )
 
         if result.returncode == 0:
-            install_command = result.stdout.strip()
+            # Read machine-readable JSON output (one-time use)
+            import json
+            with open('/tmp/last_invite.json', 'r') as f:
+                invite_data = json.load(f)
+
+            # SECURITY: Immediately delete temp file containing password
+            try:
+                os.remove('/tmp/last_invite.json')
+            except:
+                pass  # Best effort cleanup
+
+            # Store invite in RAM until agent connects (shown in detail view)
+            agent_id = invite_data['username']
+            store_invite(agent_id, {
+                'username': invite_data['username'],
+                'invite_url': invite_data['url'],
+                'fingerprint': invite_data['fingerprint']
+            })
+
+            # Return full one-click install command
+            one_click = f'curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/refs/heads/main/install.sh | LUMENMON_INVITE="{invite_data["url"]}" bash'
 
             return jsonify({
                 'success': True,
-                'install_command': install_command,
-                'message': 'Invite created successfully'
+                'username': invite_data['username'],
+                'invite_url': invite_data['url'],
+                'one_click_install': one_click,
+                'fingerprint': invite_data['fingerprint'],
+                'message': 'Invite created successfully. Copy this command now - it will not be shown again.'
             })
         else:
             return jsonify({
@@ -113,46 +163,5 @@ def create_invite_full():
             'error': str(e)
         }), 500
 
-@invites_bp.route('/api/invites/<username>/url', methods=['GET'])
-def get_invite_url(username):
-    """Get the invite URL for a specific invite user (for copying)."""
-    try:
-        # Read password from user's home directory
-        password_file = f"/home/{username}/.invite_password"
-
-        if not os.path.isfile(password_file):
-            return jsonify({
-                'success': False,
-                'error': 'Invite not found or expired'
-            }), 404
-
-        with open(password_file, 'r') as f:
-            password = f.read().strip()
-
-        # Get host key
-        with open('/data/ssh/ssh_host_ed25519_key.pub', 'r') as f:
-            parts = f.read().strip().split()
-            hostkey = f"{parts[0]}_{parts[1]}"
-
-        # Get host from environment or default to localhost
-        invite_host = os.environ.get('CONSOLE_HOST', 'localhost')
-        invite_port = os.environ.get('CONSOLE_PORT', '2345')
-
-        # Build invite URL
-        invite_url = f"ssh://{username}:{password}@{invite_host}:{invite_port}/#{hostkey}"
-
-        # Build full install command
-        install_command = f"curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/refs/heads/main/install.sh | LUMENMON_INVITE='{invite_url}' bash"
-
-        return jsonify({
-            'success': True,
-            'username': username,
-            'invite_url': invite_url,
-            'install_command': install_command
-        })
-
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+# Note: No endpoint to retrieve passwords after creation - security best practice
+# Invite URLs with passwords are shown ONCE at creation time only

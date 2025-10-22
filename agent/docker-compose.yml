@@ -8,20 +8,16 @@ services:
     networks:
       - lumenmon
     volumes:
-      - ./data/ssh:/home/metrics/.ssh
+      - ./data:/data
       - /etc/hostname:/host/etc/hostname:ro
     environment:
-      - CONSOLE_HOST=${CONSOLE_HOST:-console}
-      - CONSOLE_PORT=${CONSOLE_PORT:-22}
-      - CONSOLE_USER=collector
-      - AGENT_ID=${AGENT_ID:-${HOSTNAME:-agent}}
-      # Sampling rates for different collectors
-      - CPU_SAMPLE_HZ=10        # 10Hz for CPU
-      - MEMORY_SAMPLE_HZ=1      # 1Hz for memory
-      - DISK_SAMPLE_HZ=0.1      # Every 10s for disk
-      - NETWORK_SAMPLE_HZ=0.5   # Every 2s for network
-      - PROCESS_SAMPLE_HZ=0.2   # Every 5s for processes
-      - SYSTEM_SAMPLE_HZ=0.017  # Every minute for system info
+      - CONSOLE_HOST=${CONSOLE_HOST:-lumenmon-console}
+      - MQTT_PORT=${MQTT_PORT:-8884}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     command: |
       sh -c "
         echo '[agent] Starting...'

@@ -4,6 +4,7 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
 -->
 <script>
     let detailViewOpen = false;
+    const chartInstances = {}; // Store chart instances for proper cleanup
 
     function openDetailView() {
         detailViewOpen = true;
@@ -40,6 +41,25 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
             const memSparkline = generateSparkline(memValues.slice(-8));
             const diskSparkline = generateSparkline(diskValues.slice(-8));
 
+        // If agent is pending (not valid), show minimal invite-only view
+        if (!agent.valid && agent.pending_invite) {
+            panel.innerHTML = `
+                <div class="detail-header">
+                    <h2>${agent.id}</h2>
+                </div>
+                <div class="detail-content" style="padding: 40px 20px; text-align: center;">
+                    <p style="margin-bottom: 20px; color: var(--text); font-family: monospace;">
+                        To add ${agent.id}, copy the invite URL:
+                    </p>
+                    <button class="invite-copy-btn" onclick="copyPendingInviteToClipboard('${agent.pending_invite.invite_url}', this)"
+                            style="padding: 12px 24px; background: var(--surface0); color: var(--text); border: 1px solid var(--overlay0); cursor: pointer; font-family: monospace; font-size: 14px;">
+                        Copy Invite URL
+                    </button>
+                </div>
+            `;
+            return;
+        }
+
         panel.innerHTML = `
             <div class="detail-header">
                 <h2><span class="status-dot ${agent.status}"></span>${agent.hostname || agent.id}</h2>
@@ -74,8 +94,8 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
                         </div>
                         <div class="stat-line">
                             <span class="stat-label">CONNECTION</span>
-                            <span class="stat-value">ssh</span>
-                            <span class="stat-extra">authenticated</span>
+                            <span class="stat-value">mqtt</span>
+                            <span class="stat-extra">TLS</span>
                         </div>
                         <div class="stat-line">
                             <span class="stat-label">SAMPLES</span>
@@ -99,10 +119,10 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
                     </div>
                 </div>
 
-                <div class="tsv-files-section">
+                <div class="metrics-section">
                     <h3>All Values</h3>
-                    <div id="tsv-files-list" class="tsv-files-list">
-                        <span class="loading-text">Loading TSV files...</span>
+                    <div id="metrics-list" class="metrics-list">
+                        <span class="loading-text">Loading metrics...</span>
                     </div>
                 </div>
 
@@ -113,7 +133,7 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
         `;
 
             renderCharts(agent);
-            loadTsvFiles(agent.id);
+            loadMetrics(agent.id);
             loadSystemStatus(agent.id, agent.type || 'agent');
         } catch (error) {
             console.error('Error opening detail view:', error);
@@ -172,8 +192,8 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
                 statLines[5].querySelector('.stat-value').textContent = agent.cpuHistory ? agent.cpuHistory.length : 0;
             }
 
-            // Refresh TSV files data
-            loadTsvFiles(agent.id);
+            // Refresh metrics data
+            loadMetrics(agent.id);
         } catch (error) {
             console.error('Error refreshing detail view:', error);
         }
@@ -202,6 +222,11 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
         const ctx = document.getElementById(canvasId);
         if (!ctx) return;
 
+        // Destroy existing chart if it exists
+        if (chartInstances[canvasId]) {
+            chartInstances[canvasId].destroy();
+        }
+
         // Extract timestamps and values
         const timestamps = data.map(d => d.timestamp * 1000); // Convert to milliseconds
         const values = data.map(d => d.value);
@@ -212,7 +237,7 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
             return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
         });
 
-        new Chart(ctx, {
+        chartInstances[canvasId] = new Chart(ctx, {
             type: 'line',
             data: {
                 labels: labels,
@@ -316,31 +341,31 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
         return `${days}d ago`;
     }
 
-    async function loadTsvFiles(agentId) {
+    async function loadMetrics(agentId) {
         try {
-            const response = await fetch(`/api/agents/${agentId}/tsv`);
+            const response = await fetch(`/api/agents/${agentId}/tables`);
             if (!response.ok) {
                 throw new Error(`HTTP error ${response.status}`);
             }
 
             const data = await response.json();
-            const tsvFilesList = document.getElementById('tsv-files-list');
+            const metricsList = document.getElementById('metrics-list');
 
-            if (!data.tsv_files || data.tsv_files.length === 0) {
-                tsvFilesList.innerHTML = '<span class="no-data-text">no database entries found</span>';
+            if (!data.tables || data.tables.length === 0) {
+                metricsList.innerHTML = '<span class="no-data-text">no database entries found</span>';
                 return;
             }
 
             // Store previous values for flash detection
-            const previousValues = window.tsvPreviousValues || {};
+            const previousValues = window.metricsPreviousValues || {};
             const currentValues = {};
 
             // Get dynamic column names from first row
-            const firstFile = data.tsv_files[0];
-            const columnNames = firstFile ? Object.keys(firstFile.columns) : [];
+            const firstTable = data.tables[0];
+            const columnNames = firstTable ? Object.keys(firstTable.columns) : [];
 
             // Build table dynamically
-            let html = '<table id="tsv-table"><thead><tr>';
+            let html = '<table id="metrics-table"><thead><tr>';
             html += '<td>NAME</td>';
 
             // Dynamic DB columns
@@ -355,10 +380,10 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
             html += '<td># SAMPLES</td>';
             html += '</tr></thead><tbody>';
 
-            data.tsv_files.forEach(file => {
-                const metricName = file.metric_name;
-                const columns = file.columns || {};
-                const metadata = file.metadata || {};
+            data.tables.forEach(table => {
+                const metricName = table.metric_name;
+                const columns = table.columns || {};
+                const metadata = table.metadata || {};
 
                 // Track value for flash detection
                 const value = columns.value;
@@ -372,14 +397,14 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
                 else if (metadata.type === 'INTEGER') typeClass = 'type-integer';
 
                 html += `<tr>`;
-                html += `<td class="tsv-filename">${metricName}</td>`;
+                html += `<td class="metric-name">${metricName}</td>`;
 
                 // Dynamically render all DB columns
                 columnNames.forEach((colName) => {
                     const val = columns[colName] !== undefined ? columns[colName] : '-';
 
                     // Add styling to value column only
-                    const cellClass = colName === 'value' ? `tsv-value ${flashClass}`.trim() : '';
+                    const cellClass = colName === 'value' ? `metric-value ${flashClass}`.trim() : '';
 
                     // Format display
                     let displayVal = val;
@@ -399,14 +424,14 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
             });
 
             // Store current values for next refresh
-            window.tsvPreviousValues = currentValues;
+            window.metricsPreviousValues = currentValues;
 
             html += '</tbody></table>';
-            tsvFilesList.innerHTML = html;
+            metricsList.innerHTML = html;
         } catch (error) {
-            console.error('Error loading TSV files:', error);
-            const tsvFilesList = document.getElementById('tsv-files-list');
-            tsvFilesList.innerHTML = '<span class="error-text">Failed to load TSV files</span>';
+            console.error('Error loading metrics:', error);
+            const metricsList = document.getElementById('metrics-list');
+            metricsList.innerHTML = '<span class="error-text">Failed to load metrics</span>';
         }
     }
 
@@ -455,27 +480,16 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
                         </div>
                         <div class="stat-column">
                             <div class="stat-line">
-                                <span class="stat-label">USER</span>
-                                <span class="stat-value">${checkIcon(entity.has_user)}</span>
+                                <span class="stat-label">MQTT USER</span>
+                                <span class="stat-value">${checkIcon(entity.has_mqtt_user)}</span>
                             </div>
             `;
 
             if (entity.type === 'agent') {
                 html += `
                             <div class="stat-line">
-                                <span class="stat-label">FOLDER</span>
-                                <span class="stat-value">${checkIcon(entity.has_folder)}</span>
-                            </div>
-                            <div class="stat-line">
                                 <span class="stat-label">DATABASE</span>
                                 <span class="stat-value">${checkIcon(entity.has_table)}</span>
-                            </div>
-                `;
-            } else {
-                html += `
-                            <div class="stat-line">
-                                <span class="stat-label">PASSWORD</span>
-                                <span class="stat-value">${checkIcon(entity.has_password)}</span>
                             </div>
                 `;
             }
@@ -523,7 +537,7 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
 
                 container.innerHTML = `
                     <div class="invite-url-box">
-                        <div class="invite-url-label">SSH URL:</div>
+                        <div class="invite-url-label">Registration URL:</div>
                         <div class="invite-url-value" onclick="copyToClipboard(this.textContent)">${data.invite_url}</div>
                     </div>
                     <div class="invite-url-box">
@@ -550,6 +564,22 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
             }).catch(err => {
                 console.error('Copy failed:', err);
                 addLog('clipboard not available', 'error');
+            });
+        } else {
+            addLog('clipboard not available (requires https)', 'error');
+        }
+    }
+
+    function copyPendingInviteToClipboard(inviteUrl, buttonElement) {
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(inviteUrl).then(() => {
+                const originalText = buttonElement.textContent;
+                buttonElement.textContent = '✓ Copied!';
+                addLog('invite URL copied to clipboard', 'success');
+                setTimeout(() => { buttonElement.textContent = originalText; }, 2000);
+            }).catch(err => {
+                console.error('Copy failed:', err);
+                addLog('clipboard copy failed', 'error');
             });
         } else {
             addLog('clipboard not available (requires https)', 'error');

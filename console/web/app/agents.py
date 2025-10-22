@@ -5,63 +5,47 @@
 from flask import Blueprint, jsonify
 import time
 import os
-import glob
-import pwd
-from metrics import get_agent_tsv_files, get_agent_metrics
+from metrics import get_agent_tables, get_agent_metrics
 from db import get_db_connection
+from pending_invites import get_invite
 
 agents_bp = Blueprint('agents', __name__)
 
-@agents_bp.route('/api/agents/<agent_id>/tsv', methods=['GET'])
-def get_agent_tsv(agent_id):
-    """Get all TSV files and their latest data for a specific agent."""
-    tsv_files = get_agent_tsv_files(agent_id)
+@agents_bp.route('/api/agents/<agent_id>/tables', methods=['GET'])
+def get_agent_tables_endpoint(agent_id):
+    """Get all metric tables and their latest data for a specific agent."""
+    tables = get_agent_tables(agent_id)
     return jsonify({
         'agent_id': agent_id,
-        'tsv_files': tsv_files,
-        'count': len(tsv_files),
+        'tables': tables,
+        'count': len(tables),
         'timestamp': int(time.time())
     })
 
 def get_all_entities():
-    """Get all entities (agents + invites) with comprehensive validation status."""
+    """Get all entities (agents + invites) with comprehensive validation status (MQTT architecture)."""
     entities = {}
 
-    # 1. Get all agent/invite users (id_* and reg_* only)
+    # 1. Get all MQTT users from passwd file (id_* agents and reg_* invites)
+    MQTT_PASSWD_FILE = "/data/mqtt/passwd"
     try:
-        for user in pwd.getpwall():
-            username = user.pw_name
-            # Only include agent users (id_*) and invite users (reg_*)
-            if username.startswith('id_') or username.startswith('reg_'):
-                entities[username] = {
-                    'id': username,
-                    'has_user': True,
-                    'has_folder': False,
-                    'has_table': False,
-                    'has_password': False
-                }
+        if os.path.isfile(MQTT_PASSWD_FILE):
+            with open(MQTT_PASSWD_FILE, 'r') as f:
+                for line in f:
+                    line = line.strip()
+                    if ':' in line:
+                        username = line.split(':', 1)[0]
+                        # Only include agent users (id_*) and invite users (reg_*)
+                        if username.startswith('id_') or username.startswith('reg_'):
+                            entities[username] = {
+                                'id': username,
+                                'has_mqtt_user': True,
+                                'has_table': False
+                            }
     except Exception as e:
-        print(f"Error reading users: {e}")
+        print(f"Error reading MQTT passwd file: {e}")
 
-    # 2. Get all agent directories
-    try:
-        for agent_dir in glob.glob('/data/agents/*'):
-            if os.path.isdir(agent_dir):
-                agent_id = os.path.basename(agent_dir)
-                if agent_id not in entities:
-                    entities[agent_id] = {
-                        'id': agent_id,
-                        'has_user': False,
-                        'has_folder': True,
-                        'has_table': False,
-                        'has_password': False
-                    }
-                else:
-                    entities[agent_id]['has_folder'] = True
-    except Exception as e:
-        print(f"Error reading agent directories: {e}")
-
-    # 3. Get all agent IDs from SQLite tables
+    # 2. Get all agent IDs from SQLite tables
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -77,10 +61,8 @@ def get_all_entities():
                     if agent_id not in entities:
                         entities[agent_id] = {
                             'id': agent_id,
-                            'has_user': False,
-                            'has_folder': False,
-                            'has_table': True,
-                            'has_password': False
+                            'has_mqtt_user': False,
+                            'has_table': True
                         }
                     else:
                         entities[agent_id]['has_table'] = True
@@ -89,35 +71,32 @@ def get_all_entities():
     except Exception as e:
         print(f"Error reading SQLite tables: {e}")
 
-    # 4. Check for password files in home directories (for invites)
-    for entity_id in list(entities.keys()):
-        password_file = f"/home/{entity_id}/.invite_password"
-        if os.path.isfile(password_file):
-            entities[entity_id]['has_password'] = True
-
-    # 5. Determine type and validity for each entity
+    # 3. Determine type and validity for each entity
     result = []
     for entity_id, checks in entities.items():
         # Determine type based on username prefix
         entity_type = 'invite' if entity_id.startswith('reg_') else 'agent'
 
-        # Determine validity based on type
+        # Determine validity based on type (MQTT architecture)
         if entity_type == 'invite':
-            # Invite needs: user + password file
-            valid = checks['has_user'] and checks['has_password']
+            # Invite needs: MQTT user entry in passwd file
+            valid = checks['has_mqtt_user']
         else:
-            # Agent needs: user + folder + table
-            valid = checks['has_user'] and checks['has_folder'] and checks['has_table']
+            # Agent needs: database tables (has_table is sufficient - metrics are flowing)
+            valid = checks['has_table']
 
         entity_data = {
             'id': entity_id,
             'type': entity_type,
             'valid': valid,
-            'has_user': checks['has_user'],
-            'has_folder': checks['has_folder'],
-            'has_table': checks['has_table'],
-            'has_password': checks['has_password']
+            'has_mqtt_user': checks['has_mqtt_user'],
+            'has_table': checks['has_table']
         }
+
+        # Check for pending invite (held in RAM until first data arrives)
+        pending_invite = get_invite(entity_id)
+        if pending_invite:
+            entity_data['pending_invite'] = pending_invite
 
         # Add metrics for valid agents
         if entity_type == 'agent' and valid:

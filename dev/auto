@@ -8,18 +8,18 @@ docker stop lumenmon-console lumenmon-agent 2>/dev/null || true
 docker rm lumenmon-console lumenmon-agent 2>/dev/null || true
 
 echo "🧹 Cleaning data..."
-rm -rf agent/data/debug/* agent/data/ssh/* 2>/dev/null || true
-rm -rf console/data/agents/id_* console/data/ssh/ssh_host* console/data/*.log 2>/dev/null || true
-mkdir -p agent/data/{debug,ssh} console/data/{agents,ssh}
+rm -rf agent/data/mqtt/* 2>/dev/null || true
+rm -rf console/data/mqtt/passwd console/data/*.log 2>/dev/null || true
+mkdir -p agent/data/mqtt console/data/mqtt
 
-# Step 2: Start containers
+# Step 2: Start containers with rebuild
 echo "🚀 Starting fresh..."
-echo "CONSOLE_HOST=localhost" > console/.env
+# Use Docker network hostname for internal communication
+echo "CONSOLE_HOST=lumenmon-console" > console/.env
 docker compose -f console/docker-compose.yml up -d --build
 
-# Agent defaults to CONSOLE_HOST=console CONSOLE_PORT=22 (Docker network)
+# Agent connects via Docker network at lumenmon-console:8884 (MQTT TLS)
 # Both containers join the same "lumenmon-net" network and communicate internally
-# External port mapping (2345:22) is only for connections from outside Docker
 docker compose -f agent/docker-compose.yml up -d --build
 
 # Step 3: Wait for console to be ready
@@ -29,26 +29,25 @@ sleep 3
 # Step 4: Create invite and register agent
 echo "🔑 Creating invite..."
 
-# Generate invite with Docker network address (console:22)
-# Why console:22 instead of localhost:2345?
-# - Agent connects via Docker network at runtime using CONSOLE_HOST=console CONSOLE_PORT=22
-# - Invite saves SSH host key tied to the hostname:port in the URL
-# - Registration creates known_hosts entry: [console]:22 ssh-ed25519 AAAA...
-# - Runtime connection matches: ssh console:22 → host key verification succeeds
-# - If we used localhost:2345, known_hosts wouldn't match console:22 (different address)
-INVITE=$(docker exec lumenmon-console /app/core/enrollment/invite_create.sh console 22 2>/dev/null | grep "^ssh://")
+# Generate invite for local agent (Docker network)
+# Uses lumenmon-console:8884 for MQTT TLS connection
+INVITE=$(docker exec lumenmon-console /app/core/enrollment/invite_create.sh 2>&1 | grep "lumenmon register" | sed 's/.*lumenmon register "\(.*\)"/\1/')
 if [ -z "$INVITE" ]; then
     echo "❌ Failed to create invite"
     exit 1
 fi
 echo "   Invite: $INVITE"
 
-echo "📝 Registering agent..."
-docker exec lumenmon-agent /app/core/setup/register.sh "$INVITE"
+echo "📝 Registering agent (auto-accepting certificate)..."
+echo "yes" | docker exec -i lumenmon-agent /app/core/setup/register.sh "$INVITE"
+
+# Restart agent to load credentials and start collectors
+echo "🔄 Restarting agent to start collectors..."
+docker restart lumenmon-agent >/dev/null
 
 # Give agent a moment to connect
 echo "⏳ Waiting for agent to connect..."
-sleep 2
+sleep 3
 
 # Step 5: Launch TUI
 echo "📊 Access WebTUI via http://localhost:8080/"

@@ -8,13 +8,18 @@ services:
     volumes:
       - ./data:/data
     ports:
-      - "2345:22"
       - "8080:80"
+      - "8884:8884"
     networks:
       - lumenmon
     environment:
       - PYTHONUNBUFFERED=1
       - CONSOLE_HOST=${CONSOLE_HOST:-localhost}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     stdin_open: true
     tty: true
 
