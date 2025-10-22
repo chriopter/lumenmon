@@ -39,15 +39,15 @@ def get_history_from_db(agent_id, metric_name):
 
         cursor = conn.cursor()
         cursor.execute(
-            f'SELECT timestamp, value FROM "{table_name}" ORDER BY timestamp'
+            f'SELECT timestamp, interval, value FROM "{table_name}" ORDER BY timestamp'
         )
 
         for row in cursor.fetchall():
             # Try to convert to float, if it fails keep as string
             try:
-                value = round(float(row[1]), 1)
+                value = round(float(row[2]), 1)
             except (ValueError, TypeError):
-                value = row[1]
+                value = row[2]
 
             history.append({
                 'timestamp': row[0],
@@ -67,7 +67,7 @@ def get_history_from_db(agent_id, metric_name):
     return history
 
 def get_latest_value(agent_id, metric_name):
-    """Get the most recent value and timestamp for a metric."""
+    """Get the most recent value, timestamp, and interval for a metric."""
     table_name = f"{agent_id}_{metric_name}"
 
     try:
@@ -76,11 +76,11 @@ def get_latest_value(agent_id, metric_name):
         # Check if table exists
         if not table_exists(conn, table_name):
             conn.close()
-            return None, None
+            return None, None, None
 
         cursor = conn.cursor()
         cursor.execute(
-            f'SELECT timestamp, value FROM "{table_name}" ORDER BY timestamp DESC LIMIT 1'
+            f'SELECT timestamp, interval, value FROM "{table_name}" ORDER BY timestamp DESC LIMIT 1'
         )
 
         row = cursor.fetchone()
@@ -89,14 +89,14 @@ def get_latest_value(agent_id, metric_name):
         if row:
             # Try to convert to float
             try:
-                value = round(float(row[1]), 1)
+                value = round(float(row[2]), 1)
             except (ValueError, TypeError):
-                value = row[1]
-            return row[0], value
+                value = row[2]
+            return row[0], row[1], value
     except Exception:
         pass
 
-    return None, None
+    return None, None, None
 
 def get_latest_hostname(agent_id):
     """Get the most recent hostname value."""
@@ -143,21 +143,21 @@ def get_agent_metrics(agent_id):
     }
 
     # Read CPU
-    timestamp, value = get_latest_value(agent_id, 'generic_cpu')
+    timestamp, interval, value = get_latest_value(agent_id, 'generic_cpu')
     if timestamp and value is not None:
         metrics['cpu'] = value
         metrics['lastUpdate'] = max(metrics['lastUpdate'], timestamp)
     metrics['cpuHistory'] = get_history_from_db(agent_id, 'generic_cpu')
 
     # Read Memory
-    timestamp, value = get_latest_value(agent_id, 'generic_mem')
+    timestamp, interval, value = get_latest_value(agent_id, 'generic_mem')
     if timestamp and value is not None:
         metrics['memory'] = value
         metrics['lastUpdate'] = max(metrics['lastUpdate'], timestamp)
     metrics['memHistory'] = get_history_from_db(agent_id, 'generic_mem')
 
     # Read Disk
-    timestamp, value = get_latest_value(agent_id, 'generic_disk')
+    timestamp, interval, value = get_latest_value(agent_id, 'generic_disk')
     if timestamp and value is not None:
         metrics['disk'] = value
         metrics['lastUpdate'] = max(metrics['lastUpdate'], timestamp)
@@ -231,8 +231,14 @@ def get_agent_tsv_files(agent_id):
                 if type_match:
                     value_type = type_match.group(1).upper()
 
-            # Get latest value, interval, and count
-            cursor.execute(f'SELECT timestamp, interval, value FROM "{table_name}" ORDER BY timestamp DESC LIMIT 1')
+            # Get schema columns dynamically
+            cursor.execute(f'PRAGMA table_info("{table_name}")')
+            schema_columns = cursor.fetchall()
+            column_names = [col[1] for col in schema_columns]  # col[1] is column name
+
+            # Get latest row with all columns
+            columns_str = ', '.join(column_names)
+            cursor.execute(f'SELECT {columns_str} FROM "{table_name}" ORDER BY timestamp DESC LIMIT 1')
             latest = cursor.fetchone()
 
             cursor.execute(f'SELECT COUNT(*) FROM "{table_name}"')
@@ -243,27 +249,30 @@ def get_agent_tsv_files(agent_id):
             oldest = cursor.fetchone()
 
             if latest:
-                # Format timestamp age and data span
+                # Build columns dict dynamically from schema
+                columns = {}
+                for idx, col_name in enumerate(column_names):
+                    raw_value = latest[idx]
+                    # Format based on column type
+                    if isinstance(raw_value, float):
+                        columns[col_name] = round(raw_value, 1)
+                    else:
+                        columns[col_name] = raw_value
+
+                # Calculate metadata
                 timestamp_age = _format_timestamp_age(latest[0])
                 data_span = _format_duration(latest[0] - oldest[0]) if oldest else "N/A"
 
-                # Format value based on type
-                formatted_value = latest[2]
-                if value_type in ('REAL', 'INTEGER') and isinstance(latest[2], (int, float)):
-                    formatted_value = round(latest[2], 1)
-
                 tables.append({
-                    'filename': f"{metric_name}.tsv",
                     'metric_name': metric_name,
                     'table_name': table_name,
-                    'type': value_type,
-                    'interval': latest[1],
-                    'lastLine': f"{latest[0]} - {latest[2]}",
-                    'timestamp': latest[0],
-                    'timestamp_age': timestamp_age,
-                    'value': formatted_value,
-                    'line_count': count,
-                    'data_span': data_span
+                    'columns': columns,  # All raw DB columns dynamically
+                    'metadata': {
+                        'type': value_type,
+                        'timestamp_age': timestamp_age,
+                        'data_span': data_span,
+                        'line_count': count
+                    }
                 })
 
         conn.close()

@@ -54,10 +54,11 @@ Fetches server-rendered rows every 1s. Provides row selection, navigation functi
                         const cpu = entity.cpu || 0;
                         const memory = entity.memory || 0;
                         const disk = entity.disk || 0;
+                        const cpuSparkline = entity.cpuSparkline || '';
 
                         html += `<tr class="agent-row ${selected} ${validClass}" data-index="${index}" data-entity-id="${entity.id}" data-entity-type="agent" data-hostname="${hostname}" data-status="${statusDot}" data-valid="${entity.valid}">`;
                         html += `<td title="ID: ${entity.id}"><span class="status-dot ${statusDot}" title="${statusDot}"></span>${hostname}</td>`;
-                        html += `<td>${cpu.toFixed(1)}%</td>`;
+                        html += `<td>${cpu.toFixed(1)}%<span class="sparkline">${cpuSparkline}</span></td>`;
                         html += `<td>${memory.toFixed(1)}%</td>`;
                         html += `<td>${disk.toFixed(1)}%</td>`;
                         html += `</tr>`;

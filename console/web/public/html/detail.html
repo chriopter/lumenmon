@@ -335,47 +335,66 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
             const previousValues = window.tsvPreviousValues || {};
             const currentValues = {};
 
-            // Data arrives pre-sorted from backend
-            // Build the comprehensive TSV files table
+            // Get dynamic column names from first row
+            const firstFile = data.tsv_files[0];
+            const columnNames = firstFile ? Object.keys(firstFile.columns) : [];
+
+            // Build table dynamically
             let html = '<table id="tsv-table"><thead><tr>';
             html += '<td>NAME</td>';
-            html += '<td>VALUE</td>';
-            html += '<td>INTERVAL</td>';
-            html += '<td>TYPE</td>';
+
+            // Dynamic DB columns
+            columnNames.forEach((colName) => {
+                html += `<td>${colName.toUpperCase()}</td>`;
+            });
+
+            // Metadata columns (divider before first metadata column)
+            html += '<td class="db-content-separator">TYPE</td>';
             html += '<td>LAST UPDATE</td>';
             html += '<td>DATA SPAN</td>';
             html += '<td># SAMPLES</td>';
             html += '</tr></thead><tbody>';
 
             data.tsv_files.forEach(file => {
-                const metricName = file.metric_name || file.filename.replace('.tsv', '');
-                const type = file.type || 'TEXT';
-                const value = file.value !== undefined ? file.value : '-';
-                const interval = file.interval || '-';
-                const timestampAge = file.timestamp_age || '-';
-                const dataSpan = file.data_span || '-';
-                const sampleCount = file.line_count || '-';
+                const metricName = file.metric_name;
+                const columns = file.columns || {};
+                const metadata = file.metadata || {};
 
-                // Track current value for next comparison
+                // Track value for flash detection
+                const value = columns.value;
                 currentValues[metricName] = value;
-
-                // Detect if value changed (flash effect)
                 const flashClass = (previousValues[metricName] !== undefined &&
                                    previousValues[metricName] !== value) ? 'value-flash' : '';
 
                 // Color code by type
                 let typeClass = 'type-text';
-                if (type === 'REAL') typeClass = 'type-real';
-                else if (type === 'INTEGER') typeClass = 'type-integer';
+                if (metadata.type === 'REAL') typeClass = 'type-real';
+                else if (metadata.type === 'INTEGER') typeClass = 'type-integer';
 
                 html += `<tr>`;
                 html += `<td class="tsv-filename">${metricName}</td>`;
-                html += `<td class="tsv-value ${flashClass}">${value}</td>`;
-                html += `<td>${interval}s</td>`;
-                html += `<td class="${typeClass}">${type}</td>`;
-                html += `<td class="db-content-separator">${timestampAge}</td>`;
-                html += `<td>${dataSpan}</td>`;
-                html += `<td>${sampleCount}</td>`;
+
+                // Dynamically render all DB columns
+                columnNames.forEach((colName) => {
+                    const val = columns[colName] !== undefined ? columns[colName] : '-';
+
+                    // Add styling to value column only
+                    const cellClass = colName === 'value' ? `tsv-value ${flashClass}`.trim() : '';
+
+                    // Format display
+                    let displayVal = val;
+                    if (colName === 'interval') {
+                        displayVal = val !== '-' ? `${val}s` : '-';
+                    }
+
+                    html += `<td class="${cellClass}">${displayVal}</td>`;
+                });
+
+                // Metadata columns (divider before first metadata column)
+                html += `<td class="db-content-separator ${typeClass}">${metadata.type || '-'}</td>`;
+                html += `<td>${metadata.timestamp_age || '-'}</td>`;
+                html += `<td>${metadata.data_span || '-'}</td>`;
+                html += `<td>${metadata.line_count || '-'}</td>`;
                 html += `</tr>`;
             });
 
