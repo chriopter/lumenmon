@@ -134,7 +134,10 @@ def get_all_entities():
                     'lastUpdate': metrics.get('lastUpdate', 0),
                     'cpuSparkline': metrics.get('cpuSparkline', ''),
                     'memSparkline': metrics.get('memSparkline', ''),
-                    'diskSparkline': metrics.get('diskSparkline', '')
+                    'diskSparkline': metrics.get('diskSparkline', ''),
+                    'cpuHistory': metrics.get('cpuHistory', []),
+                    'memHistory': metrics.get('memHistory', []),
+                    'diskHistory': metrics.get('diskHistory', [])
                 })
             except Exception as e:
                 print(f"Error getting metrics for {entity_id}: {e}")

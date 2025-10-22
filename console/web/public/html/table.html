@@ -55,8 +55,11 @@ Fetches server-rendered rows every 1s. Provides row selection, navigation functi
                         const memory = entity.memory || 0;
                         const disk = entity.disk || 0;
                         const cpuSparkline = entity.cpuSparkline || '';
+                        const cpuHistory = JSON.stringify(entity.cpuHistory || []);
+                        const memHistory = JSON.stringify(entity.memHistory || []);
+                        const diskHistory = JSON.stringify(entity.diskHistory || []);
 
-                        html += `<tr class="agent-row ${selected} ${validClass}" data-index="${index}" data-entity-id="${entity.id}" data-entity-type="agent" data-hostname="${hostname}" data-status="${statusDot}" data-valid="${entity.valid}">`;
+                        html += `<tr class="agent-row ${selected} ${validClass}" data-index="${index}" data-entity-id="${entity.id}" data-entity-type="agent" data-hostname="${hostname}" data-status="${statusDot}" data-valid="${entity.valid}" data-age="${entity.age || 0}" data-cpu-history='${cpuHistory}' data-mem-history='${memHistory}' data-disk-history='${diskHistory}'>`;
                         html += `<td title="ID: ${entity.id}"><span class="status-dot ${statusDot}" title="${statusDot}"></span>${hostname}</td>`;
                         html += `<td>${cpu.toFixed(1)}%<span class="sparkline">${cpuSparkline}</span></td>`;
                         html += `<td>${memory.toFixed(1)}%</td>`;
