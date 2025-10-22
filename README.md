@@ -12,8 +12,6 @@ It's too damn complicated to quickly setup system monitoring for a few servers.
 
 Lumenmon fixes that. It's a simple monitoring tool, that you can install in under 30 seconds.
 
-A stupid simple docker container with just a bunch of bash scripts will collect data and send it via SSH to the console. A simple WebTUI to view. That's it.
-
 ## Quick Start
 
 ```bash
