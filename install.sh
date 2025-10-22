@@ -98,9 +98,9 @@ install_agent() {
     # Generate .env
     echo "CONSOLE_HOST=$console_host" > "$INSTALL_DIR/agent/.env"
 
-    # Pre-create data directories
+    # Pre-create data directories with permissions for metrics user
     mkdir -p "$INSTALL_DIR/agent/data"
-    chmod 755 "$INSTALL_DIR/agent/data"
+    chmod 777 "$INSTALL_DIR/agent/data"
 
     # Pull latest image and show version
     status_progress "Pulling latest agent image..."
