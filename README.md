@@ -100,12 +100,10 @@ The Agent container runs collector script based on a configured intervall, conne
 
 <img width="700" alt="image" src="https://github.com/user-attachments/assets/2e67ead2-e5ce-4291-80d1-db08f7dd6ee7" />
 
-### Security
-**Invite system** is based on linux users. Invites are temporary linux users with timestamp in the name (to autodelete them after 60 minutes). 
-- **MITM-proof enrollment**: Invite links include SSH host key fingerprint. Agents verify before sending credentials. After enrollment, SSH keys pinned to per-agent console users.the data dir. Therefore, the complete authentication is just linux users + standard ssh tooling.
-- **Push-only over SSH**: Agents initiate outbound connections. Console never connects to agents.
-- **Isolated execution**: Runs in Docker. ForceCommand prevents shell access. Per-agent Linux users and file permissions enforce data isolation.
-- **Design** The Agent is designed in a very KISS manner, based only on bash and easily reviewable. The console where possible as well, but ofc. the flask webserver is not bash but python.
+### Enrollment / Security
+- **Invite system** is based on linux users. Invites are temporary linux users with timestamp in the name (to autodelete them after 60 minutes). 
+- **Enrollment**: Invite links include the SSH host key (MITM mitigating). After enrollment, SSH keys of agents are pinned as authorized keys. Therefore, the complete authentication is just linux users + standard ssh tooling.
+- **Design** Agents initiate outbound connections. Console can not connect to agents. The Agent is designed in a very KISS manner, based only on bash and easily reviewable. The console where possible as well, but ofc. the flask webserver is not bash but python.
 
 ```
 **Invite link logic**
