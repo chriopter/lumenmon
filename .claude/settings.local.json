@@ -2,7 +2,6 @@
   "permissions": {
     "allow": [
       "Bash(chmod:*)",
-      "WebFetch(domain:webtui.ironclad.sh)",
       "Bash(docker ps:*)",
       "Bash(curl:*)",
       "Bash(docker exec:*)",
@@ -12,5 +11,9 @@
     ],
     "deny": [],
     "ask": []
+  },
+  "sandbox": {
+    "enabled": true,
+    "autoAllowBashIfSandboxed": true
   }
 }
