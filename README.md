@@ -21,7 +21,8 @@ The installer will guide you through setup and show you how to add agents.
 
 <img width="650" alt="screenshot-2025-09-21_20-57-39" src="https://github.com/user-attachments/assets/a900ed9c-d519-4c1c-8268-2d2417807aed" />
 
-## Commands
+<details>
+<summary>Commands</summary>
 
 ```bash
 lumenmon            # Show status and available commands
@@ -32,10 +33,9 @@ lumenmon register   # Register agent with invite
 lumenmon update     # Update CLI, compose files, and images
 lumenmon uninstall  # Remove everything
 ```
+</details>
 
 ## How It Works
-
-### Overview
 
 There are two docker containers:
 
@@ -54,7 +54,9 @@ There are two docker containers:
 ```
 
 <details>
-<summary>Architecture</summary>
+<summary>Architecture, Data Flow & Security</summary>
+
+### Architecture
 
 **Agent:**
 ```
@@ -82,7 +84,6 @@ There are two docker containers:
     ├── config (Caddy Config)
     └── public (HTML, CSS, JS)
 ```
-</details>
 
 ### Data Flow
 
@@ -100,7 +101,10 @@ Agents publish JSON to MQTT topics → Console gateway writes to SQLite (one tab
 
 **Installation:** When console and agent run on same machine, they communicate via Docker network (`lumenmon-console:8884`) with automatic TLS verification.
 
-## Development
+</details>
+
+<details>
+<summary>Development</summary>
 
 ```bash
 # Full auto-setup: reset, start containers, register agent, and launch WebTUI
@@ -115,6 +119,7 @@ Agents publish JSON to MQTT topics → Console gateway writes to SQLite (one tab
 # Update vendored CSS/JS dependencies
 ./dev/updatedeps
 ```
+</details>
 
 ---
 
