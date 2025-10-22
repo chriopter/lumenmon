@@ -101,6 +101,7 @@ def main():
         cursor.execute(f'''
             CREATE TABLE IF NOT EXISTS "{table_name}" (
                 timestamp INTEGER PRIMARY KEY,
+                interval INTEGER,
                 value {data_type}
             )
         ''')
@@ -123,11 +124,11 @@ def main():
 
             try:
                 timestamp = int(parts[0])
-                # parts[1] is interval, we don't store it
+                interval = int(parts[1])  # Store interval for staleness detection
                 # Value can be numeric or string (for hostname)
                 value = ' '.join(parts[2:])  # Join remaining parts for multi-word values
-                rows_to_insert.append((timestamp, value))
-                log_debug(agent_id, f'Line {line_count}: parsed ts={timestamp}, val={value}')
+                rows_to_insert.append((timestamp, interval, value))
+                log_debug(agent_id, f'Line {line_count}: parsed ts={timestamp}, interval={interval}, val={value}')
             except (ValueError, IndexError) as e:
                 log_debug(agent_id, f'Line {line_count}: parse error: {e}')
                 continue
@@ -136,7 +137,7 @@ def main():
         if rows_to_insert:
             log_debug(agent_id, f'Inserting {len(rows_to_insert)} rows')
             cursor.executemany(
-                f'INSERT OR REPLACE INTO "{table_name}" (timestamp, value) VALUES (?, ?)',
+                f'INSERT OR REPLACE INTO "{table_name}" (timestamp, interval, value) VALUES (?, ?, ?)',
                 rows_to_insert
             )
             log_debug(agent_id, 'Insert successful')

@@ -593,6 +593,21 @@ footer {
     font-weight: bold;
 }
 
+.value-flash {
+    animation: flash-highlight 0.5s ease-out;
+}
+
+@keyframes flash-highlight {
+    0% {
+        background-color: #a6e3a1;
+        color: #1e1e2e;
+    }
+    100% {
+        background-color: transparent;
+        color: var(--accent1);
+    }
+}
+
 /* Type badges with color coding */
 .type-text {
     color: #89b4fa; /* Catppuccin blue */
@@ -610,6 +625,11 @@ footer {
     color: #f9e2af; /* Catppuccin yellow */
     font-weight: bold;
     text-transform: uppercase;
+}
+
+.db-content-separator {
+    border-left: 1px solid var(--foreground2);
+    padding-left: 0.5rem;
 }
 
 .loading-text,
