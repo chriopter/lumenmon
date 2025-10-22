@@ -152,8 +152,21 @@ case "$1" in
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
         echo ""
 
-        # Restart updated containers
-        "$0" start
+        # Restart containers to apply new configuration
+        echo "Restarting containers..."
+        if [ -d "$DIR/console/data" ]; then
+            echo "  → Restarting console..."
+            cd "$DIR/console"
+            docker compose up -d --force-recreate
+            echo "  ✓ Console restarted"
+        fi
+        if [ -d "$DIR/agent/data" ]; then
+            echo "  → Restarting agent..."
+            cd "$DIR/agent"
+            docker compose up -d --force-recreate
+            echo "  ✓ Agent restarted"
+        fi
+        echo ""
         ;;
 
     start)
