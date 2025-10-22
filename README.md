@@ -1,12 +1,11 @@
 ```
-  ██╗     ██╗   ██╗███╗   ███╗███████╗███╗   ██╗███╗   ███╗ ██████╗ ███╗   ██╗
+  ██╗     ██╗   ██╗███╗   ███╗███████╗███╗   ██╗███╗   ██╗ ██████╗ ███╗   ██╗
   ██║     ██║   ██║████╗ ████║██╔════╝████╗  ██║████╗ ████║██╔═══██╗████╗  ██║
   ██║     ██║   ██║██╔████╔██║█████╗  ██╔██╗ ██║██╔████╔██║██║   ██║██╔██╗ ██║
   ██║     ██║   ██║██║╚██╔╝██║██╔══╝  ██║╚██╗██║██║╚██╔╝██║██║   ██║██║╚██╗██║
   ███████╗╚██████╔╝██║ ╚═╝ ██║███████╗██║ ╚████║██║ ╚═╝ ██║╚██████╔╝██║ ╚████║
   ╚══════╝ ╚═════╝ ╚═╝     ╚═╝╚══════╝╚═╝  ╚═══╝╚═╝     ╚═╝ ╚═════╝ ╚═╝  ╚═══╝
 ```
-
 
 It's too damn complicated to quickly setup system monitoring for a few servers.
 
@@ -34,13 +33,11 @@ lumenmon update     # Update CLI, compose files, and images
 lumenmon uninstall  # Remove everything
 ```
 
-
-
 ## How It Works
-### Containers
-The Agent container runs collector scripts at configured intervals, publishes metrics to the console via MQTT with TLS. JSON.
 
-The Console container runs an MQTT broker (Mosquitto) to receive data, writes it to SQLite and serves a WebTUI via Flask / Caddy.
+**Agent** collects system metrics (CPU, memory, disk) and publishes to console via MQTT with TLS.
+
+**Console** receives data via MQTT broker, stores in SQLite, and serves a web dashboard.
 
 ```
 ┌─────────────┐               ┌─────────────┐
@@ -52,57 +49,54 @@ The Console container runs an MQTT broker (Mosquitto) to receive data, writes it
 └─────────────┘               └─────────────┘
 ```
 
+**Data flow:** Agents publish JSON to MQTT topics → Console gateway writes to SQLite (one table per agent per metric) → Web dashboard queries SQLite for display.
 
+<img width="700" alt="image" src="https://github.com/user-attachments/assets/2e67ead2-e5ce-4291-80d1-db08f7dd6ee7" />
+
+## Security
+
+**Enrollment:** Invite URLs contain permanent MQTT credentials + TLS certificate fingerprint for agent registration.
+
+**TLS Pinning:** Agents verify server certificate fingerprint during first connection, then pin it for all future connections.
+
+**Network Design:** Agents initiate outbound connections only. Console cannot connect to agents.
+
+**Installation:** When console and agent run on same machine, they communicate via Docker network (`lumenmon-console:8884`) with automatic TLS verification.
+
+## Architecture
 
 <details>
-
-<summary>Agent app structure</summary>
+<summary>Agent structure</summary>
 
 ```
 ├── agent.sh (Main entry)
 ├── collectors/ (Data collectors)
-│   ├── generic (Scripts running on all system)
-│   └── ... (Scripts running dependent on environment, decided by collectors.sh)
+│   ├── generic (Scripts running on all system)
+│   └── ... (Scripts running dependent on environment, decided by collectors.sh)
 ├── core/ (Scripts to register with server, start connection, start collectors)
 └── data/ (Persistent directory with MQTT credentials)
     └── mqtt/
 ```
-
 </details>
 
-
 <details>
-
-<summary>Console app structure</summary>
+<summary>Console structure</summary>
 
 ```
 ├── console.sh (Main entry)
 ├── core (Core setup)
-│   ├── enrollment (Bash scripts to create invitations and agent registration)
-│   ├── mqtt (MQTT broker gateway and subscriber)
-│   ├── setup (Server setup and certificate generation) 
+│   ├── enrollment (Bash scripts to create invitations and agent registration)
+│   ├── mqtt (MQTT broker gateway and subscriber)
+│   ├── setup (Server setup and certificate generation)
 ├── data (Persistent data dir)
 │   ├── metrics.db (SQLite metrics database)
 │   └── mqtt (MQTT credentials and TLS certificates)
 └── web (Web server)
     ├── app (Flask app)
     ├── config (Caddy Config)
-    └── public (HTML, CS, JS)
+    └── public (HTML, CSS, JS)
 ```
-
 </details>
-
-### Data structure
-
-**The data structure** is quite simple, agents publish JSON metrics to MQTT topics. The gateway subscribes to all agent topics and writes data to SQLite tables (one per agent per metric). If the data type changes, the table is recreated.
-
-<img width="700" alt="image" src="https://github.com/user-attachments/assets/2e67ead2-e5ce-4291-80d1-db08f7dd6ee7" />
-
-## Enrollment / Security
-- **Invite system** generates permanent MQTT credentials + TLS certificate fingerprint and formats them in invite links. After enrollment, agents pin the server certificate (self signed certificate for MQTT) and use permanent username/password. 
-- **Design** Agents initiate outbound connections. Console cannot connect to agents. The Agent is designed in a very KISS manner, based only on bash and easily reviewable. The console where possible as well, but ofc. the flask webserver is python.
-- **Installer** script will start the respective docker containers and create invites for new clients. When console and agent run on the same machine, they communicate via Docker's internal network (`lumenmon-console:8884`).
-
 
 ## Development
 
@@ -122,9 +116,8 @@ The Console container runs an MQTT broker (Mosquitto) to receive data, writes it
 
 ---
 
-
 ## Next / Todos
 - Fix Sparklines if offline
 - Data Stream from SQLite to flask.
 
-Based on WebTUI, Flask, Docker, OpenSSH.
+Based on WebTUI, Flask, Docker, MQTT.
