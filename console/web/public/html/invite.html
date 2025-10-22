@@ -1,7 +1,8 @@
 <!--
-Invite creation component with clipboard copy functionality.
-Calls /api/invites/create POST endpoint. Functions: createInvite(), copyToClipboard().
+Invite creation handler - auto-opens detail view with inline invite display.
+SECURITY: Invite URLs stored in RAM only, cleared when agent connects or container restarts.
 -->
+
 <script>
     async function createInvite() {
         addLog('creating invite...', 'info');
@@ -12,8 +13,21 @@ Calls /api/invites/create POST endpoint. Functions: createInvite(), copyToClipbo
             const data = await response.json();
 
             if (data.success) {
-                // Invite created - will appear in sidebar
-                // User can click it there to copy
+                addLog(`invite created: ${data.username}`, 'success');
+
+                // Refresh agents to show new invite in list
+                await fetchAgents();
+
+                // Auto-select and open the new invite's detail view
+                setTimeout(() => {
+                    const rows = document.querySelectorAll('.agent-row');
+                    rows.forEach((row, index) => {
+                        if (row.dataset.entityId === data.username) {
+                            selectRow(index);
+                            openDetailView();
+                        }
+                    });
+                }, 100);
             } else {
                 addLog(`invite creation failed: ${data.error}`, 'error');
             }
@@ -23,15 +37,4 @@ Calls /api/invites/create POST endpoint. Functions: createInvite(), copyToClipbo
         }
     }
 
-    function copyInviteToClipboard(element, text) {
-        navigator.clipboard.writeText(text).then(() => {
-            const originalText = element.textContent;
-            element.textContent = 'copied!';
-            setTimeout(() => { element.textContent = originalText; }, 2000);
-            addLog('invite url copied to clipboard', 'info');
-        }).catch(err => {
-            console.error('Copy failed:', err);
-            addLog('clipboard copy failed', 'error');
-        });
-    }
 </script>

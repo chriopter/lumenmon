@@ -29,18 +29,16 @@ Provides addLog(message, level) function for inline event logging. Max 50 entrie
         }
     }
 
-    // MQTT message tracking
-    let lastMqttCount = 0;
-    let mqttCheckInterval = null;
+    // MQTT message tracking - state managed in window.app (index.html)
 
     async function checkMqttMessages() {
         try {
             const response = await fetch('/api/mqtt/test');
             const data = await response.json();
 
-            if (data.count > lastMqttCount) {
+            if (data.count > window.app.mqtt.lastMqttCount) {
                 // New messages arrived
-                const newMessages = data.messages.slice(lastMqttCount);
+                const newMessages = data.messages.slice(window.app.mqtt.lastMqttCount);
                 newMessages.forEach(msg => {
                     // Parse message format: "[timestamp] topic: payload"
                     const match = msg.match(/\[([^\]]+)\]\s+([^:]+):\s+(.+)/);
@@ -52,7 +50,7 @@ Provides addLog(message, level) function for inline event logging. Max 50 entrie
                         addLog(`MQTT: ${msg}`, 'mqtt');
                     }
                 });
-                lastMqttCount = data.count;
+                window.app.mqtt.lastMqttCount = data.count;
             }
         } catch (error) {
             // Silently ignore MQTT errors (endpoint might not be available)
@@ -64,6 +62,6 @@ Provides addLog(message, level) function for inline event logging. Max 50 entrie
         // Initial check
         checkMqttMessages();
         // Poll every 2 seconds
-        mqttCheckInterval = setInterval(checkMqttMessages, 2000);
+        window.app.mqtt.checkInterval = setInterval(checkMqttMessages, 2000);
     });
 </script>

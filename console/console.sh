@@ -12,6 +12,10 @@ core/setup/init_mqtt_cert.sh        # Generate MQTT TLS certificate
 # Start Mosquitto MQTT broker
 echo "[console] Starting Mosquitto MQTT broker..."
 mkdir -p /data/mqtt
+# Create empty password file if it doesn't exist
+if [ ! -f "/data/mqtt/passwd" ]; then
+    touch /data/mqtt/passwd
+fi
 # Fix cert permissions for mosquitto user
 if [ -f "/data/mqtt/server.crt" ]; then
     chown mosquitto:mosquitto /data/mqtt/server.crt /data/mqtt/server.key

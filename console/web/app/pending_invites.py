@@ -8,9 +8,13 @@ _pending_invites = {}
 def store_invite(agent_id, invite_data):
     """Store invite data in RAM until agent connects.
 
+    SECURITY: Stored in RAM only (lost on restart), cleared when agent connects.
+    This allows the detail view to display invite URLs for current session,
+    but they're not persistently stored and disappear on container restart.
+
     Args:
-        agent_id: Agent identifier (e.g., 'id_abc123')
-        invite_data: Dict with 'username', 'invite_url', 'fingerprint'
+        agent_id: Agent identifier (e.g., 'reg_abc123')
+        invite_data: Dict with 'username', 'fingerprint', 'invite_url', 'install_command'
     """
     _pending_invites[agent_id] = invite_data
 

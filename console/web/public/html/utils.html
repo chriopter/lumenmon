@@ -1,0 +1,61 @@
+<!--
+Shared utility functions for clipboard operations and common UI tasks.
+Provides: copyText(), copyFromElement() for unified clipboard handling across all components.
+-->
+<script>
+    /**
+     * Copy text to clipboard with consistent error handling
+     * @param {string} text - Text to copy
+     * @param {string} successMsg - Message to show in log on success (default: 'copied to clipboard')
+     * @returns {Promise<boolean>} - True if successful
+     */
+    async function copyText(text, successMsg = 'copied to clipboard') {
+        if (!navigator.clipboard) {
+            addLog('clipboard not available (requires https)', 'error');
+            return false;
+        }
+
+        try {
+            await navigator.clipboard.writeText(text);
+            addLog(successMsg, 'success');
+            return true;
+        } catch (err) {
+            console.error('Copy failed:', err);
+            addLog('clipboard copy failed', 'error');
+            return false;
+        }
+    }
+
+    /**
+     * Copy text from element with optional prefix stripping and visual feedback
+     * @param {HTMLElement} element - Element containing text to copy
+     * @param {string|RegExp} stripPrefix - Optional prefix to remove (e.g., '│ ' or /^│\s*/)
+     * @param {string} successMsg - Message to show in log on success
+     * @returns {Promise<boolean>} - True if successful
+     */
+    async function copyFromElement(element, stripPrefix = null, successMsg = 'copied to clipboard') {
+        let text = element.textContent;
+
+        // Strip prefix if provided
+        if (stripPrefix) {
+            if (stripPrefix instanceof RegExp) {
+                text = text.replace(stripPrefix, '');
+            } else {
+                text = text.replace(stripPrefix, '');
+            }
+        }
+
+        const success = await copyText(text, successMsg);
+
+        // Visual feedback on the element
+        if (success && element.style) {
+            const originalBg = element.style.background;
+            element.style.background = 'var(--accent1)';
+            setTimeout(() => {
+                element.style.background = originalBg;
+            }, 500);
+        }
+
+        return success;
+    }
+</script>

@@ -21,9 +21,7 @@ Fetches server-rendered rows every 1s. Provides row selection, navigation functi
 </div>
 
 <script>
-    let selectedRow = 0;
-    let previousAgentCount = 0;
-    let isFirstLoad = true;
+    // UI state managed in window.app (index.html)
 
     async function fetchAgents() {
         try {
@@ -80,30 +78,30 @@ Fetches server-rendered rows every 1s. Provides row selection, navigation functi
             const rows = tbody.querySelectorAll('.agent-row');
             if (rows.length > 0) {
                 // Clamp selectedRow to valid range
-                if (selectedRow >= rows.length) {
-                    selectedRow = rows.length - 1;
+                if (window.app.ui.selectedRow >= rows.length) {
+                    window.app.ui.selectedRow = rows.length - 1;
                 }
-                selectRow(selectedRow);
+                selectRow(window.app.ui.selectedRow);
             }
 
             const currentCount = rows.length;
-            if (previousAgentCount !== 0 && currentCount > previousAgentCount) {
+            if (window.app.data.previousAgentCount !== 0 && currentCount > window.app.data.previousAgentCount) {
                 addLog(`entity added (total: ${currentCount})`, 'success');
-            } else if (previousAgentCount !== 0 && currentCount < previousAgentCount) {
+            } else if (window.app.data.previousAgentCount !== 0 && currentCount < window.app.data.previousAgentCount) {
                 addLog(`entity removed (total: ${currentCount})`, 'error');
             }
-            previousAgentCount = currentCount;
+            window.app.data.previousAgentCount = currentCount;
 
             // Auto-open detail view on first load if entities exist
-            if (isFirstLoad && currentCount > 0) {
-                isFirstLoad = false;
+            if (window.app.data.isFirstLoad && currentCount > 0) {
+                window.app.data.isFirstLoad = false;
                 setTimeout(() => {
                     openDetailView();
                 }, 100);
             }
 
             // Refresh detail view after table updates (if open)
-            if (typeof refreshDetailView === 'function' && detailViewOpen) {
+            if (typeof refreshDetailView === 'function' && window.app.ui.detailViewOpen) {
                 refreshDetailView();
             }
 
@@ -134,7 +132,7 @@ Fetches server-rendered rows every 1s. Provides row selection, navigation functi
         const rows = document.querySelectorAll('.agent-row');
         if (index < 0 || index >= rows.length) return;
 
-        selectedRow = index;
+        window.app.ui.selectedRow = index;
 
         rows.forEach((row, i) => {
             if (i === index) {
@@ -149,7 +147,7 @@ Fetches server-rendered rows every 1s. Provides row selection, navigation functi
         const rows = document.querySelectorAll('.agent-row');
         if (rows.length === 0) return;
 
-        const newIndex = selectedRow + direction;
+        const newIndex = window.app.ui.selectedRow + direction;
         if (newIndex >= 0 && newIndex < rows.length) {
             selectRow(newIndex);
             const row = rows[newIndex];
@@ -165,9 +163,9 @@ Fetches server-rendered rows every 1s. Provides row selection, navigation functi
     }
 
     function getSelectedAgent() {
-        const row = document.querySelector(`.agent-row[data-index="${selectedRow}"]`);
+        const row = document.querySelector(`.agent-row[data-index="${window.app.ui.selectedRow}"]`);
         if (!row) {
-            console.error('No row found for selected index:', selectedRow);
+            console.error('No row found for selected index:', window.app.ui.selectedRow);
             return null;
         }
 
@@ -203,12 +201,10 @@ Fetches server-rendered rows every 1s. Provides row selection, navigation functi
             const data = await response.json();
 
             if (data.success) {
-                // Check if clipboard is available
-                if (navigator.clipboard) {
-                    await navigator.clipboard.writeText(data.install_command);
-                    addLog('invite command copied to clipboard', 'success');
-                } else {
-                    addLog('clipboard not available (requires https)', 'error');
+                // Use shared utility to copy
+                const copied = await copyText(data.install_command, 'invite command copied to clipboard');
+                if (!copied) {
+                    // Fallback: show in log if clipboard fails
                     addLog(`invite: ${data.install_command}`, 'info');
                 }
             } else {
