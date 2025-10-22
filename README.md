@@ -49,8 +49,6 @@ lumenmon uninstall  # Remove everything
 
 ## How It Works
 
-Agents push metrics via SSH to console. Each agent gets a dedicated SSH account and an ingress script on the server pushes data into an SQLite DB.
-
 ```
 ┌─────────────┐               ┌─────────────┐
 │   Agent     │──────────────►│   Console   │
@@ -60,15 +58,25 @@ Agents push metrics via SSH to console. Each agent gets a dedicated SSH account 
 │ • Disk 60s  │               │ • WebTUI    │
 └─────────────┘               └─────────────┘                 
 ```
+**The Agent container** runs collector script based on a configured intervall, connects via SSH multiplex to the console and pushes the data to an gateway. Everything is bash.
 
-**Agent Docker Container**
-- Runs Collector Scripts based on configured RYTHM (e.g. once per second)
-- Connects via a SSH Multiplex Connection to console, each colletor pushes data
-- Everything is bash
+**The Console container** creates a linux user per agent to connect, bounds incoming SSH connects via ForceCommand to gateway.py which writes incoming data to an SQLite. A flask Server is delivered via Caddy for the WebTUI.
+
+**The data structure** is quite simple, the agent pipes data from scripts against the gateway via SSH (Prefix, data type, interval and actual data). The gateway will create the necessary sqlite tables based on the prefix. If the data type e.g. changes, the table is recreated.
+
+**Invite system** is based on linux users. Invites are temporary linux users with timestamp in the name (to autodelete them after 60 minutes). The console SSH key is pinned from very first connection on to mitigate MITM. When an agent enrolls with such an invite, a permanent user is created and the agents ssh key is pinned on the host as well. The container recreates the user on container start from the data dir. Therefore, the complete authentication is just linux users + standard ssh tooling.
+
+
+```
+**Invite link logic**
+ssh://username:password@consolehost:port/#hostkey
+ssh://reg_1761133283700:8938fe9d5c32@192.168.10.13:2345/#ssh-ed25519_AAAAC3NzaC1lZDI1NTE5AAAAIGPrge2Vp5PgsgRx9n/Z9prEfttG5xt8MOe1WtjcdhzX
+```
 
 <details>
 
 <summary>Agent file structure</summary>
+
 ```
 ├── agent.sh (Main entry)
 ├── collectors/ (Data collectors)
@@ -77,18 +85,16 @@ Agents push metrics via SSH to console. Each agent gets a dedicated SSH account 
 ├── core/ (Scripts to register with server, start connection, start collectors)
 └── data/ (Persistent directory with SSH Identity)
 ```
+
 </details>
 
 
-**Console Docker Container**
-- Linux User per Agent, SSH sessions bound to gateway.py via ForceCommand
-- Ingress data will be written to SQLite via gateway.py
-- Invites are just temporary Linux users as well
-- A flask web server presents data as WebTUI
+
 
 <details>
 
 <summary>Console file structure</summary>
+
 ```
 ├── console.sh (Main entry)
 ├── core (Core setup)
@@ -103,6 +109,7 @@ Agents push metrics via SSH to console. Each agent gets a dedicated SSH account 
     ├── config (Caddy Config)
     └── public (HTML, CS, JS)
 ```
+
 </details>
 
 
