@@ -49,20 +49,52 @@ lumenmon uninstall  # Remove everything
 
 ## How It Works
 
-Agents push metrics via SSH to console. Each agent gets a dedicated SSH account and data goes into SQLite.
+Agents push metrics via SSH to console. Each agent gets a dedicated SSH account and an ingress script on the server pushes data into an SQLite DB.
 
 ```
-┌─────────────┐  SSH Tunnel   ┌─────────────┐
+┌─────────────┐               ┌─────────────┐
 │   Agent     │──────────────►│   Console   │
-├─────────────┤   Port 2345   ├─────────────┤
-│ • CPU 1s    │               │ • SSH Server│──► Web Dashboard
-│ • Mem 10s   │  Metric Data  │ • Per-agent │    (port 8080)
-│ • Disk 60s  │──────────────►│   Linux user│
-└─────────────┘               │ • SQLite DB │
-                              └─────────────┘
+├─────────────┤   SSH Tunnel  ├─────────────┤
+│ • CPU 1s    │──────────────►│ • SSH Server│──► Web Dashboard
+│ • Mem 10s   │  Metric Data  │ • SQLite DB │
+│ • Disk 60s  │               │ • WebTUI    │
+└─────────────┘               └─────────────┘                 
 ```
 
-Agents collect from `/proc`, push through persistent SSH. Console stores in SQLite (`/data/metrics.db`), one table per metric per agent.
+**Agent Docker Container**
+- Runs Collector Scripts based on configured RYTHM (e.g. once per second)
+- Connects via a SSH Multiplex Connection to console, each colletor pushes data
+- Everything is bash
+```
+├── agent.sh (Main entry)
+├── collectors/ (Data collectors)
+│   ├── generic (Scripts running on all system)
+│   └── ... (Scripts running dependent on environment, decided by collectors.sh)
+├── core/ (Scripts to register with server, start connection, start collectors)
+└── data/ (Persistent directory with SSH Identity)
+```
+
+**Console Docker Container**
+- Linux User per Agent, SSH sessions bound to gateway.py via ForceCommand
+- Ingress data will be written to SQLite via gateway.py
+- Invites are just temporary Linux users as well
+- A flask web server presents data as WebTUI
+
+```
+├── console.sh (Main entry)
+├── core (Core setup)
+│   ├── enrollment (Bash scripts to create invitations, enroll users etc.)
+│   ├── ingress (gateway.py and ssh server config)
+│   ├── setup (server setup, including re-creation of users on container start) 
+├── data (Persistent data dir)
+│   ├── agents (per agent user folder, containing authorized ssh keys)
+│   └── ssh (console ssh identity)
+└── web (Web server)
+    ├── app (Flask app)
+    ├── config (Caddy Config)
+    └── public (HTML, CS, JS)
+```
+
 
 **Same-host installations**: When console and agent run on the same machine, they communicate via Docker's internal network (`lumenmon-console:22`), not the external port `localhost:2345`. The installer handles this automatically.
 
@@ -103,12 +135,6 @@ Each sends typed data via SSH: `generic_cpu.tsv REAL\n1729123456 1 23.4`. Consol
 
 # Update vendored CSS/JS dependencies
 ./dev/updatecss
-
-# For other operations, use the lumenmon CLI:
-lumenmon start    # Start containers
-lumenmon logs     # View logs
-lumenmon register # Register agent
-# See: lumenmon --help
 ```
 
 ---
