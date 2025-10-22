@@ -65,6 +65,10 @@ Agents push metrics via SSH to console. Each agent gets a dedicated SSH account 
 - Runs Collector Scripts based on configured RYTHM (e.g. once per second)
 - Connects via a SSH Multiplex Connection to console, each colletor pushes data
 - Everything is bash
+
+<details>
+
+<summary>Agent file structure</summary>
 ```
 ├── agent.sh (Main entry)
 ├── collectors/ (Data collectors)
@@ -73,6 +77,8 @@ Agents push metrics via SSH to console. Each agent gets a dedicated SSH account 
 ├── core/ (Scripts to register with server, start connection, start collectors)
 └── data/ (Persistent directory with SSH Identity)
 ```
+</details>
+
 
 **Console Docker Container**
 - Linux User per Agent, SSH sessions bound to gateway.py via ForceCommand
@@ -80,6 +86,9 @@ Agents push metrics via SSH to console. Each agent gets a dedicated SSH account 
 - Invites are just temporary Linux users as well
 - A flask web server presents data as WebTUI
 
+<details>
+
+<summary>Console file structure</summary>
 ```
 ├── console.sh (Main entry)
 ├── core (Core setup)
@@ -94,6 +103,8 @@ Agents push metrics via SSH to console. Each agent gets a dedicated SSH account 
     ├── config (Caddy Config)
     └── public (HTML, CS, JS)
 ```
+</details>
+
 
 
 **Same-host installations**: When console and agent run on the same machine, they communicate via Docker's internal network (`lumenmon-console:22`), not the external port `localhost:2345`. The installer handles this automatically.
