@@ -109,7 +109,7 @@ ssh://username:password@consolehost:port/#hostkey
 ssh://reg_1761133283700:8938fe9d5c32@192.168.10.13:2345/#ssh-ed25519_AAAAC3NzaC1lZDI1NTE5AAAAIGPrge2Vp5PgsgRx9n/Z9prEfttG5xt8MOe1WtjcdhzX
 ```
 
-# Installer
+### Installer
 The installer script** will start the respective docker containers and creates a first invitation. When console and agent run on the same machine (recommended way to run console), they communicate via Docker's internal network (`lumenmon-console:22`), not the external port `localhost:2345`. The installer handles this automatically.
 
 
