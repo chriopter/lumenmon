@@ -40,7 +40,7 @@ lumenmon uninstall  # Remove everything
 ### Containers
 The Agent container runs collector script based on a configured intervall, connects via SSH multiplex to the console and pushes the data to an gateway. Everything is bash.
 
-*The Console container creates a linux user per agent to connect, bounds incoming SSH connects via ForceCommand to gateway.py which writes incoming data to an SQLite. A flask Server is delivered via Caddy for the WebTUI.
+The Console container creates a linux user per agent to connect, bounds incoming SSH connects via ForceCommand to gateway.py which writes incoming data to an SQLite. A flask Server is delivered via Caddy for the WebTUI.
 
 ```
 ┌─────────────┐               ┌─────────────┐
