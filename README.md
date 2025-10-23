@@ -21,7 +21,7 @@ curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/refs/heads/main/i
 
 The installer will guide you through setup and show you how to add agents.
 
-<img width="650" alt="screenshot-2025-09-21_20-57-39" src="https://github.com/user-attachments/assets/a900ed9c-d519-4c1c-8268-2d2417807aed" />
+<img width="700"  alt="image" src="https://github.com/user-attachments/assets/6e9a1e4c-59ca-4b34-bfa5-269ab3f99b37" />
 
 <details>
 <summary>Commands</summary>
