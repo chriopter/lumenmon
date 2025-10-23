@@ -148,16 +148,11 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
                     <div class="stat-column">
                         <div class="stat-line">
                             <span class="stat-label">UPTIME</span>
-                            <span class="stat-value">${agent.age}</span>
+                            <span class="stat-value">${agent.uptime || '-'}</span>
                         </div>
                         <div class="stat-line">
-                            <span class="stat-label">CONNECTION</span>
-                            <span class="stat-value">mqtt</span>
-                            <span class="stat-extra">TLS</span>
-                        </div>
-                        <div class="stat-line">
-                            <span class="stat-label">SAMPLES</span>
-                            <span class="stat-value">${agent.cpuHistory ? agent.cpuHistory.length : 0}</span>
+                            <span class="stat-label">HEARTBEAT</span>
+                            <span class="stat-value heartbeat-icon" data-timestamp="${agent.heartbeat || 0}"><3</span>
                         </div>
                     </div>
                 </div>
@@ -241,9 +236,27 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
                 detailStatus.textContent = agent.id;
             }
 
-            // Update samples count
-            if (statLines.length >= 6) {
-                statLines[5].querySelector('.stat-value').textContent = agent.cpuHistory ? agent.cpuHistory.length : 0;
+            // Update uptime and heartbeat
+            if (statLines.length >= 5) {
+                // Uptime
+                const uptimeEl = statLines[3].querySelector('.stat-value');
+                if (uptimeEl) {
+                    uptimeEl.textContent = agent.uptime || '-';
+                }
+
+                // Heartbeat - flash if changed
+                const heartbeatEl = statLines[4].querySelector('.heartbeat-icon');
+                if (heartbeatEl) {
+                    const oldTimestamp = parseInt(heartbeatEl.dataset.timestamp || '0');
+                    const newTimestamp = agent.heartbeat || 0;
+
+                    if (newTimestamp > 0 && newTimestamp !== oldTimestamp) {
+                        heartbeatEl.classList.remove('heartbeat-flash');
+                        void heartbeatEl.offsetWidth; // Trigger reflow
+                        heartbeatEl.classList.add('heartbeat-flash');
+                        heartbeatEl.dataset.timestamp = newTimestamp;
+                    }
+                }
             }
 
             // Refresh metrics data

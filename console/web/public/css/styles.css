@@ -149,6 +149,8 @@ body {
     font-size: 0.9em;
     letter-spacing: 0.05em;
     color: var(--accent1);
+    width: 4.5em;
+    text-align: left;
 }
 
 #agents-table {
@@ -192,16 +194,29 @@ body {
 
 /* Fixed width for metric columns to prevent layout shift */
 #agents-table tbody td:nth-child(2),
-#agents-table tbody td:nth-child(3),
+#agents-table tbody td:nth-child(3) {
+    width: 7rem;
+    min-width: 7rem;
+    max-width: 7rem;
+}
+
+/* Disk column (no sparkline) */
 #agents-table tbody td:nth-child(4) {
-    width: 8.5rem;
-    min-width: 8.5rem;
-    max-width: 8.5rem;
+    width: 3.5rem;
+    min-width: 3.5rem;
+    max-width: 3.5rem;
 }
 
 /* Let hostname column take remaining space */
 #agents-table tbody td:nth-child(1) {
     width: auto;
+}
+
+/* Prevent line breaks in agent rows */
+#agents-table tbody td {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 #agents-table .agent-row {
@@ -376,6 +391,26 @@ body {
     display: inline-block;
     text-align: right;
     width: 4rem;
+}
+
+.heartbeat-icon {
+    color: #f38ba8;
+    transition: all 0.3s ease;
+}
+
+.heartbeat-flash {
+    animation: heartbeat-pulse 0.5s ease-out;
+}
+
+@keyframes heartbeat-pulse {
+    0%, 100% {
+        transform: scale(1);
+        color: #f38ba8;
+    }
+    50% {
+        transform: scale(1.3);
+        color: #ff0000;
+    }
 }
 
 .stat-extra {
