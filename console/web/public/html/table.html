@@ -135,6 +135,9 @@ Fetches server-rendered rows every 1s. Provides row selection, navigation functi
                 // If it's an invite, copy URL on click
                 if (row.dataset.entityType === 'invite') {
                     copyInviteUrl(row.dataset.entityId);
+                } else {
+                    // For agents, open detail view
+                    openDetailView();
                 }
             });
         });
