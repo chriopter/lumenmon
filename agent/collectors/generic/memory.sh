@@ -17,8 +17,8 @@ while true; do
     # Calculate usage percentage: (total - available) / total * 100
     usage=$(((total - avail) * 100 / total))
 
-    # Publish
-    publish_metric "$METRIC" "$usage" "$TYPE"
+    # Publish with interval
+    publish_metric "$METRIC" "$usage" "$TYPE" "$BREATHE"
 
     sleep $BREATHE
 done

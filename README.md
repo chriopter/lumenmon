@@ -87,7 +87,9 @@ There are two docker containers:
 
 ### Data Flow
 
-Agents publish JSON to MQTT topics → Console gateway writes to SQLite (one table per agent per metric) → Web dashboard queries SQLite for display. Example: Agent `id_abc123` creates tables `id_abc123_generic_cpu`, `id_abc123_generic_disk`, etc. 
+Agents publish JSON to MQTT topics → Console gateway writes to SQLite (one table per agent per metric) → Web dashboard queries SQLite for display. Example: Agent `id_abc123` creates tables `id_abc123_generic_cpu`, `id_abc123_generic_disk`, etc.
+
+**Staleness Detection:** Each metric includes its update interval (e.g. 1s for CPU, 10s for memory). Data is stale if it misses the expected update (with 1s grace): `age > interval + 1s`. Agents show green (all fresh), yellow (connected but some metrics stale), or red (no heartbeat). 
 
 <img width="700" alt="image" src="https://github.com/user-attachments/assets/2e67ead2-e5ce-4291-80d1-db08f7dd6ee7" />
 
@@ -124,10 +126,5 @@ Agents publish JSON to MQTT topics → Console gateway writes to SQLite (one tab
 </details>
 
 ---
-
-## Next / Todos
-- Fix Sparklines if offline
-- Data Stream from SQLite to flask.
-- Caddy Endpoint Protection
 
 Based on WebTUI, Flask, Docker, MQTT.

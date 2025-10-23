@@ -46,9 +46,13 @@ while True:
         data, _ = sock.recvfrom(4096)
         msg = json.loads(data.decode())
 
-        # Build topic and payload
+        # Build topic and payload (include interval for staleness detection)
         topic = f"metrics/{mqtt_user}/{msg['metric']}"
-        payload = json.dumps({"value": msg["value"], "type": msg["type"]})
+        payload = json.dumps({
+            "value": msg["value"],
+            "type": msg["type"],
+            "interval": msg.get("interval", 60)  # Default 60s if not provided
+        })
 
         # Publish to MQTT broker
         client.publish(topic, payload)

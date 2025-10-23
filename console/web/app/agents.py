@@ -111,6 +111,8 @@ def get_all_entities():
                     'age': metrics.get('age', 0),
                     'age_formatted': metrics.get('age_formatted', ''),
                     'lastUpdate': metrics.get('lastUpdate', 0),
+                    'uptime': metrics.get('uptime', ''),
+                    'heartbeat': metrics.get('heartbeat', 0),
                     'cpuSparkline': metrics.get('cpuSparkline', ''),
                     'memSparkline': metrics.get('memSparkline', ''),
                     'diskSparkline': metrics.get('diskSparkline', ''),

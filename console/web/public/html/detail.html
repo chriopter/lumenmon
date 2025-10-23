@@ -13,6 +13,9 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
             return;
         }
 
+        // Register with global clock for synchronized TUI updates
+        window.globalClock.register(refreshDetailView);
+
         try {
             const panel = document.getElementById('detail-panel');
             panel.classList.remove('detail-panel-empty');
@@ -147,12 +150,12 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
                     </div>
                     <div class="stat-column">
                         <div class="stat-line">
-                            <span class="stat-label">UPTIME</span>
-                            <span class="stat-value">${agent.uptime || '-'}</span>
+                            <span class="stat-label">KERNEL</span>
+                            <span class="stat-value" id="kernel-value">-</span>
                         </div>
                         <div class="stat-line">
-                            <span class="stat-label">HEARTBEAT</span>
-                            <span class="stat-value heartbeat-icon" data-timestamp="${agent.heartbeat || 0}"><3</span>
+                            <span class="stat-label">OS</span>
+                            <span class="stat-value" id="os-value">-</span>
                         </div>
                     </div>
                 </div>
@@ -184,6 +187,7 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
             renderCharts(agent);
             loadMetrics(agent.id);
             loadSystemStatus(agent.id, agent.type || 'agent');
+            loadSystemInfo(agent.id);
         } catch (error) {
             console.error('Error opening detail view:', error);
             addLog(`error opening detail: ${error.message}`, 'error');
@@ -236,25 +240,25 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
                 detailStatus.textContent = agent.id;
             }
 
-            // Update uptime and heartbeat
-            if (statLines.length >= 5) {
-                // Uptime
-                const uptimeEl = statLines[3].querySelector('.stat-value');
-                if (uptimeEl) {
-                    uptimeEl.textContent = agent.uptime || '-';
-                }
+            // Flash status dot on heartbeat - get fresh data from row
+            const freshAgent = getSelectedAgent();
+            if (freshAgent) {
+                const statusDot = document.querySelector('.detail-header .status-dot');
+                if (statusDot) {
+                    // Store last heartbeat in window.app to persist across re-renders
+                    if (!window.app.data.lastHeartbeat) {
+                        window.app.data.lastHeartbeat = {};
+                    }
 
-                // Heartbeat - flash if changed
-                const heartbeatEl = statLines[4].querySelector('.heartbeat-icon');
-                if (heartbeatEl) {
-                    const oldTimestamp = parseInt(heartbeatEl.dataset.timestamp || '0');
-                    const newTimestamp = agent.heartbeat || 0;
+                    const agentId = freshAgent.id;
+                    const oldTimestamp = window.app.data.lastHeartbeat[agentId] || 0;
+                    const newTimestamp = freshAgent.heartbeat || 0;
 
                     if (newTimestamp > 0 && newTimestamp !== oldTimestamp) {
-                        heartbeatEl.classList.remove('heartbeat-flash');
-                        void heartbeatEl.offsetWidth; // Trigger reflow
-                        heartbeatEl.classList.add('heartbeat-flash');
-                        heartbeatEl.dataset.timestamp = newTimestamp;
+                        statusDot.classList.remove('heartbeat-flash');
+                        void statusDot.offsetWidth; // Trigger reflow
+                        statusDot.classList.add('heartbeat-flash');
+                        window.app.data.lastHeartbeat[agentId] = newTimestamp;
                     }
                 }
             }
@@ -268,6 +272,10 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
 
     function closeDetailView() {
         window.app.ui.detailViewOpen = false;
+
+        // Unregister from global clock when closing detail view
+        window.globalClock.unregister(refreshDetailView);
+
         const panel = document.getElementById('detail-panel');
         panel.classList.add('detail-panel-empty');
         panel.innerHTML = '<span class="detail-placeholder">← Select an agent and press <kbd>Enter</kbd></span>';
@@ -442,6 +450,7 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
 
             // Metadata columns (divider before first metadata column)
             html += '<td class="db-content-separator">LAST UPDATE</td>';
+            html += '<td>NEXT UPDATE</td>';
             html += '<td>TYPE</td>';
             html += '<td>DATA SPAN</td>';
             html += '<td># SAMPLES</td>';
@@ -451,6 +460,7 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
                 const metricName = table.metric_name;
                 const columns = table.columns || {};
                 const metadata = table.metadata || {};
+                const staleness = table.staleness || {};  // Backend-calculated staleness (DRY)
 
                 // Track value for flash detection
                 const value = columns.value;
@@ -458,20 +468,68 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
                 const flashClass = (previousValues[metricName] !== undefined &&
                                    previousValues[metricName] !== value) ? 'value-flash' : '';
 
+                // Use backend staleness calculation (single source of truth)
+                const isStale = staleness.is_stale || false;
+                const timeUntilNext = staleness.next_update_in || 0;
+
+                // Special handling for interval=0 (one-time values like registration_test)
+                const isOneTime = columns.interval === 0;
+
+                // 1 second grace period to prevent flickering from network/render delays
+                const gracePeriod = 1;
+                const isOverdue = !isOneTime && timeUntilNext < -gracePeriod;
+
+                // Format next update text
+                let nextUpdateText = '-';
+                if (isOneTime) {
+                    // One-time values never update
+                    nextUpdateText = 'once';
+                } else if (columns.timestamp > 0) {
+                    if (timeUntilNext >= 0) {
+                        // Future: show exact countdown including "in 0s"
+                        if (timeUntilNext < 60) {
+                            nextUpdateText = `in ${timeUntilNext}s`;
+                        } else if (timeUntilNext < 3600) {
+                            nextUpdateText = `in ${Math.floor(timeUntilNext / 60)}m`;
+                        } else {
+                            nextUpdateText = `in ${Math.floor(timeUntilNext / 3600)}h`;
+                        }
+                    } else if (timeUntilNext >= -gracePeriod) {
+                        // Grace period after expected: show "now"
+                        nextUpdateText = 'now';
+                    } else {
+                        // Overdue beyond grace: show "Xs ago" in red
+                        const overdue = Math.abs(timeUntilNext);
+                        if (overdue < 60) {
+                            nextUpdateText = `${overdue}s ago`;
+                        } else if (overdue < 3600) {
+                            nextUpdateText = `${Math.floor(overdue / 60)}m ago`;
+                        } else {
+                            nextUpdateText = `${Math.floor(overdue / 3600)}h ago`;
+                        }
+                    }
+                }
+
                 // Color code by type
                 let typeClass = 'type-text';
                 if (metadata.type === 'REAL') typeClass = 'type-real';
                 else if (metadata.type === 'INTEGER') typeClass = 'type-integer';
 
-                html += `<tr>`;
+                // Add stale row class if data is old
+                const rowClass = isStale ? 'stale-row' : '';
+
+                html += `<tr class="${rowClass}">`;
                 html += `<td class="metric-name">${metricName}</td>`;
 
                 // Dynamically render all DB columns
                 columnNames.forEach((colName) => {
                     const val = columns[colName] !== undefined ? columns[colName] : '-';
 
-                    // Add styling to value column only
-                    const cellClass = colName === 'value' ? `metric-value ${flashClass}`.trim() : '';
+                    // Add styling to value column (flash + stale check)
+                    let cellClass = '';
+                    if (colName === 'value') {
+                        cellClass = `metric-value ${flashClass}`.trim();
+                    }
 
                     // Format display - truncate long values
                     let displayVal = val;
@@ -486,6 +544,7 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
 
                 // Metadata columns (divider before first metadata column)
                 html += `<td class="db-content-separator">${metadata.timestamp_age || '-'}</td>`;
+                html += `<td class="${isOverdue ? 'overdue-text' : ''}">${nextUpdateText}</td>`;
                 html += `<td class="${typeClass}">${metadata.type || '-'}</td>`;
                 html += `<td>${metadata.data_span || '-'}</td>`;
                 html += `<td>${metadata.line_count || '-'}</td>`;
@@ -529,6 +588,31 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
             }
         } catch (error) {
             console.error('Error loading system status:', error);
+        }
+    }
+
+    async function loadSystemInfo(agentId) {
+        try {
+            const response = await fetch(`/api/agents/${agentId}/tables`);
+            if (!response.ok) return;
+
+            const data = await response.json();
+
+            // Find kernel and OS values
+            const kernelTable = data.tables.find(t => t.metric_name === 'generic_sys_kernel');
+            const osTable = data.tables.find(t => t.metric_name === 'generic_sys_os');
+
+            const kernelEl = document.getElementById('kernel-value');
+            const osEl = document.getElementById('os-value');
+
+            if (kernelEl && kernelTable) {
+                kernelEl.textContent = kernelTable.columns.value || '-';
+            }
+            if (osEl && osTable) {
+                osEl.textContent = osTable.columns.value || '-';
+            }
+        } catch (error) {
+            console.error('Error loading system info:', error);
         }
     }
 

@@ -13,6 +13,6 @@ source /app/core/mqtt/publish.sh
 while true; do
     sleep $PULSE
 
-    # Send heartbeat signal (always 1)
-    publish_metric "$METRIC" "1" "$TYPE"
+    # Send heartbeat signal (always 1) with interval
+    publish_metric "$METRIC" "1" "$TYPE" "$PULSE"
 done

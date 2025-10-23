@@ -14,8 +14,8 @@ while true; do
     # Get disk usage for root filesystem (remove % sign)
     usage=$(df -P / | tail -1 | awk '{print $5}' | tr -d '%')
 
-    # Publish
-    publish_metric "$METRIC" "$usage" "$TYPE"
+    # Publish with interval
+    publish_metric "$METRIC" "$usage" "$TYPE" "$CYCLE"
 
     sleep $CYCLE
 done

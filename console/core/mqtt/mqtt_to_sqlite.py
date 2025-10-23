@@ -89,13 +89,14 @@ class MQTTBridge:
                 log(agent_id, f'Invalid JSON payload: {e}')
                 return
 
-            # Extract value and type from JSON
+            # Extract value, type, and interval from JSON
             if 'value' not in data:
                 log(agent_id, f'Missing "value" field in payload')
                 return
 
             value = data['value']
             data_type = data.get('type', 'REAL')  # Default to REAL if not specified
+            interval = data.get('interval', 60)  # Default to 60s if not specified
 
             # Validate type
             if data_type not in ['REAL', 'INTEGER', 'TEXT']:
@@ -119,23 +120,24 @@ class MQTTBridge:
 
             if existing:
                 existing_sql = existing[0]
-                # Check if value column type matches
-                if f'value {data_type}' not in existing_sql:
+                # Check if value column type matches or interval column is missing
+                if f'value {data_type}' not in existing_sql or 'interval' not in existing_sql:
                     log(agent_id, f'Schema mismatch for {table_name}, dropping and recreating')
                     cursor.execute(f'DROP TABLE "{table_name}"')
 
-            # Create table with appropriate type (simplified schema)
+            # Create table with appropriate type and interval column
             cursor.execute(f'''
                 CREATE TABLE IF NOT EXISTS "{table_name}" (
                     timestamp INTEGER PRIMARY KEY,
-                    value {data_type}
+                    value {data_type},
+                    interval INTEGER
                 )
             ''')
 
             # Insert data
             cursor.execute(
-                f'INSERT OR REPLACE INTO "{table_name}" (timestamp, value) VALUES (?, ?)',
-                (timestamp, value)
+                f'INSERT OR REPLACE INTO "{table_name}" (timestamp, value, interval) VALUES (?, ?, ?)',
+                (timestamp, value, interval)
             )
 
             # Immediate commit for real-time data availability

@@ -23,6 +23,45 @@ def _format_timestamp_age(timestamp):
     age = int(time.time()) - timestamp
     return _format_duration(age) + " ago"
 
+def calculate_staleness(timestamp, interval):
+    """
+    Single source of truth for staleness calculation (DRY principle).
+
+    Returns dict with:
+        - age: seconds since last update
+        - is_stale: data older than 2x expected interval (False if interval=0)
+        - next_update: when next update is expected (unix timestamp, 0 if interval=0)
+        - next_update_in: seconds until next update (negative if overdue, 0 if interval=0)
+    """
+    current_time = int(time.time())
+    age = current_time - timestamp if timestamp else 0
+
+    # Special case: interval=0 means one-time value (never stale)
+    if interval == 0:
+        return {
+            'age': age,
+            'is_stale': False,
+            'next_update': 0,
+            'next_update_in': 0
+        }
+
+    # Calculate next expected update
+    next_update = timestamp + interval if timestamp else 0
+    next_update_in = next_update - current_time
+
+    # Staleness: missed expected update + 1s grace period
+    # is_stale if: now > timestamp + interval + grace
+    # Simplified: age > interval + grace
+    grace_period = 1
+    is_stale = age > (interval + grace_period)
+
+    return {
+        'age': age,
+        'is_stale': is_stale,
+        'next_update': next_update,
+        'next_update_in': next_update_in
+    }
+
 def get_history_from_db(agent_id, metric_name):
     """Read all history for a metric from SQLite."""
     history = []
@@ -66,7 +105,7 @@ def get_history_from_db(agent_id, metric_name):
     return history
 
 def get_latest_value(agent_id, metric_name):
-    """Get the most recent value and timestamp for a metric."""
+    """Get the most recent value, timestamp, and interval for a metric."""
     table_name = f"{agent_id}_{metric_name}"
 
     try:
@@ -75,12 +114,22 @@ def get_latest_value(agent_id, metric_name):
         # Check if table exists
         if not table_exists(conn, table_name):
             conn.close()
-            return None, None
+            return None, None, None
 
         cursor = conn.cursor()
-        cursor.execute(
-            f'SELECT timestamp, value FROM "{table_name}" ORDER BY timestamp DESC LIMIT 1'
-        )
+        # Check if interval column exists
+        cursor.execute(f'PRAGMA table_info("{table_name}")')
+        columns = [col[1] for col in cursor.fetchall()]
+        has_interval = 'interval' in columns
+
+        if has_interval:
+            cursor.execute(
+                f'SELECT timestamp, value, interval FROM "{table_name}" ORDER BY timestamp DESC LIMIT 1'
+            )
+        else:
+            cursor.execute(
+                f'SELECT timestamp, value FROM "{table_name}" ORDER BY timestamp DESC LIMIT 1'
+            )
 
         row = cursor.fetchone()
         conn.close()
@@ -91,11 +140,13 @@ def get_latest_value(agent_id, metric_name):
                 value = round(float(row[1]), 1)
             except (ValueError, TypeError):
                 value = row[1]
-            return row[0], value
+
+            interval = row[2] if has_interval and len(row) > 2 else 60  # Default 60s
+            return row[0], value, interval
     except Exception:
         pass
 
-    return None, None
+    return None, None, None
 
 def get_latest_hostname(agent_id):
     """Get the most recent hostname value."""
@@ -138,32 +189,51 @@ def get_agent_metrics(agent_id):
         'lastUpdate': 0,
         'cpuHistory': [],
         'memHistory': [],
-        'diskHistory': []
+        'diskHistory': [],
+        'minInterval': 60  # Track minimum interval for staleness detection
     }
 
     # Read CPU
-    timestamp, value = get_latest_value(agent_id, 'generic_cpu')
+    timestamp, value, interval = get_latest_value(agent_id, 'generic_cpu')
     if timestamp and value is not None:
         metrics['cpu'] = value
         metrics['lastUpdate'] = max(metrics['lastUpdate'], timestamp)
+        metrics['minInterval'] = min(metrics['minInterval'], interval)
     metrics['cpuHistory'] = get_history_from_db(agent_id, 'generic_cpu')
 
     # Read Memory
-    timestamp, value = get_latest_value(agent_id, 'generic_mem')
+    timestamp, value, interval = get_latest_value(agent_id, 'generic_memory')
     if timestamp and value is not None:
         metrics['memory'] = value
         metrics['lastUpdate'] = max(metrics['lastUpdate'], timestamp)
-    metrics['memHistory'] = get_history_from_db(agent_id, 'generic_mem')
+        metrics['minInterval'] = min(metrics['minInterval'], interval)
+    metrics['memHistory'] = get_history_from_db(agent_id, 'generic_memory')
 
     # Read Disk
-    timestamp, value = get_latest_value(agent_id, 'generic_disk')
+    timestamp, value, interval = get_latest_value(agent_id, 'generic_disk')
     if timestamp and value is not None:
         metrics['disk'] = value
         metrics['lastUpdate'] = max(metrics['lastUpdate'], timestamp)
+        metrics['minInterval'] = min(metrics['minInterval'], interval)
     metrics['diskHistory'] = get_history_from_db(agent_id, 'generic_disk')
 
     # Read Hostname
     metrics['hostname'] = get_latest_hostname(agent_id)
+
+    # Read Uptime
+    timestamp, value, interval = get_latest_value(agent_id, 'generic_sys_uptime')
+    if timestamp and value is not None:
+        metrics['uptime'] = str(value)
+    else:
+        metrics['uptime'] = ''
+
+    # Read Heartbeat timestamp (use this for minInterval too)
+    timestamp, value, interval = get_latest_value(agent_id, 'generic_heartbeat')
+    if timestamp:
+        metrics['heartbeat'] = timestamp
+        metrics['minInterval'] = min(metrics['minInterval'], interval)
+    else:
+        metrics['heartbeat'] = 0
 
     # Calculate age and status based on data freshness
     current_time = int(time.time())
@@ -171,17 +241,26 @@ def get_agent_metrics(agent_id):
     if metrics['lastUpdate'] > 0:
         metrics['age'] = current_time - metrics['lastUpdate']
 
-        # Determine status based on data freshness (MQTT architecture)
-        # CPU metric arrives every 1s (PULSE), so we use tight thresholds
-        if metrics['age'] < 2:
-            # Data < 2s old = online (actively sending)
-            metrics['status'] = 'online'
-        elif metrics['age'] < 10:
-            # Data 2-10s old = stale (connection degraded)
+        # Check if heartbeat is stale (agent disconnected)
+        heartbeat_staleness = calculate_staleness(metrics.get('heartbeat', 0), 1)  # Heartbeat is 1s
+
+        # Get all agent tables to check for any stale metrics
+        agent_tables = get_agent_tables(agent_id)
+        any_stale = any(table.get('staleness', {}).get('is_stale', False) for table in agent_tables)
+
+        # Determine status using centralized staleness logic
+        # Green (online): Heartbeat fresh AND no stale metrics
+        # Yellow (stale): Heartbeat fresh BUT some metrics stale
+        # Red (offline): Heartbeat stale (agent disconnected)
+        if heartbeat_staleness['is_stale']:
+            # No heartbeat = agent disconnected
+            metrics['status'] = 'offline'
+        elif any_stale:
+            # Heartbeat OK but some metrics overdue = degraded
             metrics['status'] = 'stale'
         else:
-            # Data > 10s old = offline (not responding)
-            metrics['status'] = 'offline'
+            # All metrics fresh = healthy
+            metrics['status'] = 'online'
     else:
         # No data at all
         metrics['status'] = 'offline'
@@ -255,6 +334,11 @@ def get_agent_tables(agent_id):
                     else:
                         columns[col_name] = raw_value
 
+                # Calculate staleness using centralized function
+                timestamp = columns.get('timestamp', 0)
+                interval = columns.get('interval', 60)
+                staleness = calculate_staleness(timestamp, interval)
+
                 # Calculate metadata
                 timestamp_age = _format_timestamp_age(latest[0])
                 data_span = _format_duration(latest[0] - oldest[0]) if oldest else "N/A"
@@ -263,6 +347,7 @@ def get_agent_tables(agent_id):
                     'metric_name': metric_name,
                     'table_name': table_name,
                     'columns': columns,  # All raw DB columns dynamically
+                    'staleness': staleness,  # Centralized staleness calculation
                     'metadata': {
                         'type': value_type,
                         'timestamp_age': timestamp_age,
