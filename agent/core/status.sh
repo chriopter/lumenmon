@@ -59,7 +59,7 @@ if mosquitto_pub \
     -u "$MQTT_USERNAME" -P "$MQTT_PASSWORD" \
     --cafile "$MQTT_DATA_DIR/server.crt" \
     -t "metrics/${MQTT_USERNAME}/status_test" \
-    -m '{"value":1,"type":"INTEGER"}' \
+    -m '{"value":1,"type":"INTEGER","interval":0}' \
     2>/dev/null; then
     printf "${GREEN}✓${NC} Connected\n"
 else
