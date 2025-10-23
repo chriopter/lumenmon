@@ -79,40 +79,66 @@ Fetches server-rendered rows every 1s. Provides row selection, navigation functi
                         html += `</tr>`;
                     }
                 });
-                tbody.innerHTML = html;
-            } else {
-                tbody.innerHTML = `<tr><td colspan="4" class="no-data">no agents connected</td></tr>`;
-            }
 
-            attachRowHandlers();
-
-            // Restore highlight after content refresh
-            const rows = tbody.querySelectorAll('.agent-row');
-            if (rows.length > 0) {
-                // Clamp selectedRow to valid range
-                if (window.app.ui.selectedRow >= rows.length) {
-                    window.app.ui.selectedRow = rows.length - 1;
+                // Queue DOM update (wait for all data to load)
+                if (window.globalClock.pendingDomUpdates) {
+                    window.globalClock.pendingDomUpdates.push(() => {
+                        tbody.innerHTML = html;
+                    });
+                } else {
+                    // Fallback if not called from globalClock
+                    tbody.innerHTML = html;
                 }
-                selectRow(window.app.ui.selectedRow);
+            } else {
+                const noDataHtml = `<tr><td colspan="4" class="no-data">no agents connected</td></tr>`;
+                if (window.globalClock.pendingDomUpdates) {
+                    window.globalClock.pendingDomUpdates.push(() => {
+                        tbody.innerHTML = noDataHtml;
+                    });
+                } else {
+                    tbody.innerHTML = noDataHtml;
+                }
             }
 
-            const currentCount = rows.length;
-            if (window.app.data.previousAgentCount !== 0 && currentCount > window.app.data.previousAgentCount) {
-                addLog(`entity added (total: ${currentCount})`, 'success');
-            } else if (window.app.data.previousAgentCount !== 0 && currentCount < window.app.data.previousAgentCount) {
-                addLog(`entity removed (total: ${currentCount})`, 'error');
-            }
-            window.app.data.previousAgentCount = currentCount;
+            // Queue post-render actions (after DOM update)
+            const postRender = () => {
+                attachRowHandlers();
 
-            // Auto-open detail view on first load if entities exist
-            if (window.app.data.isFirstLoad && currentCount > 0) {
-                window.app.data.isFirstLoad = false;
-                setTimeout(() => {
-                    openDetailView();
-                }, 100);
+                // Restore highlight after content refresh
+                const rows = tbody.querySelectorAll('.agent-row');
+                if (rows.length > 0) {
+                    // Clamp selectedRow to valid range
+                    if (window.app.ui.selectedRow >= rows.length) {
+                        window.app.ui.selectedRow = rows.length - 1;
+                    }
+                    selectRow(window.app.ui.selectedRow);
+                }
+
+                const currentCount = rows.length;
+                if (window.app.data.previousAgentCount !== 0 && currentCount > window.app.data.previousAgentCount) {
+                    addLog(`entity added (total: ${currentCount})`, 'success');
+                } else if (window.app.data.previousAgentCount !== 0 && currentCount < window.app.data.previousAgentCount) {
+                    addLog(`entity removed (total: ${currentCount})`, 'error');
+                }
+                window.app.data.previousAgentCount = currentCount;
+
+                // Auto-open detail view on first load if entities exist
+                if (window.app.data.isFirstLoad && currentCount > 0) {
+                    window.app.data.isFirstLoad = false;
+                    setTimeout(() => {
+                        openDetailView();
+                    }, 100);
+                }
+            };
+
+            // Queue or run immediately
+            if (window.globalClock.pendingDomUpdates) {
+                window.globalClock.pendingDomUpdates.push(postRender);
+            } else {
+                postRender();
             }
 
-            // Detail view now updates via globalClock - no cascade needed
+            // Detail view now refreshes on globalClock (no cascade needed)
 
         } catch (error) {
             console.error('Error:', error);

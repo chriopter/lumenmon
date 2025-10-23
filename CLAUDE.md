@@ -211,12 +211,12 @@ Guidelines:
 - Status logic: checks MQTT connections + data freshness
 - Detail view: CPU/memory/disk charts, all metrics table
 
-**Synchronized UI Updates** (`console/web/public/html/index.html:16-40`):
-- Global clock (`window.globalClock`) ticks every 1000ms
-- All UI components register callbacks for synchronized updates
-- Main table: `fetchAgents()` registered at `table.html:240`
-- Detail view: `refreshDetailView()` registered on open at `detail.html:17`
-- Result: TUI-like synchronized refresh where entire screen updates at once (no staggered animations)
+**Synchronized UI Updates** (`console/web/public/html/index.html:15-58`):
+- Global clock (`window.globalClock`) waits for ALL async callbacks, then applies DOM updates together
+- Clock loop: tick → fetch all data → wait for responses → apply all DOM updates in one frame → 1s delay → repeat
+- Main table: `fetchAgents()` queues DOM updates in `window.globalClock.pendingDomUpdates` (table.html:84-100)
+- Detail view: `refreshDetailView()` and `loadMetrics()` queue their DOM updates (detail.html:273-276, 570-576)
+- Result: Perfect synchronization - all data fetches complete, then entire UI updates in single frame (zero race conditions)
 
 ### MQTT Enrollment Flow
 1. Console creates invite: `/app/core/enrollment/invite_create.sh`
