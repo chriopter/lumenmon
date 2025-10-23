@@ -1077,10 +1077,15 @@ footer {
     user-select: all;
     line-height: 1.4;
     font-size: 0.75rem;
+    transition: all 0.2s ease;
+    padding: 0.25rem;
+    margin: -0.25rem;
+    border-radius: 3px;
 }
 
 .tui-box-content:hover {
     color: var(--accent1);
+    background: var(--background1);
 }
 
 .tui-footer {

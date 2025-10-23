@@ -54,12 +54,12 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
                 <div class="detail-content-tui">
                     <div class="tui-box">
                         <h3>install command</h3>
-                        <div class="tui-box-content" onclick="copyText(\`${installCommand.replace(/`/g, '\\`')}\`, 'install command copied')">${installCommand}</div>
+                        <div class="tui-box-content" id="copy-install-cmd">${installCommand}</div>
                     </div>
 
                     <div class="tui-box">
                         <h3>invite url</h3>
-                        <div class="tui-box-content" onclick="copyText(\`${inviteData.invite_url}\`, 'invite url copied')">${inviteData.invite_url}</div>
+                        <div class="tui-box-content" id="copy-invite-url">${inviteData.invite_url}</div>
                     </div>
 
                     <div class="tui-footer">
@@ -67,6 +67,51 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
                     </div>
                 </div>
             `;
+
+            // Simple click handlers
+            const installBox = document.getElementById('copy-install-cmd');
+            const urlBox = document.getElementById('copy-invite-url');
+
+            const flashCopy = (box, label, message) => {
+                const header = box.previousElementSibling;
+                const originalText = header.textContent;
+
+                // Flash the content
+                box.style.background = '#a6e3a1';
+                box.style.color = '#1e1e2e';
+
+                // Flash the header text
+                header.textContent = message;
+                header.style.color = '#a6e3a1';
+
+                setTimeout(() => {
+                    box.style.background = '';
+                    box.style.color = '';
+                    header.textContent = originalText;
+                    header.style.color = '';
+                }, 500);
+            };
+
+            installBox.addEventListener('click', async () => {
+                if (navigator.clipboard) {
+                    await navigator.clipboard.writeText(installCommand);
+                    flashCopy(installBox, 'install command', 'copied!');
+                    addLog('copied install command', 'success');
+                } else {
+                    addLog('clipboard unavailable (use https or localhost)', 'error');
+                }
+            });
+
+            urlBox.addEventListener('click', async () => {
+                if (navigator.clipboard) {
+                    await navigator.clipboard.writeText(inviteData.invite_url);
+                    flashCopy(urlBox, 'invite url', 'copied!');
+                    addLog('copied invite url', 'success');
+                } else {
+                    addLog('clipboard unavailable (use https or localhost)', 'error');
+                }
+            });
+
             return;
         }
 
