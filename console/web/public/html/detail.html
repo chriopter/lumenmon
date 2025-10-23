@@ -118,7 +118,10 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
         panel.innerHTML = `
             <div class="detail-header">
                 <h2><span class="status-dot ${agent.status}"></span>${agent.hostname || agent.id}</h2>
-                <span class="detail-status">${agent.id}</span>
+                <div class="detail-header-right">
+                    <span class="detail-status">${agent.id}</span>
+                    <span class="status-warnings" id="status-warnings"></span>
+                </div>
             </div>
             <div class="detail-content">
                 <div class="detail-stats">
@@ -179,10 +182,6 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
                     <div id="metrics-list" class="metrics-list">
                         <span class="loading-text">Loading metrics...</span>
                     </div>
-                </div>
-
-                <div id="system-status-container">
-                    <span class="loading-text">Loading system status...</span>
                 </div>
             </div>
         `;
@@ -429,8 +428,8 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
             });
 
             // Metadata columns (divider before first metadata column)
-            html += '<td class="db-content-separator">TYPE</td>';
-            html += '<td>LAST UPDATE</td>';
+            html += '<td class="db-content-separator">LAST UPDATE</td>';
+            html += '<td>TYPE</td>';
             html += '<td>DATA SPAN</td>';
             html += '<td># SAMPLES</td>';
             html += '</tr></thead><tbody>';
@@ -461,18 +460,20 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
                     // Add styling to value column only
                     const cellClass = colName === 'value' ? `metric-value ${flashClass}`.trim() : '';
 
-                    // Format display
+                    // Format display - truncate long values
                     let displayVal = val;
                     if (colName === 'interval') {
                         displayVal = val !== '-' ? `${val}s` : '-';
+                    } else if (typeof displayVal === 'string' && displayVal.length > 30) {
+                        displayVal = displayVal.substring(0, 27) + '...';
                     }
 
-                    html += `<td class="${cellClass}">${displayVal}</td>`;
+                    html += `<td class="${cellClass}" title="${val}">${displayVal}</td>`;
                 });
 
                 // Metadata columns (divider before first metadata column)
-                html += `<td class="db-content-separator ${typeClass}">${metadata.type || '-'}</td>`;
-                html += `<td>${metadata.timestamp_age || '-'}</td>`;
+                html += `<td class="db-content-separator">${metadata.timestamp_age || '-'}</td>`;
+                html += `<td class="${typeClass}">${metadata.type || '-'}</td>`;
                 html += `<td>${metadata.data_span || '-'}</td>`;
                 html += `<td>${metadata.line_count || '-'}</td>`;
                 html += `</tr>`;
@@ -498,68 +499,23 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
             const data = await response.json();
             const entity = data.entities.find(e => e.id === entityId);
 
-            const container = document.getElementById('system-status-container');
+            if (!entity) return;
 
-            if (!entity) {
-                container.innerHTML = '';
-                return;
+            // Show warnings only if something is missing
+            const warnings = [];
+            if (!entity.has_mqtt_user) {
+                warnings.push('MQTT USER MISSING');
+            }
+            if (entity.type === 'agent' && !entity.has_table) {
+                warnings.push('SQL TABLES MISSING');
             }
 
-            const checkIcon = (val) => val ? '✓' : '✗';
-
-            let html = `
-                <div class="system-status-section">
-                    <h3>Agent Status</h3>
-                    <div class="system-status-simple">
-                        <div class="stat-column">
-                            <div class="stat-line">
-                                <span class="stat-label">ID</span>
-                                <span class="stat-value">${entity.id}</span>
-                            </div>
-                            <div class="stat-line">
-                                <span class="stat-label">TYPE</span>
-                                <span class="stat-value">${entity.type}</span>
-                            </div>
-            `;
-
-            if (entity.type === 'agent' && entity.hostname) {
-                html += `
-                            <div class="stat-line">
-                                <span class="stat-label">HOSTNAME</span>
-                                <span class="stat-value">${entity.hostname}</span>
-                            </div>
-                `;
+            const warningsEl = document.getElementById('status-warnings');
+            if (warningsEl) {
+                warningsEl.textContent = warnings.join(' · ');
             }
-
-            html += `
-                        </div>
-                        <div class="stat-column">
-                            <div class="stat-line">
-                                <span class="stat-label">MQTT USER</span>
-                                <span class="stat-value">${checkIcon(entity.has_mqtt_user)}</span>
-                            </div>
-            `;
-
-            if (entity.type === 'agent') {
-                html += `
-                            <div class="stat-line">
-                                <span class="stat-label">DATABASE</span>
-                                <span class="stat-value">${checkIcon(entity.has_table)}</span>
-                            </div>
-                `;
-            }
-
-            html += `
-                        </div>
-                    </div>
-                </div>
-            `;
-
-            container.innerHTML = html;
         } catch (error) {
             console.error('Error loading system status:', error);
-            const container = document.getElementById('system-status-container');
-            container.innerHTML = '';
         }
     }
 

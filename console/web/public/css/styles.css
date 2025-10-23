@@ -190,6 +190,20 @@ body {
     font-size: 0.75rem;
 }
 
+/* Fixed width for metric columns to prevent layout shift */
+#agents-table tbody td:nth-child(2),
+#agents-table tbody td:nth-child(3),
+#agents-table tbody td:nth-child(4) {
+    width: 8.5rem;
+    min-width: 8.5rem;
+    max-width: 8.5rem;
+}
+
+/* Let hostname column take remaining space */
+#agents-table tbody td:nth-child(1) {
+    width: auto;
+}
+
 #agents-table .agent-row {
     cursor: pointer;
     transition: background-color 0.1s;
@@ -292,9 +306,23 @@ body {
     font-size: 1rem;
 }
 
+.detail-header-right {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
 .detail-status {
     font-size: 0.75rem;
     color: var(--foreground2);
+}
+
+.status-warnings {
+    font-family: monospace;
+    font-size: 0.7rem;
+    color: #f38ba8;
+    font-weight: bold;
+    margin-left: 0.75rem;
 }
 
 .detail-id {
@@ -345,6 +373,9 @@ body {
     color: var(--accent1);
     font-weight: bold;
     min-width: 4rem;
+    display: inline-block;
+    text-align: right;
+    width: 4rem;
 }
 
 .stat-extra {
