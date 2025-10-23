@@ -87,7 +87,7 @@ There are two docker containers:
 
 ### Data Flow
 
-Agents publish JSON to MQTT topics → Console gateway writes to SQLite (one table per agent per metric) → Web dashboard queries SQLite for display.
+Agents publish JSON to MQTT topics → Console gateway writes to SQLite (one table per agent per metric) → Web dashboard queries SQLite for display. Example: Agent `id_abc123` creates tables `id_abc123_generic_cpu`, `id_abc123_generic_disk`, etc. 
 
 <img width="700" alt="image" src="https://github.com/user-attachments/assets/2e67ead2-e5ce-4291-80d1-db08f7dd6ee7" />
 
