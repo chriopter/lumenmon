@@ -13,7 +13,7 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
             return;
         }
 
-        // Register with global clock for synchronized TUI updates
+        // Register refresh function with global clock (waits for async data)
         window.globalClock.register(refreshDetailView);
 
         try {
@@ -194,7 +194,8 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
         }
     }
 
-    function refreshDetailView() {
+    async function refreshDetailView() {
+        // Async refresh - waits for data before updating UI
         if (!window.app.ui.detailViewOpen) return;
 
         const agent = getSelectedAgent();
@@ -218,53 +219,39 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
             const diskValues = agent.diskHistory && agent.diskHistory.length > 0 ? agent.diskHistory.map(h => h.value) : [];
             const diskSparkline = generateSparkline(diskValues.slice(-8));
 
-            // Update stat values only (not the whole panel to avoid re-rendering charts)
-            const statLines = document.querySelectorAll('.stat-line');
-            if (statLines.length >= 3) {
-                statLines[0].querySelector('.stat-value').textContent = `${currentCpu.toFixed(1)}%`;
-                statLines[0].querySelector('.sparkline').textContent = cpuSparkline;
-                statLines[0].querySelector('.stat-extra').textContent = `avg ${avgCpu.toFixed(1)}%`;
+            // Wait for metrics data to load before updating UI
+            await loadMetrics(agent.id);
 
-                statLines[1].querySelector('.stat-value').textContent = `${currentMem.toFixed(1)}%`;
-                statLines[1].querySelector('.sparkline').textContent = memSparkline;
-                statLines[1].querySelector('.stat-extra').textContent = `avg ${avgMem.toFixed(1)}%`;
+            // Queue DOM updates (or run immediately if not in globalClock)
+            const updateUI = () => {
+                // Update stat values only (not the whole panel to avoid re-rendering charts)
+                const statLines = document.querySelectorAll('.stat-line');
+                if (statLines.length >= 3) {
+                    statLines[0].querySelector('.stat-value').textContent = `${currentCpu.toFixed(1)}%`;
+                    statLines[0].querySelector('.sparkline').textContent = cpuSparkline;
+                    statLines[0].querySelector('.stat-extra').textContent = `avg ${avgCpu.toFixed(1)}%`;
 
-                statLines[2].querySelector('.stat-value').textContent = `${currentDisk.toFixed(1)}%`;
-                statLines[2].querySelector('.sparkline').textContent = diskSparkline;
-                statLines[2].querySelector('.stat-extra').textContent = `free ${(100 - currentDisk).toFixed(1)}%`;
-            }
+                    statLines[1].querySelector('.stat-value').textContent = `${currentMem.toFixed(1)}%`;
+                    statLines[1].querySelector('.sparkline').textContent = memSparkline;
+                    statLines[1].querySelector('.stat-extra').textContent = `avg ${avgMem.toFixed(1)}%`;
 
-            // Update header status
-            const detailStatus = document.querySelector('.detail-status');
-            if (detailStatus) {
-                detailStatus.textContent = agent.id;
-            }
-
-            // Flash status dot on heartbeat - get fresh data from row
-            const freshAgent = getSelectedAgent();
-            if (freshAgent) {
-                const statusDot = document.querySelector('.detail-header .status-dot');
-                if (statusDot) {
-                    // Store last heartbeat in window.app to persist across re-renders
-                    if (!window.app.data.lastHeartbeat) {
-                        window.app.data.lastHeartbeat = {};
-                    }
-
-                    const agentId = freshAgent.id;
-                    const oldTimestamp = window.app.data.lastHeartbeat[agentId] || 0;
-                    const newTimestamp = freshAgent.heartbeat || 0;
-
-                    if (newTimestamp > 0 && newTimestamp !== oldTimestamp) {
-                        statusDot.classList.remove('heartbeat-flash');
-                        void statusDot.offsetWidth; // Trigger reflow
-                        statusDot.classList.add('heartbeat-flash');
-                        window.app.data.lastHeartbeat[agentId] = newTimestamp;
-                    }
+                    statLines[2].querySelector('.stat-value').textContent = `${currentDisk.toFixed(1)}%`;
+                    statLines[2].querySelector('.sparkline').textContent = diskSparkline;
+                    statLines[2].querySelector('.stat-extra').textContent = `free ${(100 - currentDisk).toFixed(1)}%`;
                 }
-            }
 
-            // Refresh metrics data
-            loadMetrics(agent.id);
+                // Update header status
+                const detailStatus = document.querySelector('.detail-status');
+                if (detailStatus) {
+                    detailStatus.textContent = agent.id;
+                }
+            };
+
+            if (window.globalClock.pendingDomUpdates) {
+                window.globalClock.pendingDomUpdates.push(updateUI);
+            } else {
+                updateUI();
+            }
         } catch (error) {
             console.error('Error refreshing detail view:', error);
         }
@@ -273,7 +260,7 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
     function closeDetailView() {
         window.app.ui.detailViewOpen = false;
 
-        // Unregister from global clock when closing detail view
+        // Unregister refresh function when closing detail view
         window.globalClock.unregister(refreshDetailView);
 
         const panel = document.getElementById('detail-panel');
@@ -555,7 +542,15 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
             window.metricsPreviousValues = currentValues;
 
             html += '</tbody></table>';
-            metricsList.innerHTML = html;
+
+            // Queue DOM update (or run immediately if not in globalClock)
+            if (window.globalClock.pendingDomUpdates) {
+                window.globalClock.pendingDomUpdates.push(() => {
+                    metricsList.innerHTML = html;
+                });
+            } else {
+                metricsList.innerHTML = html;
+            }
         } catch (error) {
             console.error('Error loading metrics:', error);
             const metricsList = document.getElementById('metrics-list');
