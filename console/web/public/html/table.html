@@ -65,7 +65,6 @@ Fetches server-rendered rows every 1s. Provides row selection, navigation functi
                         const memory = entity.memory || 0;
                         const disk = entity.disk || 0;
                         const cpuSparkline = entity.cpuSparkline || '';
-                        const memSparkline = entity.memSparkline || '';
                         const cpuHistory = JSON.stringify(entity.cpuHistory || []);
                         const memHistory = JSON.stringify(entity.memHistory || []);
                         const diskHistory = JSON.stringify(entity.diskHistory || []);
@@ -75,7 +74,7 @@ Fetches server-rendered rows every 1s. Provides row selection, navigation functi
                         const pendingSymbol = entity.valid ? '' : ' (pending)';
                         html += `<td title="ID: ${entity.id}"><span class="status-dot ${statusDot}" title="${statusDot}"></span>${hostname}${pendingSymbol}</td>`;
                         html += `<td>${cpu.toFixed(1)}%<span class="sparkline">${cpuSparkline}</span></td>`;
-                        html += `<td>${memory.toFixed(1)}%<span class="sparkline">${memSparkline}</span></td>`;
+                        html += `<td>${memory.toFixed(1)}%</td>`;
                         html += `<td>${disk.toFixed(1)}%</td>`;
                         html += `</tr>`;
                     }
@@ -113,10 +112,7 @@ Fetches server-rendered rows every 1s. Provides row selection, navigation functi
                 }, 100);
             }
 
-            // Refresh detail view after table updates (if open)
-            if (typeof refreshDetailView === 'function' && window.app.ui.detailViewOpen) {
-                refreshDetailView();
-            }
+            // Detail view now updates via globalClock - no cascade needed
 
         } catch (error) {
             console.error('Error:', error);

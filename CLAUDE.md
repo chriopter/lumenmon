@@ -211,6 +211,13 @@ Guidelines:
 - Status logic: checks MQTT connections + data freshness
 - Detail view: CPU/memory/disk charts, all metrics table
 
+**Synchronized UI Updates** (`console/web/public/html/index.html:16-40`):
+- Global clock (`window.globalClock`) ticks every 1000ms
+- All UI components register callbacks for synchronized updates
+- Main table: `fetchAgents()` registered at `table.html:240`
+- Detail view: `refreshDetailView()` registered on open at `detail.html:17`
+- Result: TUI-like synchronized refresh where entire screen updates at once (no staggered animations)
+
 ### MQTT Enrollment Flow
 1. Console creates invite: `/app/core/enrollment/invite_create.sh`
    - Generates permanent credentials and includes TLS certificate fingerprint
@@ -254,12 +261,21 @@ Both `console/core/status.sh` and `agent/core/status.sh` provide comprehensive c
 - **Console**: TLS certificate, MQTT broker on port 8884, MQTT user count, registered agents, online agents (< 10s data)
 - Compact output format with clear status indicators: ✓ (success), ✗ (failure), ⚠ (warning)
 
-### Online Status Detection
-Agents are classified as online/stale/offline based on data freshness:
-- **Online** (green): Data < 2 seconds old - agent actively sending metrics
-- **Stale** (yellow): Data 2-10 seconds old - connection may be degraded
-- **Offline** (red): Data > 10 seconds old - agent not responding
-- Since CPU metrics arrive every 1s (PULSE), the 2s threshold provides immediate detection
+### Online Status Detection (Centralized Staleness Logic)
+
+**Single Source of Truth**: `console/web/app/metrics.py:calculate_staleness()` - all staleness calculations happen in backend (DRY principle).
+
+Agents are classified based on heartbeat and per-metric staleness:
+- **Online** (green): Heartbeat fresh AND all metrics within expected intervals
+- **Stale** (yellow): Heartbeat fresh BUT some metrics overdue (agent connected, collection degraded)
+- **Offline** (red): Heartbeat stale (agent disconnected, no heartbeat for >2s)
+
+**Staleness Threshold**: Data is stale if it misses expected update with 1s grace: `age > interval + 1s` (e.g., 1s metric stale after 2s, 60s metric stale after 61s)
+
+**Per-Metric Tracking**: Each metric's interval stored in DB, staleness calculated independently. "All Values" table shows:
+- Red-highlighted rows for stale metrics
+- "NEXT UPDATE" column with countdown (green) or overdue time (red after 1s grace)
+- Interval column showing expected update frequency (0s = one-time value, never stale)
 
 ## Common Tasks
 

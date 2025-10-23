@@ -18,10 +18,10 @@ while true; do
     # Get uptime in seconds
     uptime=$(cut -d. -f1 /proc/uptime)
 
-    # Publish all three metrics
-    publish_metric "generic_sys_os" "\"$os\"" "TEXT"
-    publish_metric "generic_sys_kernel" "\"$kernel\"" "TEXT"
-    publish_metric "generic_sys_uptime" "$uptime" "INTEGER"
+    # Publish all three metrics with interval
+    publish_metric "generic_sys_os" "\"$os\"" "TEXT" "$REPORT"
+    publish_metric "generic_sys_kernel" "\"$kernel\"" "TEXT" "$REPORT"
+    publish_metric "generic_sys_uptime" "$uptime" "INTEGER" "$REPORT"
 
     sleep $REPORT
 done

@@ -38,8 +38,8 @@ while true; do
         usage="0.0"
     fi
 
-    # Publish
-    publish_metric "$METRIC" "$usage" "$TYPE"
+    # Publish with interval
+    publish_metric "$METRIC" "$usage" "$TYPE" "$PULSE"
 
     # Save for next iteration
     prev_cpu=("${curr_cpu[@]}")

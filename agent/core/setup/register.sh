@@ -113,7 +113,7 @@ mosquitto_pub \
     -u "$USERNAME" -P "$PASSWORD" \
     --cafile "$MQTT_DATA_DIR/server.crt" \
     -t "metrics/$USERNAME/registration_test" \
-    -m '{"value":1,"type":"INTEGER"}' 2>&1 | head -5
+    -m '{"value":1,"type":"INTEGER","interval":0}' 2>&1 | head -5
 
 if [ $? -eq 0 ]; then
     echo "[register] ✓ Connection test successful!"
