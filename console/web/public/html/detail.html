@@ -40,75 +40,30 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
             const memSparkline = generateSparkline(memValues.slice(-8));
             const diskSparkline = generateSparkline(diskValues.slice(-8));
 
-        // If agent is pending (not valid), show normal layout with invite URLs
+        // If agent is pending (not valid), show simplified invite view
         if (!agent.valid && agent.pending_invite) {
             const inviteData = agent.pending_invite;
             const installCommand = inviteData.install_command ||
                 `curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/refs/heads/main/install.sh | LUMENMON_INVITE="${inviteData.invite_url}" bash`;
 
             panel.innerHTML = `
-                <div class="detail-header">
-                    <h2><span class="status-dot offline"></span>${agent.id} (pending)</h2>
-                    <span class="detail-status">${agent.id}</span>
+                <div class="detail-header-tui">
+                    <span class="status-dot offline"></span> ${agent.id} <span class="tui-badge">pending</span>
                 </div>
 
-                <div class="detail-content">
-                    <div class="invite-simple">
-                        <div class="invite-simple-section">
-                            <div class="invite-simple-label">Quick Install (recommended)</div>
-                            <div class="invite-simple-value" onclick="copyFromElement(this, null, 'install command copied')">${installCommand}</div>
-                        </div>
-
-                        <div class="invite-simple-section">
-                            <div class="invite-simple-label">Manual Registration</div>
-                            <div class="invite-simple-instruction">lumenmon register &lt;url&gt;</div>
-                            <div class="invite-simple-value" onclick="copyFromElement(this, null, 'invite URL copied')">${inviteData.invite_url}</div>
-                        </div>
-
-                        <div class="invite-simple-warning">
-                            ⚠ Copy these credentials - they will be cleared when you close this view
-                        </div>
+                <div class="detail-content-tui">
+                    <div class="tui-box">
+                        <h3>install command</h3>
+                        <div class="tui-box-content" onclick="copyText(\`${installCommand.replace(/`/g, '\\`')}\`, 'install command copied')">${installCommand}</div>
                     </div>
 
-                    <div class="detail-stats">
-                        <div class="stat-column">
-                            <div class="stat-line">
-                                <span class="stat-label">CPU</span>
-                                <span class="stat-value">--</span>
-                                <span class="stat-extra">waiting for data...</span>
-                            </div>
-                            <div class="stat-line">
-                                <span class="stat-label">MEM</span>
-                                <span class="stat-value">--</span>
-                                <span class="stat-extra">waiting for data...</span>
-                            </div>
-                            <div class="stat-line">
-                                <span class="stat-label">DISK</span>
-                                <span class="stat-value">--</span>
-                                <span class="stat-extra">waiting for data...</span>
-                            </div>
-                        </div>
-                        <div class="stat-column">
-                            <div class="stat-line">
-                                <span class="stat-label">STATUS</span>
-                                <span class="stat-value">pending</span>
-                                <span class="stat-extra">invite sent</span>
-                            </div>
-                            <div class="stat-line">
-                                <span class="stat-label">CONNECTION</span>
-                                <span class="stat-value">--</span>
-                                <span class="stat-extra">not connected</span>
-                            </div>
-                            <div class="stat-line">
-                                <span class="stat-label">INVITE</span>
-                                <span class="stat-value">active</span>
-                                <span class="stat-extra">expires on connect</span>
-                            </div>
-                        </div>
+                    <div class="tui-box">
+                        <h3>invite url</h3>
+                        <div class="tui-box-content" onclick="copyText(\`${inviteData.invite_url}\`, 'invite url copied')">${inviteData.invite_url}</div>
                     </div>
 
-                    <div class="pending-agent-note">
-                        Agent invite active. Waiting for agent to connect and send first metrics.
+                    <div class="tui-footer">
+                        <span class="pulse-dot"></span> waiting for data...
                     </div>
                 </div>
             `;
