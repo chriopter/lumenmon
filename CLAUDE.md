@@ -143,9 +143,42 @@ The installer provides an interactive menu for Console, Agent, or both installat
   - Integrated update and uninstall commands
 
 ### Security Model
-- TLS certificate pinning (agents verify broker certificate fingerprint)
-- Per-agent MQTT credentials (permanent username + password)
-- Agent data isolated by MQTT topic ACLs (write-only to own topics)
+- **TLS certificate pinning** (agents verify broker certificate fingerprint)
+- **Per-agent MQTT credentials** (32-char random passwords, permanent)
+- **Agent data isolated by MQTT topic ACLs** (write-only to own topics)
+- **DoS protection** (connection/message rate limits)
+
+#### MQTT Security Hardening (Internet-Ready)
+
+**Rate Limiting** (`console/config/mosquitto.conf:23-27`):
+- `max_connections 1000` - Prevents connection flooding
+- `max_inflight_messages 100` - Limits unacknowledged messages per client
+- `max_queued_messages 1000` - Prevents message queue exhaustion
+- `max_packet_size 65536` - Blocks oversized packet attacks
+
+**Access Control** (`console/config/acl:12`):
+- Agents have write-only access to `metrics/%u/#` (their own topics)
+- Cannot read any topics (prevents topic enumeration and data leakage)
+- Pattern-based isolation ensures agents cannot access other agents' data
+
+**Strong Authentication**:
+- 32-character random passwords (base64, ~191 bits of entropy)
+- Brute-force impractical: ~6.3 × 10^57 possible passwords
+- No password rotation needed (compromised credentials can be revoked)
+
+**Logging**:
+- Auth failures logged to stdout (Docker logs)
+- Monitor: `docker logs lumenmon-console 2>&1 | grep -i "auth\|connection"`
+
+**Credential Revocation**:
+- Delete agents via web dashboard (press `d` key)
+- Removes MQTT credentials and all stored data
+- Immediate effect (mosquitto reloaded via SIGHUP)
+
+**Additional Protection** (optional, user-managed):
+- Use host firewall (iptables/ufw) to restrict MQTT port 8884
+- Add fail2ban on host to monitor Docker logs
+- Deploy behind reverse proxy (Cloudflare, nginx) for web dashboard
 
 ## Code Style Guidelines
 
