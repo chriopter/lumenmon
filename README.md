@@ -101,6 +101,8 @@ Agents publish JSON to MQTT topics → Console gateway writes to SQLite (one tab
 
 **Installation:** When console and agent run on same machine, they communicate via Docker network (`lumenmon-console:8884`) with automatic TLS verification.
 
+**Ports:** Console Exposes ports **8080** (web, no auth - will change) and **8884** (MQTT/TLS with rate limiting, ACL, Auth)
+
 </details>
 
 <details>
@@ -126,5 +128,6 @@ Agents publish JSON to MQTT topics → Console gateway writes to SQLite (one tab
 ## Next / Todos
 - Fix Sparklines if offline
 - Data Stream from SQLite to flask.
+- Caddy Endpoint Protection
 
 Based on WebTUI, Flask, Docker, MQTT.
