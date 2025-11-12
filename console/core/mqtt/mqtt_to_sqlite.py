@@ -110,9 +110,13 @@ class MQTTBridge:
                 log('error', f'Invalid agent_id: {agent_id}')
                 return
 
+            # Extract hostname (Glances format: metrics/id_xxx/hostname/metric/path)
+            # parts[2] is the hostname (e.g., 'agent-glances', 'server-prod', etc.)
+            hostname = parts[2] if len(parts) > 2 else 'unknown'
+
             # Build metric name from remaining parts (supports nested: cpu/total, disk/sda1/percent)
             metric_parts = parts[2:]
-            metric_name = '_'.join(metric_parts)  # Join with underscore: cpu_total, disk_sda1_percent
+            metric_name = '_'.join(metric_parts)  # Join with underscore: agent-glances_cpu_total
 
             # Validate metric_name format
             if not re.match(r'^[a-zA-Z0-9_-]+$', metric_name):
@@ -233,6 +237,15 @@ class MQTTBridge:
                 )
 
                 log(agent_id, f'{m_name} = {m_value}')
+
+            # Update agent registry (track hostname and last_seen)
+            cursor.execute('''
+                INSERT INTO agent_registry (agent_id, hostname, first_seen, last_seen)
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT(agent_id) DO UPDATE SET
+                    hostname = excluded.hostname,
+                    last_seen = excluded.last_seen
+            ''', (agent_id, hostname, timestamp, timestamp))
 
             # Immediate commit for real-time data availability
             self.db_conn.commit()
