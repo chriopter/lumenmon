@@ -7,11 +7,9 @@
   ╚══════╝ ╚═════╝ ╚═╝     ╚═╝╚══════╝╚═╝  ╚═══╝╚═╝     ╚═╝ ╚═════╝ ╚═╝  ╚═══╝
 ```
 
-It's too damn complicated to quickly setup system monitoring for a few servers.
+Lumenmon is a web dashboard that connects **Glances** monitoring from multiple servers.
 
-Lumenmon fixes that. It's a simple monitoring tool inside a docker container, that you can install in under 30 seconds.
-
-Uses **Glances** for comprehensive system monitoring - CPU, memory, disk, network, GPU, sensors, and more!
+Installs in 30 seconds on a central server. Add monitored servers with a one-line command. No custom dashboards, no agents—just Glances and a web UI.
 
 ## Quick Start
 
