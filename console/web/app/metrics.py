@@ -104,6 +104,66 @@ def get_history_from_db(agent_id, metric_name):
 
     return history
 
+def get_metric_value(agent_id, metric_name):
+    """Get just the value of a metric (helper for status checks).
+
+    Searches for table matching pattern: {agent_id}_%{metric_name}
+    Example: id_abc123_agent-glances_availability or id_abc123_generic_availability
+    """
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Find table that ends with the metric name (handles hostname prefix)
+        cursor.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name LIKE ? AND name LIKE ?",
+            (f"{agent_id}_%", f"%{metric_name}")
+        )
+
+        result = cursor.fetchone()
+        if result:
+            table_name = result[0]
+            cursor.execute(f'SELECT value FROM "{table_name}" ORDER BY timestamp DESC LIMIT 1')
+            value_row = cursor.fetchone()
+            conn.close()
+            return value_row[0] if value_row else None
+
+        conn.close()
+    except Exception:
+        pass
+
+    return None
+
+def get_metric_timestamp(agent_id, metric_name):
+    """Get the timestamp of a metric's latest value (for freshness checking).
+
+    Searches for table matching pattern: {agent_id}_%{metric_name}
+    Returns: timestamp (int) or None
+    """
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Find table that ends with the metric name (handles hostname prefix)
+        cursor.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name LIKE ? AND name LIKE ?",
+            (f"{agent_id}_%", f"%{metric_name}")
+        )
+
+        result = cursor.fetchone()
+        if result:
+            table_name = result[0]
+            cursor.execute(f'SELECT timestamp FROM "{table_name}" ORDER BY timestamp DESC LIMIT 1')
+            ts_row = cursor.fetchone()
+            conn.close()
+            return ts_row[0] if ts_row else None
+
+        conn.close()
+    except Exception:
+        pass
+
+    return None
+
 def get_latest_value(agent_id, metric_name):
     """Get the most recent value, timestamp, and interval for a metric."""
     table_name = f"{agent_id}_{metric_name}"
@@ -149,28 +209,25 @@ def get_latest_value(agent_id, metric_name):
     return None, None, None
 
 def get_latest_hostname(agent_id):
-    """Get the most recent hostname value."""
-    table_name = f"{agent_id}_generic_hostname"
-
+    """Get the most recent hostname value (Glances: system_hostname)."""
     try:
         conn = get_db_connection()
-
-        # Check if table exists
-        if not table_exists(conn, table_name):
-            conn.close()
-            return ''
-
         cursor = conn.cursor()
+
+        # Find hostname table (Glances uses system_hostname)
         cursor.execute(
-            f'SELECT value FROM "{table_name}" ORDER BY timestamp DESC LIMIT 1'
+            "SELECT name FROM sqlite_master WHERE type='table' AND name LIKE ? AND name LIKE '%hostname%' AND name NOT LIKE '%fs_%'",
+            (f"{agent_id}_%",)
         )
 
-        row = cursor.fetchone()
-        conn.close()
+        table = cursor.fetchone()
+        if table:
+            cursor.execute(f'SELECT value FROM "{table[0]}" ORDER BY timestamp DESC LIMIT 1')
+            row = cursor.fetchone()
+            conn.close()
+            return str(row[0]) if row else ''
 
-        if row:
-            # Value is stored as string for hostname
-            return str(row[0])
+        conn.close()
     except Exception:
         pass
 
@@ -193,29 +250,32 @@ def get_agent_metrics(agent_id):
         'minInterval': 60  # Track minimum interval for staleness detection
     }
 
-    # Read CPU
-    timestamp, value, interval = get_latest_value(agent_id, 'generic_cpu')
-    if timestamp and value is not None:
-        metrics['cpu'] = value
-        metrics['lastUpdate'] = max(metrics['lastUpdate'], timestamp)
-        metrics['minInterval'] = min(metrics['minInterval'], interval)
-    metrics['cpuHistory'] = get_history_from_db(agent_id, 'generic_cpu')
+    # Read CPU (Glances: cpu_total)
+    cpu_value = get_metric_value(agent_id, 'cpu_total')
+    if cpu_value is not None:
+        try:
+            metrics['cpu'] = round(float(cpu_value), 1)
+        except:
+            pass
 
-    # Read Memory
-    timestamp, value, interval = get_latest_value(agent_id, 'generic_memory')
-    if timestamp and value is not None:
-        metrics['memory'] = value
-        metrics['lastUpdate'] = max(metrics['lastUpdate'], timestamp)
-        metrics['minInterval'] = min(metrics['minInterval'], interval)
-    metrics['memHistory'] = get_history_from_db(agent_id, 'generic_memory')
+    # Read Memory (Glances: mem_percent)
+    mem_value = get_metric_value(agent_id, 'mem_percent')
+    if mem_value is not None:
+        try:
+            metrics['memory'] = round(float(mem_value), 1)
+        except:
+            pass
 
-    # Read Disk
-    timestamp, value, interval = get_latest_value(agent_id, 'generic_disk')
-    if timestamp and value is not None:
-        metrics['disk'] = value
-        metrics['lastUpdate'] = max(metrics['lastUpdate'], timestamp)
-        metrics['minInterval'] = min(metrics['minInterval'], interval)
-    metrics['diskHistory'] = get_history_from_db(agent_id, 'generic_disk')
+    # Read Disk (Glances: fs__data_percent for root filesystem)
+    disk_value = get_metric_value(agent_id, 'fs__data_percent')
+    if disk_value is None:
+        # Fallback: try any fs_percent table
+        disk_value = get_metric_value(agent_id, 'fs__percent')
+    if disk_value is not None:
+        try:
+            metrics['disk'] = round(float(disk_value), 1)
+        except:
+            pass
 
     # Read Hostname
     metrics['hostname'] = get_latest_hostname(agent_id)
@@ -238,31 +298,35 @@ def get_agent_metrics(agent_id):
     # Calculate age and status based on data freshness
     current_time = int(time.time())
 
-    if metrics['lastUpdate'] > 0:
-        metrics['age'] = current_time - metrics['lastUpdate']
+    # SIMPLE: Check uptime_seconds timestamp to determine if online
+    # If uptime data is less than 10 seconds old = online, else offline
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
 
-        # Check if heartbeat is stale (agent disconnected)
-        heartbeat_staleness = calculate_staleness(metrics.get('heartbeat', 0), 1)  # Heartbeat is 1s
+        # Find uptime_seconds table
+        cursor.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name LIKE ? AND name LIKE '%uptime%'",
+            (f"{agent_id}_%",)
+        )
 
-        # Get all agent tables to check for any stale metrics
-        agent_tables = get_agent_tables(agent_id)
-        any_stale = any(table.get('staleness', {}).get('is_stale', False) for table in agent_tables)
+        uptime_table = cursor.fetchone()
+        if uptime_table:
+            cursor.execute(f'SELECT timestamp FROM "{uptime_table[0]}" ORDER BY timestamp DESC LIMIT 1')
+            ts_row = cursor.fetchone()
 
-        # Determine status using centralized staleness logic
-        # Green (online): Heartbeat fresh AND no stale metrics
-        # Yellow (stale): Heartbeat fresh BUT some metrics stale
-        # Red (offline): Heartbeat stale (agent disconnected)
-        if heartbeat_staleness['is_stale']:
-            # No heartbeat = agent disconnected
-            metrics['status'] = 'offline'
-        elif any_stale:
-            # Heartbeat OK but some metrics overdue = degraded
-            metrics['status'] = 'stale'
+            if ts_row:
+                age = current_time - ts_row[0]
+                metrics['status'] = 'online' if age < 10 else 'offline'
+                metrics['age'] = age
+            else:
+                metrics['status'] = 'offline'
         else:
-            # All metrics fresh = healthy
-            metrics['status'] = 'online'
-    else:
-        # No data at all
+            metrics['status'] = 'offline'
+
+        conn.close()
+    except Exception as e:
+        print(f"Status check error: {e}")
         metrics['status'] = 'offline'
 
     # Add formatted fields for HTML templates

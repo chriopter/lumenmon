@@ -55,9 +55,10 @@ def get_all_entities():
             table_name = row[0]
             # Extract agent ID from table name (format: id_<fingerprint>_metric_name)
             if table_name.startswith('id_'):
-                generic_idx = table_name.rfind('_generic_')
-                if generic_idx > 0:
-                    agent_id = table_name[:generic_idx]
+                # Find second underscore to extract agent ID (id_abc123_...)
+                parts = table_name.split('_', 2)
+                if len(parts) >= 3:
+                    agent_id = f"{parts[0]}_{parts[1]}"  # id_abc123
                     if agent_id not in entities:
                         entities[agent_id] = {
                             'id': agent_id,
