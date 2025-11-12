@@ -86,11 +86,16 @@ lumenmon uninstall  # Remove everything
 
 ### Security
 
-- **TLS:** All MQTT connections use TLS with certificate pinning
-- **Auth:** Per-server MQTT credentials (32-char random passwords)
-- **ACL:** Each server can only write to its own topic namespace
-- **Network:** Outbound-only from Glances to console (firewall-friendly)
+**Monitored Servers:**
 - **No Open Ports:** Glances runs in export-only mode (no web server, push-only)
+- **Network:** Outbound-only connections to console (firewall-friendly)
+- **TLS:** Certificate pinning prevents man-in-the-middle attacks
+- **Auth:** Unique 32-char random password per server
+
+**Console:**
+- **TLS:** All MQTT connections encrypted with TLS
+- **ACL:** Each server can only write to its own topic namespace
+- **Isolation:** Per-server credentials with topic-based access control
 
 <img width="700" alt="Dashboard" src="https://github.com/user-attachments/assets/2e67ead2-e5ce-4291-80d1-db08f7dd6ee7" />
 
