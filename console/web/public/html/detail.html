@@ -426,8 +426,13 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
             const firstTable = data.tables[0];
             const columnNames = firstTable ? Object.keys(firstTable.columns) : [];
 
-            // Group metrics by category
+            // Get expanded groups state (collapsed by default)
+            const expandedGroups = window.expandedMetricGroups || new Set();
+
+            // Group metrics by category (only process expanded groups to save CPU)
             const groups = {};
+            const groupCounts = {}; // Track counts even for collapsed groups
+
             data.tables.forEach(table => {
                 let metricName = table.metric_name;
 
@@ -438,14 +443,20 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
                 const parts = metricName.split('_');
                 const category = parts[0] || 'other';
 
-                if (!groups[category]) {
-                    groups[category] = [];
-                }
+                // Track count for all groups
+                groupCounts[category] = (groupCounts[category] || 0) + 1;
 
-                groups[category].push({
-                    ...table,
-                    displayName: metricName
-                });
+                // Only process metrics for expanded groups (save CPU)
+                if (expandedGroups.has(category)) {
+                    if (!groups[category]) {
+                        groups[category] = [];
+                    }
+
+                    groups[category].push({
+                        ...table,
+                        displayName: metricName
+                    });
+                }
             });
 
             // Build table with collapsible groups
@@ -465,14 +476,13 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
             html += '<td># SAMPLES</td>';
             html += '</tr></thead><tbody>';
 
-            // Render each group
-            const groupNames = Object.keys(groups).sort();
-            const expandedGroups = window.expandedMetricGroups || new Set(groupNames); // All expanded by default
+            // Render each group (show all groups, even if collapsed)
+            const groupNames = Object.keys(groupCounts).sort();
 
             groupNames.forEach(groupName => {
                 const isExpanded = expandedGroups.has(groupName);
                 const expandIcon = isExpanded ? '▼' : '▶';
-                const groupSize = groups[groupName].length;
+                const groupSize = groupCounts[groupName];
 
                 // Group header row
                 html += `<tr class="group-header" data-group="${groupName}" tabindex="0">`;
@@ -482,8 +492,8 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
                 html += `<span class="group-count">(${groupSize} metrics)</span>`;
                 html += `</td></tr>`;
 
-                // Group metrics (hidden if collapsed)
-                if (isExpanded) {
+                // Group metrics (only rendered if expanded, saves CPU)
+                if (isExpanded && groups[groupName]) {
                     groups[groupName].forEach(table => {
                         const metricName = table.displayName;
                 const columns = table.columns || {};
