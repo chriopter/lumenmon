@@ -30,7 +30,8 @@
       "Bash(for agent in lumenmon-agent-glances lumenmon-agent-1 lumenmon-agent-2 lumenmon-agent-3)",
       "Bash(do echo '=== $agent ===')",
       "Bash(done)",
-      "Bash(./dev/reset-data)"
+      "Bash(./dev/reset-data)",
+      "WebFetch(domain:github.com)"
     ],
     "deny": [],
     "ask": []

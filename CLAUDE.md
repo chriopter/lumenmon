@@ -80,10 +80,8 @@ The installer provides an interactive menu for Console, Agent, or both installat
 ### Installer Details
 - `install.sh`: Self-contained installer that downloads compose files from GitHub
 - Downloads from `https://raw.githubusercontent.com/chriopter/lumenmon/refs/heads/main/`
-- Three install modes: "Console with Agent" (recommended), "Console only", "Agent only"
-- Auto-registers local agent in "both" mode via Docker network
 - Installs `lumenmon` CLI symlink to `/usr/local/bin/` or `~/.local/bin/`
-- One-line agent install: `LUMENMON_INVITE="<url>" bash install.sh`
+- Agents use Glances (installed via Docker or natively via apt/brew/pip)
 
 ## Architecture
 

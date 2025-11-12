@@ -1,17 +1,16 @@
 #!/bin/bash
-# Self-contained Lumenmon installer - downloads only what's needed (no repo clone).
-# Installs console, agent, or both with minimal configuration and auto-registration.
+# Self-contained Lumenmon Console installer - downloads only what's needed (no repo clone).
+# Installs console with web dashboard and MQTT broker for receiving agent metrics.
 
 set -e
 
 # Version
-INSTALLER_VERSION="0.13.0"
+INSTALLER_VERSION="1.0.0"
 
 # Configuration
 INSTALL_DIR="$HOME/.lumenmon"
 GITHUB_RAW="https://raw.githubusercontent.com/chriopter/lumenmon/refs/heads/main"
 GITHUB_IMAGE_CONSOLE="ghcr.io/chriopter/lumenmon-console:latest"
-GITHUB_IMAGE_AGENT="ghcr.io/chriopter/lumenmon-agent:latest"
 
 # Output helpers
 status_ok() { echo -e "[\033[1;32m✓\033[0m] $1"; }
@@ -85,78 +84,11 @@ install_console() {
     status_ok "Console installed at $INSTALL_DIR/console/"
 }
 
-# Install agent
-install_agent() {
-    local console_host="$1"
-
-    status_progress "Installing Agent to $INSTALL_DIR/agent/"
-    mkdir -p "$INSTALL_DIR/agent"
-
-    # Download docker-compose.yml
-    download_file "$GITHUB_RAW/agent/docker-compose.yml" "$INSTALL_DIR/agent/docker-compose.yml"
-
-    # Generate .env
-    echo "CONSOLE_HOST=$console_host" > "$INSTALL_DIR/agent/.env"
-
-    # Pre-create data directories with permissions for metrics user
-    mkdir -p "$INSTALL_DIR/agent/data"
-    chmod 777 "$INSTALL_DIR/agent/data"
-
-    # Pull latest image and show version
-    status_progress "Pulling latest agent image..."
-    cd "$INSTALL_DIR/agent"
-    docker compose pull 2>&1 | grep -E "(Pulling|Downloaded|Status:|digest:)" || true
-
-    # Show pulled image version for verification
-    IMAGE=$(docker compose config 2>/dev/null | grep "image:" | head -1 | awk '{print $2}')
-    if [ -n "$IMAGE" ]; then
-        IMAGE_INFO=$(docker images --format "{{.Repository}}:{{.Tag}} ({{.ID}} created {{.CreatedAt}})" "$IMAGE" 2>/dev/null | head -1)
-        echo "[i] Pulled: $IMAGE_INFO" >&2
-    fi
-
-    # Start agent
-    status_progress "Starting agent..."
-    docker compose up -d 2>&1 | grep -v "Pulling" || true
-
-    status_ok "Agent installed at $INSTALL_DIR/agent/"
-}
 
 # Generate invite
 generate_invite() {
     sleep 3  # Wait for console to be ready
     docker exec lumenmon-console /app/core/enrollment/invite_create.sh --full 2>/dev/null || echo ""
-}
-
-# Register agent with console using provided invite URL
-# Auto-accepts TLS certificate for same-host installations
-register_agent() {
-    local invite_url="$1"
-    local auto_accept="${2:-yes}"
-
-    status_progress "Auto-registering local agent..."
-
-    # Wait for agent container to be fully ready
-    for i in $(seq 1 20); do
-        if docker exec lumenmon-agent test -d /app 2>/dev/null; then
-            break
-        fi
-        sleep 1
-    done
-
-    # Try registration with auto-accept
-    if [ "$auto_accept" = "yes" ]; then
-        REGISTER_OUTPUT=$(echo "yes" | docker exec -i lumenmon-agent /app/core/setup/register.sh "$invite_url" 2>&1)
-    else
-        REGISTER_OUTPUT=$(docker exec lumenmon-agent /app/core/setup/register.sh "$invite_url" 2>&1)
-    fi
-
-    if echo "$REGISTER_OUTPUT" | grep -qE "Registration complete|Credentials saved"; then
-        return 0
-    else
-        # Show error if registration failed
-        echo "$REGISTER_OUTPUT" | grep -E "\[.*\]" >&2
-        return 1
-    fi
 }
 
 # Install CLI command
@@ -217,27 +149,19 @@ show_completion() {
     echo ""
 
     # Invite section (for console installations)
-    if [ "$mode" != "agent" ] && [ -n "$invite_url" ]; then
+    if [ -n "$invite_url" ]; then
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-        echo "Agent Registration Invite"
+        echo "Add Monitoring Agents"
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
         echo ""
-        # Parse invite URL to extract components
-        if [[ "$invite_url" =~ lumenmon://([^:]+):([^@]+)@([^:#]+):?([0-9]*)#(.+)$ ]]; then
-            local agent_id="${BASH_REMATCH[1]}"
-            local fingerprint="${BASH_REMATCH[5]}"
-            echo "Agent ID: $agent_id"
-            echo "Certificate Fingerprint: $fingerprint"
-            echo ""
-        fi
-        echo "One-Click Install (copy to target machine):"
+        echo "Copy this command to each machine you want to monitor:"
         echo ""
-        echo "  curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/refs/heads/main/install.sh | \\"
+        echo "  curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/refs/heads/main/install-agent.sh | \\"
         echo "    LUMENMON_INVITE=\"$invite_url\" bash"
         echo ""
-        echo "Or manual registration (if lumenmon already installed):"
+        echo "Or get a new invite anytime:"
         echo ""
-        echo "  lumenmon register \"$invite_url\""
+        echo "  lumenmon invite"
         echo ""
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
         echo ""
@@ -267,176 +191,37 @@ main() {
     check_requirements
 
     # Show version info
-    status_progress "Checking latest versions..."
+    status_progress "Checking latest version..."
     CONSOLE_VERSION=$(get_image_version "$GITHUB_IMAGE_CONSOLE")
-    AGENT_VERSION=$(get_image_version "$GITHUB_IMAGE_AGENT")
 
     echo ""
     echo "  Installer version: v${INSTALLER_VERSION}"
     if [ -n "$CONSOLE_VERSION" ]; then
         echo "  Latest console:    ${CONSOLE_VERSION}"
     fi
-    if [ -n "$AGENT_VERSION" ]; then
-        echo "  Latest agent:      ${AGENT_VERSION}"
-    fi
 
-    echo ""
     echo "  Installation path: $INSTALL_DIR"
     echo ""
-    echo "  What would you like to install?"
-    echo "  1) Console with Agent (recommended)"
-    echo "  2) Console only"
-    echo "  3) Agent only"
-    echo "  4) Exit"
-    echo ""
-    echo -n "  Select [1-4] (default 1): "
-    read -r choice < /dev/tty 2>/dev/null || status_error "Failed to read input. Please run installer directly: bash install.sh"
 
-    # Default to option 1 if empty or whitespace-only
-    choice=$(echo "$choice" | tr -d '[:space:]')
-    choice="${choice:-1}"
+    # Get hostname for agent connections
+    DETECTED_HOST=$(hostname -I 2>/dev/null | awk '{print $1}')
+    [ -z "$DETECTED_HOST" ] && DETECTED_HOST="localhost"
 
-    case $choice in
-        1)
-            # Console with Agent
-            echo ""
-            DETECTED_HOST=$(hostname -I 2>/dev/null | awk '{print $1}')
-            [ -z "$DETECTED_HOST" ] && DETECTED_HOST="localhost"
-
-            echo "  Enter hostname for agent connections"
-            echo "  (This will be in invite URLs for remote agents to connect)"
-            echo -n "  Hostname [$DETECTED_HOST]: "
-            read -r USER_HOST < /dev/tty 2>/dev/null || true
-            CONSOLE_HOST="${USER_HOST:-$DETECTED_HOST}"
-
-            echo ""
-            install_console "$CONSOLE_HOST"
-
-            # Install agent with Docker network connection settings
-            # Console container name: lumenmon-console (DNS-resolved by Docker)
-            # Console MQTT broker port inside container: 8884 (TLS)
-            # Agent and console communicate via shared "lumenmon-net" Docker network
-            # External port mapping 8884:8884 allows remote agents to connect
-            install_agent "lumenmon-console"
-
-            # Wait for console MQTT broker to be ready
-            status_progress "Waiting for console MQTT broker..."
-            for i in $(seq 1 30); do
-                # Check if mosquitto is running and listening on port 8884
-                if docker exec lumenmon-console pgrep -x mosquitto >/dev/null 2>&1; then
-                    break
-                fi
-                sleep 1
-            done
-            sleep 1  # Small buffer for enrollment script to be ready
-
-            # Generate invite for LOCAL agent using Docker network address
-            # This invite contains: lumenmon://USERNAME:PASSWORD@lumenmon-console:8884#FINGERPRINT
-            # Agent will connect via Docker network using lumenmon-console hostname
-            # - Agent runtime config: CONSOLE_HOST=lumenmon-console
-            # - MQTT connection: lumenmon-console:8884 with TLS certificate pinning
-            status_progress "Generating invite for local agent..."
-            INVITE_URL=$(docker exec lumenmon-console /app/core/enrollment/invite_create.sh 2>&1 | grep '^lumenmon://')
-
-            if [ -n "$INVITE_URL" ]; then
-                if register_agent "$INVITE_URL"; then
-                    status_ok "Local agent connected!"
-                    # Restart agent to load credentials and start collectors
-                    docker restart lumenmon-agent >/dev/null 2>&1
-                else
-                    status_warn "Auto-registration failed - use 'lumenmon invite' and 'lumenmon register' to connect manually"
-                fi
-
-                # Generate SECOND invite for REMOTE agents (with full install command)
-                # This one uses external address from $CONSOLE_HOST for remote connectivity
-                sleep 1
-                REMOTE_INVITE=$(generate_invite)
-            fi
-
-            install_cli
-            show_completion "both" "$REMOTE_INVITE" "$CONSOLE_HOST"
-            ;;
-
-        2)
-            # Console only
-            echo ""
-            DETECTED_HOST=$(hostname -I 2>/dev/null | awk '{print $1}')
-            [ -z "$DETECTED_HOST" ] && DETECTED_HOST="localhost"
-
-            echo "  Enter hostname for agent connections"
-            echo "  (This will be in invite URLs for remote agents to connect)"
-            echo -n "  Hostname [$DETECTED_HOST]: "
-            read -r USER_HOST < /dev/tty 2>/dev/null || true
-            CONSOLE_HOST="${USER_HOST:-$DETECTED_HOST}"
-
-            echo ""
-            install_console "$CONSOLE_HOST"
-
-            INVITE_URL=$(generate_invite)
-            install_cli
-            show_completion "console" "$INVITE_URL" "$CONSOLE_HOST"
-            ;;
-
-        3)
-            # Agent only
-            echo ""
-            echo -n "  Enter console hostname: "
-            read -r CONSOLE_HOST < /dev/tty 2>/dev/null || status_error "Failed to read input"
-            echo -n "  Enter invite URL: "
-            read -r INVITE_URL < /dev/tty 2>/dev/null || status_error "Failed to read input"
-
-            echo ""
-            install_agent "$CONSOLE_HOST"
-
-            if [ -n "$INVITE_URL" ]; then
-                if register_agent "$INVITE_URL" "no"; then  # Don't auto-accept for remote installs
-                    status_ok "Agent connected!"
-                    # Restart agent to load credentials and start collectors
-                    docker restart lumenmon-agent >/dev/null 2>&1
-                else
-                    status_warn "Registration failed - check connection and try: lumenmon register"
-                fi
-            fi
-
-            install_cli
-            show_completion "agent" "" ""
-            ;;
-
-        4)
-            exit 0
-            ;;
-
-        *)
-            status_error "Invalid choice"
-            ;;
-    esac
-}
-
-# Handle LUMENMON_INVITE environment variable (one-line agent install)
-if [ -n "$LUMENMON_INVITE" ]; then
-    show_logo
-    check_requirements
-
-    URL="$LUMENMON_INVITE"
-    # Extract hostname from invite URI: lumenmon://user:pass@HOST:8884#fp
-    HOST=$(echo "$URL" | sed -E 's|lumenmon://[^@]+@([^:#]+).*|\1|')
+    echo "  Enter hostname for agent connections"
+    echo "  (This will be in invite URLs for remote agents to connect)"
+    echo -n "  Hostname [$DETECTED_HOST]: "
+    read -r USER_HOST < /dev/tty 2>/dev/null || true
+    CONSOLE_HOST="${USER_HOST:-$DETECTED_HOST}"
 
     echo ""
-    status_ok "Found invite for $HOST"
-    echo ""
+    install_console "$CONSOLE_HOST"
 
-    install_agent "$HOST"
-
-    if register_agent "$URL" "yes"; then
-        status_ok "Agent connected!"
-        # Restart agent to load credentials and start collectors
-        docker restart lumenmon-agent >/dev/null 2>&1
-    else
-        status_error "Agent registration failed - check logs with: docker logs lumenmon-agent"
-    fi
+    # Generate invite for agents
+    INVITE_URL=$(generate_invite)
 
     install_cli
-    show_completion "agent" "" ""
-else
-    main
-fi
+    show_completion "console" "$INVITE_URL" "$CONSOLE_HOST"
+}
+
+# Run main installer
+main
