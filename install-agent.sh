@@ -104,18 +104,18 @@ case "$OS_ID" in
     ubuntu|debian)
         info "Installing Glances via apt..."
         apt-get update -qq
-        apt-get install -y glances python3-paho-mqtt >/dev/null 2>&1
+        apt-get install -y glances python-paho-mqtt >/dev/null 2>&1
         ok "Glances installed: $(glances --version | head -1)"
         ;;
 
-    # fedora|centos|rhel)
-    #     info "Installing Glances via dnf..."
-    #     dnf install -y glances python3-paho-mqtt >/dev/null 2>&1
-    #     ok "Glances installed: $(glances --version | head -1)"
-    #     ;;
+    arch|manjaro)
+        info "Installing Glances via pacman..."
+        pacman -Sy --noconfirm glances python-paho-mqtt >/dev/null 2>&1
+        ok "Glances installed: $(glances --version | head -1)"
+        ;;
 
     *)
-        err "Unsupported OS: $OS_ID (only Ubuntu/Debian supported)"
+        err "Unsupported OS: $OS_ID (supported: Ubuntu, Debian, Arch, Manjaro)"
         ;;
 esac
 
@@ -130,8 +130,17 @@ timeout 5 openssl s_client -connect "$HOST:$PORT" </dev/null 2>/dev/null | \
 DOWNLOADED_FP=$(openssl x509 -in /etc/lumenmon/server.crt -noout -fingerprint -sha256 | cut -d= -f2)
 [ "$DOWNLOADED_FP" = "$FP" ] || err "Certificate fingerprint mismatch!"
 
-cp /etc/lumenmon/server.crt /usr/local/share/ca-certificates/lumenmon.crt
-update-ca-certificates >/dev/null 2>&1
+# Add to system trust store (OS-specific)
+case "$OS_ID" in
+    ubuntu|debian)
+        cp /etc/lumenmon/server.crt /usr/local/share/ca-certificates/lumenmon.crt
+        update-ca-certificates >/dev/null 2>&1
+        ;;
+    arch|manjaro)
+        cp /etc/lumenmon/server.crt /etc/ca-certificates/trust-source/anchors/lumenmon.crt
+        trust extract-compat >/dev/null 2>&1
+        ;;
+esac
 ok "Certificate verified & trusted"
 
 # Create config
