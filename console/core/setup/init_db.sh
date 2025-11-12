@@ -21,6 +21,16 @@ PRAGMA synchronous=NORMAL;
 -- Set reasonable cache size (2MB)
 PRAGMA cache_size=-2000;
 
+-- Create agent registry table (tracks agent metadata)
+CREATE TABLE IF NOT EXISTS agent_registry (
+    agent_id TEXT PRIMARY KEY,
+    hostname TEXT,
+    first_seen INTEGER,
+    last_seen INTEGER
+);
+
+CREATE INDEX IF NOT EXISTS idx_agent_last_seen ON agent_registry(last_seen);
+
 -- Vacuum to optimize on startup (only if DB exists and has data)
 VACUUM;
 EOF
