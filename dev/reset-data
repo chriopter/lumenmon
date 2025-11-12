@@ -1,0 +1,33 @@
+#!/bin/bash
+# Reset all data and databases for fresh testing.
+# Does NOT stop containers - just cleans data.
+
+echo "🗑️  Resetting all data..."
+
+# Clean console data
+echo "  Clearing console data..."
+rm -rf console/data/metrics.db* 2>/dev/null
+rm -rf console/data/*.log 2>/dev/null
+rm -rf console/data/mqtt/passwd 2>/dev/null
+
+# Clean agent data
+echo "  Clearing agent data..."
+rm -rf agent/data/mqtt/* 2>/dev/null
+rm -rf agent/data/glances/* 2>/dev/null
+rm -rf agent/data/agents 2>/dev/null
+
+# Recreate directories
+mkdir -p console/data/mqtt agent/data/mqtt agent/data/glances
+
+# Restart console to reinitialize database
+if docker ps | grep -q lumenmon-console; then
+    echo "  Restarting console..."
+    docker restart lumenmon-console > /dev/null
+    sleep 3
+fi
+
+echo ""
+echo "✅ Data reset complete!"
+echo ""
+echo "Database is now empty. Restart agents to populate:"
+echo "  docker restart \$(docker ps -q --filter name=lumenmon-agent)"
