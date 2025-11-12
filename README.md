@@ -7,7 +7,7 @@
   ╚══════╝ ╚═════╝ ╚═╝     ╚═╝╚══════╝╚═╝  ╚═══╝╚═╝     ╚═╝ ╚═════╝ ╚═╝  ╚═══╝
 ```
 
-Lumenmon connects **Glances** monitoring from multiple machines to a web dashboard.
+Lumenmon connects **Glances** monitoring from multiple machines to a zero-config web dashboard.
 
 **Lumenmon Console:** 30-second install—Docker container with MQTT broker + Flask web UI (any OS with Docker)
 **Monitored Servers:** One-line command—auto-configures Glances with MQTT export + TLS certificate pinning
