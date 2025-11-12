@@ -20,7 +20,17 @@
       "Bash(tree:*)",
       "Bash(awk:*)",
       "Bash(xargs:*)",
-      "WebSearch"
+      "WebSearch",
+      "WebFetch(domain:glances.readthedocs.io)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(./dev/auto-glances)",
+      "Bash(docker network:*)",
+      "Bash(cat:*)",
+      "Bash(dev/auto)",
+      "Bash(for agent in lumenmon-agent-glances lumenmon-agent-1 lumenmon-agent-2 lumenmon-agent-3)",
+      "Bash(do echo '=== $agent ===')",
+      "Bash(done)",
+      "Bash(./dev/reset-data)"
     ],
     "deny": [],
     "ask": []
