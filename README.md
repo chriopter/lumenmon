@@ -7,9 +7,12 @@
   ╚══════╝ ╚═════╝ ╚═╝     ╚═╝╚══════╝╚═╝  ╚═══╝╚═╝     ╚═╝ ╚═════╝ ╚═╝  ╚═══╝
 ```
 
-Lumenmon is a web dashboard that connects **Glances** monitoring from multiple servers.
+Lumenmon is a web dashboard that connects **Glances** monitoring clients and plots data.
 
 Installs in 30 seconds on a central server. Add monitored servers with a one-line command. No custom dashboards, no agents—just Glances and a web UI.
+
+Glances Console: Packaged Docker container including MQTT-Server to recive Data & Flask Web UI.
+Clients: Script auto-install and configures glances in push configuration including certificate pinning.
 
 ## Quick Start
 
