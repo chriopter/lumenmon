@@ -1,53 +1,99 @@
 #!/bin/bash
-# Development auto-setup that resets containers, registers agent, and launches TUI dashboard.
-# Performs full reset, creates invite, registers agent with console, and opens interactive TUI.
+# Full auto-setup: console + Glances agent with clean database.
+# One command from zero to running dashboard with streaming metrics.
 
-# Step 1: Reset everything (same as dev/reset)
+set -e
+
+# Step 1: Reset everything
 echo "🔄 Stopping containers..."
-docker stop lumenmon-console lumenmon-agent 2>/dev/null || true
-docker rm lumenmon-console lumenmon-agent 2>/dev/null || true
+docker stop lumenmon-console lumenmon-agent-glances 2>/dev/null || true
+docker rm lumenmon-console lumenmon-agent-glances 2>/dev/null || true
 
 echo "🧹 Cleaning data..."
-rm -rf agent/data/mqtt/* 2>/dev/null || true
-rm -rf console/data/mqtt/passwd console/data/*.log 2>/dev/null || true
-mkdir -p agent/data/mqtt console/data/mqtt
+rm -rf agent/data/mqtt/* agent/data/glances/* 2>/dev/null || true
+rm -rf console/data/mqtt/passwd console/data/*.log console/data/metrics.db* 2>/dev/null || true
+mkdir -p agent/data/mqtt agent/data/glances console/data/mqtt
 
-# Step 2: Start containers with rebuild
-echo "🚀 Starting fresh..."
-# Use Docker network hostname for internal communication
+# Step 2: Start console
+echo "🚀 Starting console..."
 echo "CONSOLE_HOST=lumenmon-console" > console/.env
 docker compose -f console/docker-compose.yml up -d --build
 
-# Agent connects via Docker network at lumenmon-console:8884 (MQTT TLS)
-# Both containers join the same "lumenmon-net" network and communicate internally
-docker compose -f agent/docker-compose.yml up -d --build
+echo "⏳ Waiting for console..."
+sleep 5
 
-# Step 3: Wait for console to be ready
-echo "⏳ Waiting for console to be ready..."
-sleep 3
-
-# Step 4: Create invite and register agent
+# Step 3: Create invite
 echo "🔑 Creating invite..."
-
-# Generate invite for local agent (Docker network)
-# Uses lumenmon-console:8884 for MQTT TLS connection
 INVITE=$(docker exec lumenmon-console /app/core/enrollment/invite_create.sh 2>&1 | grep "lumenmon register" | sed 's/.*lumenmon register "\(.*\)"/\1/')
+
 if [ -z "$INVITE" ]; then
     echo "❌ Failed to create invite"
     exit 1
 fi
-echo "   Invite: $INVITE"
 
-echo "📝 Registering agent (auto-accepting certificate)..."
-echo "yes" | docker exec -i lumenmon-agent /app/core/setup/register.sh "$INVITE"
+echo "   $INVITE"
 
-# Restart agent to load credentials and start collectors
-echo "🔄 Restarting agent to start collectors..."
-docker restart lumenmon-agent >/dev/null
+# Step 4: Parse invite and generate config
+STRIPPED="${INVITE#lumenmon://}"
+FINGERPRINT="${STRIPPED##*#}"
+CONN_STRING="${STRIPPED%#*}"
 
-# Give agent a moment to connect
-echo "⏳ Waiting for agent to connect..."
-sleep 3
+if [[ "$CONN_STRING" =~ ^([^:]+):([^@]+)@([^:]+):([0-9]+)$ ]]; then
+    USERNAME="${BASH_REMATCH[1]}"
+    PASSWORD="${BASH_REMATCH[2]}"
+    HOST="${BASH_REMATCH[3]}"
+else
+    echo "❌ Failed to parse invite"
+    exit 1
+fi
 
-# Step 5: Launch TUI
-echo "📊 Access WebTUI via http://localhost:8080/"
+echo "📝 Generating config for $USERNAME..."
+
+# Save credentials and fetch cert
+echo "$USERNAME" > agent/data/mqtt/username
+echo "$PASSWORD" > agent/data/mqtt/password
+docker exec lumenmon-console cat /data/mqtt/server.crt > agent/data/mqtt/server.crt
+
+# Generate glances.conf
+cat > agent/data/glances/glances.conf <<EOF
+[global]
+check_update=false
+refresh=3
+
+[mqtt]
+host=$HOST
+port=1884
+user=$USERNAME
+password=$PASSWORD
+topic=metrics/$USERNAME
+topic_structure=per-metric
+tls=false
+callback_api_version=2
+EOF
+
+# Step 5: Start Glances
+echo "🚀 Starting Glances..."
+docker run -d \
+    --name lumenmon-agent-glances \
+    --hostname agent-glances \
+    --network lumenmon-net \
+    -v "$(pwd)/agent/data:/data:ro" \
+    nicolargo/glances:4.2.0-full \
+    glances --quiet --export mqtt --conf /data/glances/glances.conf \
+    > /dev/null
+
+# Step 6: Wait and verify
+echo "⏳ Waiting for metrics..."
+sleep 10
+
+TABLE_COUNT=$(docker exec lumenmon-console sqlite3 /data/metrics.db "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name LIKE '${USERNAME}_%';" 2>/dev/null || echo 0)
+
+if [ "$TABLE_COUNT" -gt 100 ]; then
+    echo "✅ Data flowing! $TABLE_COUNT tables created"
+else
+    echo "⚠️  Only $TABLE_COUNT tables (expected >100)"
+fi
+
+echo ""
+echo "📊 Dashboard: http://localhost:8080"
+echo "🔧 Agent ID: $USERNAME"
