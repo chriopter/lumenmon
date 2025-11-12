@@ -19,7 +19,8 @@
       "Bash(docker build:*)",
       "Bash(tree:*)",
       "Bash(awk:*)",
-      "Bash(xargs:*)"
+      "Bash(xargs:*)",
+      "WebSearch"
     ],
     "deny": [],
     "ask": []
