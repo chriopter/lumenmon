@@ -34,6 +34,29 @@ echo ""
 # Check root
 [ "$EUID" -ne 0 ] && err "Run as root: sudo bash install-agent.sh"
 
+# Check if already installed
+if [ -f /etc/lumenmon/glances.conf ] || [ -f /etc/systemd/system/lumenmon-agent.service ]; then
+    echo ""
+    echo -e "${RED}⚠ WARNING: Lumenmon agent already installed!${RESET}"
+    echo ""
+    echo "Existing installation detected:"
+    [ -f /etc/lumenmon/glances.conf ] && echo "  • Config: /etc/lumenmon/glances.conf"
+    [ -f /etc/systemd/system/lumenmon-agent.service ] && echo "  • Service: lumenmon-agent.service"
+    echo ""
+    echo "Re-running this installer will:"
+    echo "  • Replace configuration (disconnect from current console)"
+    echo "  • Update MQTT credentials (old invite will stop working)"
+    echo "  • Restart the service"
+    echo ""
+    echo -n "Continue anyway? [y/N]: "
+    read -r CONFIRM
+    if [[ ! "$CONFIRM" =~ ^[Yy]$ ]]; then
+        echo "Installation cancelled."
+        exit 0
+    fi
+    echo ""
+fi
+
 # Get invite URL
 INVITE="${LUMENMON_INVITE:-}"
 if [ -z "$INVITE" ]; then
