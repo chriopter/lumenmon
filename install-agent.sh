@@ -1,173 +1,139 @@
 #!/bin/bash
-# Lumenmon Agent Installer - installs Glances with MQTT export for system monitoring.
-# Detects OS, installs Glances natively, configures TLS certificate pinning, and starts systemd service.
+# Lumenmon Agent Installer - configures Glances to connect to Lumenmon console.
+# Installs Glances (nicolargo/glances) via system package manager and sets up MQTT connection.
 
 set -e
 
-# Version
-AGENT_INSTALLER_VERSION="1.0.0"
+# ============================================================================
+# WELCOME
+# ============================================================================
 
-# Output helpers
-status_ok() { echo -e "[\033[1;32m✓\033[0m] $1"; }
-status_error() { echo -e "[\033[1;31m✗\033[0m] $1"; exit 1; }
-status_warn() { echo -e "[\033[1;33m⚠\033[0m] $1"; }
-status_progress() { echo -e "[\033[1;36m→\033[0m] $1"; }
+# Colors
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+CYAN='\033[0;36m'
+RESET='\033[0m'
 
-# Show logo
-show_logo() {
-    clear
-    echo -e "\033[0;36m"
-    echo "  ██╗     ██╗   ██╗███╗   ███╗███████╗███╗   ██╗███╗   ██╗ ██████╗ ███╗   ██╗"
-    echo "  ██║     ██║   ██║████╗ ████║██╔════╝████╗  ██║████╗ ████║██╔═══██╗████╗  ██║"
-    echo "  ██║     ██║   ██║██╔████╔██║█████╗  ██╔██╗ ██║██╔████╔██║██║   ██║██╔██╗ ██║"
-    echo "  ██║     ██║   ██║██║╚██╔╝██║██╔══╝  ██║╚██╗██║██║╚██╔╝██║██║   ██║██║╚██╗██║"
-    echo "  ███████╗╚██████╔╝██║ ╚═╝ ██║███████╗██║ ╚████║██║ ╚═╝ ██║╚██████╔╝██║ ╚████║"
-    echo "  ╚══════╝ ╚═════╝ ╚═╝     ╚═╝╚══════╝╚═╝  ╚═══╝╚═╝     ╚═╝ ╚═════╝ ╚═╝  ╚═══╝"
-    echo -e "\033[0m"
-    echo "  Agent Installer v${AGENT_INSTALLER_VERSION}"
-    echo ""
-}
+ok() { echo -e "[${GREEN}✓${RESET}] $1"; }
+err() { echo -e "[${RED}✗${RESET}] $1"; exit 1; }
+info() { echo -e "[${CYAN}→${RESET}] $1"; }
 
-# Detect OS
-detect_os() {
-    if [ -f /etc/os-release ]; then
-        . /etc/os-release
-        OS_ID="$ID"
-        OS_VERSION="$VERSION_ID"
-    else
-        status_error "Cannot detect OS - /etc/os-release not found"
-    fi
+# Logo
+clear 2>/dev/null || true
+echo -e "${CYAN}"
+echo "  ██╗     ██╗   ██╗███╗   ███╗███████╗███╗   ██╗███╗   ██╗ ██████╗ ███╗   ██╗"
+echo "  ██║     ██║   ██║████╗ ████║██╔════╝████╗  ██║████╗ ████║██╔═══██╗████╗  ██║"
+echo "  ██║     ██║   ██║██╔████╔██║█████╗  ██╔██╗ ██║██╔████╔██║██║   ██║██╔██╗ ██║"
+echo "  ██║     ██║   ██║██║╚██╔╝██║██╔══╝  ██║╚██╗██║██║╚██╔╝██║██║   ██║██║╚██╗██║"
+echo "  ███████╗╚██████╔╝██║ ╚═╝ ██║███████╗██║ ╚████║██║ ╚═╝ ██║╚██████╔╝██║ ╚████║"
+echo "  ╚══════╝ ╚═════╝ ╚═╝     ╚═╝╚══════╝╚═╝  ╚═══╝╚═╝     ╚═╝ ╚═════╝ ╚═╝  ╚═══╝"
+echo -e "${RESET}"
+echo "  Glances → Lumenmon Connector"
+echo ""
 
-    status_progress "Detected OS: $OS_ID $OS_VERSION"
+# Check root
+[ "$EUID" -ne 0 ] && err "Run as root: sudo bash install-agent.sh"
 
-    case "$OS_ID" in
-        ubuntu|debian)
-            PKG_MANAGER="apt"
-            ;;
-        *)
-            status_error "Unsupported OS: $OS_ID (only Ubuntu/Debian supported for now)"
-            ;;
-    esac
-}
+# Get invite URL
+INVITE="${LUMENMON_INVITE:-}"
+if [ -z "$INVITE" ]; then
+    echo -n "Enter invite URL: "
+    read -r INVITE
+fi
 
-# Check if running as root
-check_root() {
-    if [ "$EUID" -ne 0 ]; then
-        status_error "This installer must be run as root (use sudo)"
-    fi
-}
+# Parse invite: lumenmon://USER:PASS@HOST:PORT#FINGERPRINT
+if [[ "$INVITE" =~ ^lumenmon://([^:]+):([^@]+)@([^:#]+):([0-9]+)#(.+)$ ]]; then
+    USER="${BASH_REMATCH[1]}"
+    PASS="${BASH_REMATCH[2]}"
+    HOST="${BASH_REMATCH[3]}"
+    PORT="${BASH_REMATCH[4]}"
+    FP="${BASH_REMATCH[5]}"
+else
+    err "Invalid invite URL"
+fi
 
-# Parse invite URL
-parse_invite() {
-    local invite_url="$1"
+echo ""
+ok "Invite: $USER@$HOST:$PORT"
+echo ""
 
-    # Format: lumenmon://USERNAME:PASSWORD@HOST:PORT#FINGERPRINT
-    if [[ "$invite_url" =~ ^lumenmon://([^:]+):([^@]+)@([^:#]+):([0-9]+)#(.+)$ ]]; then
-        USERNAME="${BASH_REMATCH[1]}"
-        PASSWORD="${BASH_REMATCH[2]}"
-        MQTT_HOST="${BASH_REMATCH[3]}"
-        MQTT_PORT="${BASH_REMATCH[4]}"
-        FINGERPRINT="${BASH_REMATCH[5]}"
-        status_ok "Parsed invite: $USERNAME@$MQTT_HOST:$MQTT_PORT"
-    else
-        status_error "Invalid invite URL format"
-    fi
-}
+# ============================================================================
+# DETECT OS
+# ============================================================================
 
-# Install Glances
-install_glances() {
-    status_progress "Installing Glances..."
+info "Detecting operating system..."
 
-    if command -v glances >/dev/null 2>&1; then
-        status_ok "Glances already installed ($(glances --version | head -1))"
-        return
-    fi
+if [ -f /etc/os-release ]; then
+    . /etc/os-release
+    OS_ID="$ID"
+    OS_VERSION="$VERSION_ID"
+    ok "Detected: $OS_ID $OS_VERSION"
+else
+    err "Cannot detect OS - /etc/os-release not found"
+fi
 
-    case "$PKG_MANAGER" in
-        apt)
-            apt-get update -qq
-            apt-get install -y glances python3-paho-mqtt >/dev/null 2>&1
-            ;;
-    esac
+echo ""
 
-    if command -v glances >/dev/null 2>&1; then
-        status_ok "Glances installed: $(glances --version | head -1)"
-    else
-        status_error "Glances installation failed"
-    fi
-}
+# ============================================================================
+# INSTALL (by OS)
+# ============================================================================
 
-# Download and install server certificate
-install_certificate() {
-    status_progress "Downloading server certificate..."
+case "$OS_ID" in
+    ubuntu|debian)
+        info "Installing Glances via apt..."
+        apt-get update -qq
+        apt-get install -y glances python3-paho-mqtt >/dev/null 2>&1
+        ok "Glances installed: $(glances --version | head -1)"
+        ;;
 
-    # Create config directory
-    mkdir -p /etc/lumenmon
+    # fedora|centos|rhel)
+    #     info "Installing Glances via dnf..."
+    #     dnf install -y glances python3-paho-mqtt >/dev/null 2>&1
+    #     ok "Glances installed: $(glances --version | head -1)"
+    #     ;;
 
-    # Download certificate from console
-    if ! curl -fsSL -k "https://${MQTT_HOST}:${MQTT_PORT}/" --connect-timeout 5 2>&1 | \
-         openssl s_client -connect "${MQTT_HOST}:${MQTT_PORT}" -showcerts 2>/dev/null | \
-         openssl x509 -outform PEM > /etc/lumenmon/server.crt 2>/dev/null; then
-        status_warn "Could not auto-download certificate, trying alternative method..."
+    *)
+        err "Unsupported OS: $OS_ID (only Ubuntu/Debian supported)"
+        ;;
+esac
 
-        # Try with openssl directly
-        timeout 5 openssl s_client -connect "${MQTT_HOST}:${MQTT_PORT}" -showcerts </dev/null 2>/dev/null | \
-            sed -n '/BEGIN CERTIFICATE/,/END CERTIFICATE/p' | head -n $(grep -n "END CERTIFICATE" | head -1 | cut -d: -f1) > /etc/lumenmon/server.crt
-    fi
+echo ""
 
-    if [ ! -s /etc/lumenmon/server.crt ]; then
-        status_error "Failed to download server certificate from ${MQTT_HOST}:${MQTT_PORT}"
-    fi
+# Download & verify certificate
+info "Downloading server certificate..."
+mkdir -p /etc/lumenmon
+timeout 5 openssl s_client -connect "$HOST:$PORT" </dev/null 2>/dev/null | \
+    sed -n '/BEGIN CERT/,/END CERT/p' > /etc/lumenmon/server.crt
 
-    # Verify certificate fingerprint
-    DOWNLOADED_FP=$(openssl x509 -in /etc/lumenmon/server.crt -noout -fingerprint -sha256 2>/dev/null | cut -d= -f2)
+DOWNLOADED_FP=$(openssl x509 -in /etc/lumenmon/server.crt -noout -fingerprint -sha256 | cut -d= -f2)
+[ "$DOWNLOADED_FP" = "$FP" ] || err "Certificate fingerprint mismatch!"
 
-    if [ "$DOWNLOADED_FP" = "$FINGERPRINT" ]; then
-        status_ok "Certificate verified: $FINGERPRINT"
-    else
-        status_error "Certificate fingerprint mismatch!\n  Expected: $FINGERPRINT\n  Got: $DOWNLOADED_FP"
-    fi
+cp /etc/lumenmon/server.crt /usr/local/share/ca-certificates/lumenmon.crt
+update-ca-certificates >/dev/null 2>&1
+ok "Certificate verified & trusted"
 
-    # Add certificate to system trust store
-    case "$PKG_MANAGER" in
-        apt)
-            cp /etc/lumenmon/server.crt /usr/local/share/ca-certificates/lumenmon-console.crt
-            update-ca-certificates --fresh >/dev/null 2>&1
-            ;;
-    esac
-
-    status_ok "Certificate installed and trusted"
-}
-
-# Create Glances configuration
-create_glances_config() {
-    status_progress "Creating Glances configuration..."
-
-    cat > /etc/lumenmon/glances.conf <<EOF
+# Create config
+info "Creating Glances configuration..."
+cat > /etc/lumenmon/glances.conf <<EOF
 [global]
 check_update=false
 refresh=3
 
 [mqtt]
-host=$MQTT_HOST
-port=$MQTT_PORT
-user=$USERNAME
-password=$PASSWORD
-topic=metrics/$USERNAME
+host=$HOST
+port=$PORT
+user=$USER
+password=$PASS
+topic=metrics/$USER
 topic_structure=per-metric
 tls=true
 callback_api_version=2
 EOF
-
-    chmod 600 /etc/lumenmon/glances.conf
-    status_ok "Configuration saved to /etc/lumenmon/glances.conf"
-}
+chmod 600 /etc/lumenmon/glances.conf
+ok "Configuration saved"
 
 # Create systemd service
-create_systemd_service() {
-    status_progress "Creating systemd service..."
-
-    cat > /etc/systemd/system/lumenmon-agent.service <<EOF
+info "Creating systemd service..."
+cat > /etc/systemd/system/lumenmon-agent.service <<EOF
 [Unit]
 Description=Lumenmon Agent (Glances MQTT Export)
 After=network-online.target
@@ -178,78 +144,28 @@ Type=simple
 ExecStart=/usr/bin/glances --quiet --export mqtt --conf /etc/lumenmon/glances.conf
 Restart=always
 RestartSec=10
-StandardOutput=journal
-StandardError=journal
 
 [Install]
 WantedBy=multi-user.target
 EOF
+systemctl daemon-reload
+systemctl enable lumenmon-agent >/dev/null 2>&1
+systemctl start lumenmon-agent
+ok "Service started"
 
-    systemctl daemon-reload
-    status_ok "Systemd service created"
-}
+# ============================================================================
+# COMPLETE
+# ============================================================================
 
-# Start and enable service
-start_service() {
-    status_progress "Starting lumenmon-agent service..."
-
-    systemctl enable lumenmon-agent >/dev/null 2>&1
-    systemctl start lumenmon-agent
-
-    sleep 2
-
-    if systemctl is-active --quiet lumenmon-agent; then
-        status_ok "Service started and enabled"
-    else
-        status_error "Service failed to start - check: journalctl -u lumenmon-agent -n 50"
-    fi
-}
-
-# Show completion message
-show_completion() {
-    echo ""
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo "✓ Lumenmon Agent installed!"
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo ""
-    echo "Agent ID: $USERNAME"
-    echo "Console:  $MQTT_HOST:$MQTT_PORT"
-    echo ""
-    echo "Status:   systemctl status lumenmon-agent"
-    echo "Logs:     journalctl -u lumenmon-agent -f"
-    echo ""
-    echo "The agent is now sending metrics to the console dashboard."
-    echo ""
-}
-
-# Main installation flow
-main() {
-    show_logo
-    check_root
-    detect_os
-
-    # Get invite URL
-    if [ -z "$LUMENMON_INVITE" ]; then
-        echo "  Enter invite URL from console (run 'lumenmon invite' on console):"
-        echo -n "  Invite: "
-        read -r INVITE_URL < /dev/tty 2>/dev/null || status_error "Failed to read input"
-    else
-        INVITE_URL="$LUMENMON_INVITE"
-        status_ok "Using invite from environment"
-    fi
-
-    echo ""
-    parse_invite "$INVITE_URL"
-
-    echo ""
-    install_glances
-    install_certificate
-    create_glances_config
-    create_systemd_service
-    start_service
-
-    show_completion
-}
-
-# Run main installer
-main
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "✓ Glances connected to Lumenmon!"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+echo "  Agent ID:  $USER"
+echo "  Console:   $HOST:$PORT"
+echo "  Glances:   $(glances --version | head -1)"
+echo ""
+echo "  Status:    systemctl status lumenmon-agent"
+echo "  Logs:      journalctl -u lumenmon-agent -f"
+echo ""

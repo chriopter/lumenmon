@@ -19,7 +19,7 @@ Uses **Glances** for comprehensive system monitoring - CPU, memory, disk, networ
 curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/refs/heads/main/install.sh | bash
 ```
 
-The installer will guide you through setup and show you how to add agents.
+The installer sets up the console. Run `lumenmon invite` to add monitored servers.
 
 <img width="700"  alt="image" src="https://github.com/user-attachments/assets/6e9a1e4c-59ca-4b34-bfa5-269ab3f99b37" />
 
@@ -28,30 +28,26 @@ The installer will guide you through setup and show you how to add agents.
 
 ```bash
 lumenmon            # Show status and available commands
-lumenmon start      # Start containers
+lumenmon invite     # Generate invite to connect Glances on other servers
 lumenmon logs       # Stream container logs
-lumenmon invite     # Generate agent invite (URL + one-line install)
-lumenmon register   # Register agent with invite
-lumenmon update     # Update CLI, compose files, and images
+lumenmon update     # Update console
 lumenmon uninstall  # Remove everything
 ```
 </details>
 
 ## How It Works
 
-There are two docker containers:
+**Glances** (installed on monitored servers) collects 150+ metrics and publishes to **Lumenmon Console** via MQTT.
 
-**Agent** runs Glances to collect 150+ metrics (CPU, memory, disk, network, GPU, sensors) and publishes to console via MQTT.
-
-**Console** receives data via MQTT broker, stores in SQLite, and serves a web dashboard.
+**Console** (Docker container) receives metrics via MQTT broker, stores in SQLite, and serves a web dashboard.
 
 ```
 ┌─────────────┐               ┌─────────────┐
-│   Agent     │──────────────►│   Console   │
+│  Glances    │──────────────►│   Console   │
 ├─────────────┤  MQTT/TLS     ├─────────────┤
-│ • CPU 1s    │──────────────►│ • MQTT 8884 │──► Web Dashboard
-│ • Mem 10s   │  Metric Data  │ • SQLite DB │
-│ • Disk 60s  │               │ • WebTUI    │
+│ • CPU       │──────────────►│ • MQTT 8884 │──► Web Dashboard
+│ • Memory    │  150+ Metrics │ • SQLite DB │
+│ • Disk, Net │               │ • WebTUI    │
 └─────────────┘               └─────────────┘
 ```
 
@@ -60,93 +56,35 @@ There are two docker containers:
 
 ### Architecture
 
-**Agent:**
-- Runs **Glances** (official `nicolargo/glances:latest-full` image)
-- Configured to publish metrics to MQTT broker
-- No custom code - pure Glances with MQTT export
+**Glances** (system package on monitored servers):
+- Installed via `apt install glances` or similar
+- Configured with MQTT export to console
+- Collects 150+ metrics every 3 seconds
 
-**Console:**
-```
-├── console.sh (Main entry)
-├── core (Core setup)
-│   ├── enrollment (Bash scripts to create invitations and agent registration)
-│   ├── mqtt (MQTT broker gateway and subscriber)
-│   ├── setup (Server setup and certificate generation)
-├── data (Persistent data dir)
-│   ├── metrics.db (SQLite metrics database)
-│   └── mqtt (MQTT credentials and TLS certificates)
-└── web (Web server)
-    ├── app (Flask app)
-    ├── config (Caddy Config)
-    └── public (HTML, CSS, JS)
-```
+**Console** (Docker container):
+- MQTT broker (port 8884) receives metrics
+- SQLite database stores time-series data
+- Flask web dashboard (port 8080)
 
-### Data Flow: How Glances Metrics Flow Through Lumenmon
+### Data Flow
 
-**Simple 4-Step Process:**
+1. Glances collects metrics (CPU, memory, disk, etc.)
+2. Publishes to MQTT: `metrics/id_abc123/hostname/cpu/total`
+3. Console gateway writes to SQLite table
+4. Dashboard queries and displays real-time data
 
-1. **Glances Collects** → Every 3 seconds, Glances reads 150+ system metrics
-2. **MQTT Publishes** → Glances sends each metric as JSON to its own MQTT topic
-3. **Gateway Transforms** → Console MQTT gateway receives messages and writes to SQLite
-4. **Dashboard Displays** → Web UI queries SQLite and shows real-time data
+**Storage:** One SQLite table per metric. Schema: `(timestamp, value, interval)`
 
-**Example Flow:**
-
-```
-Glances reads CPU → 15.2%
-  ↓
-Publishes to MQTT: metrics/id_abc123/agent-glances/cpu/total → "15.2"
-  ↓
-Gateway receives message:
-  - Parses topic: agent_id="id_abc123", metric="cpu_total"
-  - Infers type: REAL (it's a float)
-  - Infers interval: 3s (CPU metrics update every 3s)
-  - Writes to SQLite table: id_abc123_agent-glances_cpu_total
-  ↓
-Dashboard queries: SELECT value FROM "id_abc123_agent-glances_cpu_total" ORDER BY timestamp DESC LIMIT 1
-  ↓
-Shows: CPU 15.2%
-```
-
-**Table Structure:**
-- One table per metric: `{agent_id}_{hostname}_{metric_path}`
-- Example: `id_abc123_agent-glances_cpu_total`
-- Schema: `(timestamp INTEGER, value TYPE, interval INTEGER)`
-
-**Type Inference:**
-- Python float → SQLite REAL (e.g., 15.2)
-- Python int → SQLite INTEGER (e.g., 42)
-- Python str → SQLite TEXT (e.g., "online")
-- Python bool → SQLite INTEGER (e.g., 1 or 0)
-
-**Interval Assignment (for staleness detection):**
-- CPU metrics → 3s
-- Memory/network → 10s
-- Disk/filesystem → 60s
-- System info (hostname, version) → 0s (static, never stale)
-
-**Online Status Logic:**
-- Check `uptime_seconds` table timestamp
-- If data age < 10s → Status: **ONLINE** (green)
-- If data age ≥ 10s → Status: **OFFLINE** (red)
-
-**Data Retention:**
-- Automatic 7-day cleanup (removes data older than 7 days)
-- Runs daily at 3 AM (see `console/core/mqtt/cleanup_old_data.sh`) 
-
-<img width="700" alt="image" src="https://github.com/user-attachments/assets/2e67ead2-e5ce-4291-80d1-db08f7dd6ee7" />
+**Retention:** Automatic 7-day cleanup (runs daily at 3 AM)
 
 ### Security
 
-**Enrollment:** Invite URLs contain permanent MQTT credentials + TLS certificate fingerprint for agent registration.
+- **TLS:** All MQTT connections use TLS with certificate pinning
+- **Auth:** Per-agent MQTT credentials (32-char random passwords)
+- **ACL:** Agents can only write to their own topic namespace
+- **Network:** Outbound-only from Glances to console (firewall-friendly)
 
-**TLS Pinning:** Agents verify server certificate fingerprint during first connection, then pin it for all future connections.
-
-**Network Design:** Agents initiate outbound connections only. Console cannot connect to agents.
-
-**Installation:** When console and agent run on same machine, they communicate via Docker network (`lumenmon-console:8884`) with automatic TLS verification.
-
-**Ports:** Console Exposes ports **8080** (web, no auth - will change) and **8884** (MQTT/TLS with rate limiting, ACL, Auth)
+<img width="700" alt="Dashboard" src="https://github.com/user-attachments/assets/2e67ead2-e5ce-4291-80d1-db08f7dd6ee7" />
 
 </details>
 
