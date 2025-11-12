@@ -221,6 +221,27 @@ main() {
 
     install_cli
     show_completion "console" "$INVITE_URL" "$CONSOLE_HOST"
+
+    # Offer to install Glances on this machine
+    echo ""
+    echo -n "Install Glances on this machine too? [y/N]: "
+    read -r INSTALL_LOCAL < /dev/tty 2>/dev/null || INSTALL_LOCAL="n"
+
+    if [[ "$INSTALL_LOCAL" =~ ^[Yy]$ ]]; then
+        echo ""
+        status_progress "Installing Glances locally..."
+
+        # Download agent installer
+        AGENT_INSTALLER="/tmp/lumenmon-agent-install.sh"
+        curl -fsSL "$GITHUB_RAW/install-agent.sh" -o "$AGENT_INSTALLER" || status_error "Failed to download agent installer"
+        chmod +x "$AGENT_INSTALLER"
+
+        # Run agent installer with invite
+        export LUMENMON_INVITE="$INVITE_URL"
+        bash "$AGENT_INSTALLER"
+
+        rm -f "$AGENT_INSTALLER"
+    fi
 }
 
 # Run main installer
