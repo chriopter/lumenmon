@@ -426,7 +426,29 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
             const firstTable = data.tables[0];
             const columnNames = firstTable ? Object.keys(firstTable.columns) : [];
 
-            // Build table dynamically
+            // Group metrics by category
+            const groups = {};
+            data.tables.forEach(table => {
+                let metricName = table.metric_name;
+
+                // Strip hostname prefix (agent-glances_, agent-1_, etc.)
+                metricName = metricName.replace(/^[^_]+_/, '');
+
+                // Extract category (first part before underscore)
+                const parts = metricName.split('_');
+                const category = parts[0] || 'other';
+
+                if (!groups[category]) {
+                    groups[category] = [];
+                }
+
+                groups[category].push({
+                    ...table,
+                    displayName: metricName
+                });
+            });
+
+            // Build table with collapsible groups
             let html = '<table id="metrics-table"><thead><tr>';
             html += '<td>NAME</td>';
 
@@ -443,8 +465,27 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
             html += '<td># SAMPLES</td>';
             html += '</tr></thead><tbody>';
 
-            data.tables.forEach(table => {
-                const metricName = table.metric_name;
+            // Render each group
+            const groupNames = Object.keys(groups).sort();
+            const expandedGroups = window.expandedMetricGroups || new Set(groupNames); // All expanded by default
+
+            groupNames.forEach(groupName => {
+                const isExpanded = expandedGroups.has(groupName);
+                const expandIcon = isExpanded ? '▼' : '▶';
+                const groupSize = groups[groupName].length;
+
+                // Group header row
+                html += `<tr class="group-header" data-group="${groupName}" tabindex="0">`;
+                html += `<td colspan="${columnNames.length + 5}">`;
+                html += `<span class="group-icon">${expandIcon}</span> `;
+                html += `<strong>${groupName}</strong> `;
+                html += `<span class="group-count">(${groupSize} metrics)</span>`;
+                html += `</td></tr>`;
+
+                // Group metrics (hidden if collapsed)
+                if (isExpanded) {
+                    groups[groupName].forEach(table => {
+                        const metricName = table.displayName;
                 const columns = table.columns || {};
                 const metadata = table.metadata || {};
                 const staleness = table.staleness || {};  // Backend-calculated staleness (DRY)
@@ -536,6 +577,8 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
                 html += `<td>${metadata.data_span || '-'}</td>`;
                 html += `<td>${metadata.line_count || '-'}</td>`;
                 html += `</tr>`;
+                    });
+                }
             });
 
             // Store current values for next refresh
@@ -543,13 +586,39 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
 
             html += '</tbody></table>';
 
+            // Store expanded state for next refresh
+            window.expandedMetricGroups = expandedGroups;
+
             // Queue DOM update (or run immediately if not in globalClock)
-            if (window.globalClock.pendingDomUpdates) {
-                window.globalClock.pendingDomUpdates.push(() => {
-                    metricsList.innerHTML = html;
-                });
-            } else {
+            const updateDom = () => {
                 metricsList.innerHTML = html;
+
+                // Add click and keyboard handlers to group headers
+                document.querySelectorAll('.group-header').forEach(header => {
+                    const toggleGroup = () => {
+                        const groupName = header.dataset.group;
+                        if (window.expandedMetricGroups.has(groupName)) {
+                            window.expandedMetricGroups.delete(groupName);
+                        } else {
+                            window.expandedMetricGroups.add(groupName);
+                        }
+                        loadMetrics(entityId);  // Refresh to show/hide
+                    };
+
+                    header.addEventListener('click', toggleGroup);
+                    header.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            toggleGroup();
+                        }
+                    });
+                });
+            };
+
+            if (window.globalClock.pendingDomUpdates) {
+                window.globalClock.pendingDomUpdates.push(updateDom);
+            } else {
+                updateDom();
             }
         } catch (error) {
             console.error('Error loading metrics:', error);
