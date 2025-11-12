@@ -10,9 +10,7 @@
 Lumenmon connects **Glances** monitoring from multiple machines to a web dashboard.
 
 **Lumenmon Console:** 30-second install—Docker container with MQTT broker + Flask web UI (any OS with Docker)
-**Monitored Servers:** One-line command—auto-configures Glances with MQTT export + TLS certificate pinning (Ubuntu, Debian, Arch, Manjaro)
-
-*Note: Glances works on any OS, but the auto-installer script only supports the distros listed above. Manual Glances setup works everywhere.*
+**Monitored Servers:** One-line command—auto-configures Glances with MQTT export + TLS certificate pinning
 
 ## Quick Start
 
@@ -23,6 +21,14 @@ curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/refs/heads/main/i
 The installer sets up the console. Run `lumenmon invite` to add monitored servers.
 
 <img width="700"  alt="image" src="https://github.com/user-attachments/assets/6e9a1e4c-59ca-4b34-bfa5-269ab3f99b37" />
+
+## Supported Systems
+
+**Auto-Installer Supported:**
+- Ubuntu / Debian Systems
+- Arch
+
+The auto-installer script handles package installation and configuration automatically. On unsupported systems, install Glances just manually.
 
 <details>
 <summary>Commands</summary>
@@ -81,8 +87,8 @@ lumenmon uninstall  # Remove everything
 ### Security
 
 - **TLS:** All MQTT connections use TLS with certificate pinning
-- **Auth:** Per-agent MQTT credentials (32-char random passwords)
-- **ACL:** Agents can only write to their own topic namespace
+- **Auth:** Per-server MQTT credentials (32-char random passwords)
+- **ACL:** Each server can only write to its own topic namespace
 - **Network:** Outbound-only from Glances to console (firewall-friendly)
 
 <img width="700" alt="Dashboard" src="https://github.com/user-attachments/assets/2e67ead2-e5ce-4291-80d1-db08f7dd6ee7" />
@@ -93,10 +99,10 @@ lumenmon uninstall  # Remove everything
 <summary>Development</summary>
 
 ```bash
-# Start console + 1 Glances agent with clean database
+# Start console + 1 Glances client with clean database
 ./dev/auto
 
-# Add 3 more Glances agents for testing
+# Add 3 more Glances clients for testing
 ./dev/add3
 
 # Reset all data/databases (keeps containers running)
@@ -110,8 +116,8 @@ lumenmon uninstall  # Remove everything
 ```
 
 **Dev scripts:**
-- `./dev/auto` - Full setup: console + agent with clean DB (~25s)
-- `./dev/add3` - Add 3 test agents for multi-agent testing (~20s)
+- `./dev/auto` - Full setup: console + Glances client with clean DB (~25s)
+- `./dev/add3` - Add 3 test Glances clients for testing (~20s)
 - `./dev/reset-data` - Clear all data/DB for fresh testing
 - `./dev/git-tag-release` - Bump version and push git tag
 - `./dev/update-vendor-deps` - Update Chart.js and other vendors

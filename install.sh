@@ -139,11 +139,10 @@ show_completion() {
     echo ""
     echo "CLI commands:"
     echo "  lumenmon           - Open WebTUI (or status if not running)"
-    echo "  lumenmon start     - Start console and/or agent"
+    echo "  lumenmon start     - Start console"
     echo "  lumenmon status    - Show system status"
     echo "  lumenmon logs      - View logs"
-    echo "  lumenmon invite    - Generate agent invite"
-    echo "  lumenmon register  - Register agent with invite"
+    echo "  lumenmon invite    - Generate invite to add servers"
     echo "  lumenmon update    - Pull latest containers and restart"
     echo "  lumenmon uninstall - Remove everything"
     echo ""
@@ -151,7 +150,7 @@ show_completion() {
     # Invite section (for console installations)
     if [ -n "$invite_url" ]; then
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-        echo "Add Monitoring Agents"
+        echo "Add Monitored Servers"
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
         echo ""
         echo "Copy this command to each machine you want to monitor:"

@@ -1,5 +1,5 @@
 #!/bin/bash
-# Lumenmon Agent Installer - configures Glances to connect to Lumenmon console.
+# Lumenmon Client Installer - configures Glances to connect to Lumenmon console.
 # Installs Glances (nicolargo/glances) via system package manager and sets up MQTT connection.
 
 set -e
@@ -37,7 +37,7 @@ echo ""
 # Check if already installed
 if [ -f /etc/lumenmon/glances.conf ] || [ -f /etc/systemd/system/lumenmon-agent.service ]; then
     echo ""
-    echo -e "${RED}⚠ WARNING: Lumenmon agent already installed!${RESET}"
+    echo -e "${RED}⚠ WARNING: Lumenmon client already installed!${RESET}"
     echo ""
     echo "Existing installation detected:"
     [ -f /etc/lumenmon/glances.conf ] && echo "  • Config: /etc/lumenmon/glances.conf"
