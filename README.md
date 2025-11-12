@@ -87,11 +87,58 @@ There are two docker containers:
     └── public (HTML, CSS, JS)
 ```
 
-### Data Flow
+### Data Flow: How Glances Metrics Flow Through Lumenmon
 
-Agents publish JSON to MQTT topics → Console gateway writes to SQLite (one table per agent per metric) → Web dashboard queries SQLite for display. Example: Agent `id_abc123` creates tables `id_abc123_generic_cpu`, `id_abc123_generic_disk`, etc.
+**Simple 4-Step Process:**
 
-**Staleness Detection:** Each metric includes its update interval (e.g. 1s for CPU, 10s for memory). Data is stale if it misses the expected update (with 1s grace): `age > interval + 1s`. Agents show green (all fresh), yellow (connected but some metrics stale), or red (no heartbeat). 
+1. **Glances Collects** → Every 3 seconds, Glances reads 150+ system metrics
+2. **MQTT Publishes** → Glances sends each metric as JSON to its own MQTT topic
+3. **Gateway Transforms** → Console MQTT gateway receives messages and writes to SQLite
+4. **Dashboard Displays** → Web UI queries SQLite and shows real-time data
+
+**Example Flow:**
+
+```
+Glances reads CPU → 15.2%
+  ↓
+Publishes to MQTT: metrics/id_abc123/agent-glances/cpu/total → "15.2"
+  ↓
+Gateway receives message:
+  - Parses topic: agent_id="id_abc123", metric="cpu_total"
+  - Infers type: REAL (it's a float)
+  - Infers interval: 3s (CPU metrics update every 3s)
+  - Writes to SQLite table: id_abc123_agent-glances_cpu_total
+  ↓
+Dashboard queries: SELECT value FROM "id_abc123_agent-glances_cpu_total" ORDER BY timestamp DESC LIMIT 1
+  ↓
+Shows: CPU 15.2%
+```
+
+**Table Structure:**
+- One table per metric: `{agent_id}_{hostname}_{metric_path}`
+- Example: `id_abc123_agent-glances_cpu_total`
+- Schema: `(timestamp INTEGER, value TYPE, interval INTEGER)`
+
+**Type Inference:**
+- Python float → SQLite REAL (e.g., 15.2)
+- Python int → SQLite INTEGER (e.g., 42)
+- Python str → SQLite TEXT (e.g., "online")
+- Python bool → SQLite INTEGER (e.g., 1 or 0)
+
+**Interval Assignment (for staleness detection):**
+- CPU metrics → 3s
+- Memory/network → 10s
+- Disk/filesystem → 60s
+- System info (hostname, version) → 0s (static, never stale)
+
+**Online Status Logic:**
+- Check `uptime_seconds` table timestamp
+- If data age < 10s → Status: **ONLINE** (green)
+- If data age ≥ 10s → Status: **OFFLINE** (red)
+
+**Data Retention:**
+- Automatic 7-day cleanup (removes data older than 7 days)
+- Runs daily at 3 AM (see `console/core/mqtt/cleanup_old_data.sh`) 
 
 <img width="700" alt="image" src="https://github.com/user-attachments/assets/2e67ead2-e5ce-4291-80d1-db08f7dd6ee7" />
 
