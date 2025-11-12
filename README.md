@@ -61,15 +61,9 @@ There are two docker containers:
 ### Architecture
 
 **Agent:**
-```
-├── agent.sh (Main entry)
-├── collectors/ (Data collectors)
-│   ├── generic (Scripts running on all system)
-│   └── ... (Scripts running dependent on environment, decided by collectors.sh)
-├── core/ (Scripts to register with server, start connection, start collectors)
-└── data/ (Persistent directory with MQTT credentials)
-    └── mqtt/
-```
+- Runs **Glances** (official `nicolargo/glances:latest-full` image)
+- Configured to publish metrics to MQTT broker
+- No custom code - pure Glances with MQTT export
 
 **Console:**
 ```

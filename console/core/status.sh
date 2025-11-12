@@ -39,35 +39,38 @@ else
     printf "  MQTT Users   ${RED}✗${NC} No passwd file\n"
 fi
 
-# Agents (count unique agent IDs from database tables)
+# Agents (from agent_registry table)
 if [ -f /data/metrics.db ]; then
-    TOTAL=$(sqlite3 /data/metrics.db "SELECT COUNT(DISTINCT SUBSTR(name, 1, 11)) FROM sqlite_master WHERE type='table' AND name LIKE 'id_%'" 2>/dev/null || echo "0")
+    # Check if agent_registry table exists
+    HAS_REGISTRY=$(sqlite3 /data/metrics.db "SELECT name FROM sqlite_master WHERE type='table' AND name='agent_registry'" 2>/dev/null)
 
-    # Active agents (with data less than 10 seconds old)
-    ACTIVE=0
-    NOW=$(date +%s)
-    # Get all unique agent IDs
-    AGENT_IDS=$(sqlite3 /data/metrics.db "SELECT DISTINCT SUBSTR(name, 1, 11) FROM sqlite_master WHERE type='table' AND name LIKE 'id_%_generic_cpu'" 2>/dev/null)
+    if [ -n "$HAS_REGISTRY" ]; then
+        TOTAL=$(sqlite3 /data/metrics.db "SELECT COUNT(*) FROM agent_registry" 2>/dev/null || echo "0")
 
-    for AGENT_ID in $AGENT_IDS; do
-        # Check if agent has recent CPU data (last 10 seconds)
-        LAST_TS=$(sqlite3 /data/metrics.db "SELECT MAX(timestamp) FROM ${AGENT_ID}_generic_cpu" 2>/dev/null || echo "0")
-        AGE=$((NOW - LAST_TS))
-        if [ "$AGE" -lt 10 ]; then
-            ACTIVE=$((ACTIVE + 1))
+        # Active agents (with last_seen less than 10 seconds old)
+        NOW=$(date +%s)
+        ACTIVE=$(sqlite3 /data/metrics.db "SELECT COUNT(*) FROM agent_registry WHERE ($NOW - last_seen) < 10" 2>/dev/null || echo "0")
+
+        if [ "$TOTAL" -gt 0 ]; then
+            printf "  Agents       ${GREEN}✓${NC} $TOTAL registered\n"
+        else
+            printf "  Agents       ${YELLOW}⚠${NC} None registered\n"
         fi
-    done
 
-    if [ "$TOTAL" -gt 0 ]; then
-        printf "  Agents       ${GREEN}✓${NC} $TOTAL registered\n"
+        if [ "$ACTIVE" -gt 0 ]; then
+            printf "  Online Now   ${GREEN}✓${NC} $ACTIVE active\n"
+        else
+            printf "  Online Now   ${YELLOW}⚠${NC} None active\n"
+        fi
     else
-        printf "  Agents       ${YELLOW}⚠${NC} None registered\n"
-    fi
-
-    if [ "$ACTIVE" -gt 0 ]; then
-        printf "  Online Now   ${GREEN}✓${NC} $ACTIVE active\n"
-    else
-        printf "  Online Now   ${YELLOW}⚠${NC} None active\n"
+        # Fallback: count unique agent IDs from table names
+        TOTAL=$(sqlite3 /data/metrics.db "SELECT COUNT(DISTINCT SUBSTR(name, 1, 11)) FROM sqlite_master WHERE type='table' AND name LIKE 'id_%'" 2>/dev/null || echo "0")
+        if [ "$TOTAL" -gt 0 ]; then
+            printf "  Agents       ${GREEN}✓${NC} $TOTAL registered\n"
+        else
+            printf "  Agents       ${YELLOW}⚠${NC} None registered\n"
+        fi
+        printf "  Online Now   ${YELLOW}⚠${NC} agent_registry table missing\n"
     fi
 else
     printf "  Agents       ${RED}✗${NC} Database missing\n"
