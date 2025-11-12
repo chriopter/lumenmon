@@ -90,6 +90,7 @@ lumenmon uninstall  # Remove everything
 - **Auth:** Per-server MQTT credentials (32-char random passwords)
 - **ACL:** Each server can only write to its own topic namespace
 - **Network:** Outbound-only from Glances to console (firewall-friendly)
+- **No Open Ports:** Glances runs in export-only mode (no web server, push-only)
 
 <img width="700" alt="Dashboard" src="https://github.com/user-attachments/assets/2e67ead2-e5ce-4291-80d1-db08f7dd6ee7" />
 
