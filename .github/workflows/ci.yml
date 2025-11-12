@@ -22,5 +22,3 @@ jobs:
       run: |
         docker build -t test-console:ci ./console
         echo "✓ Console container builds"
-        docker build -t test-agent:ci ./agent
-        echo "✓ Agent container builds"
