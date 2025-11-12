@@ -238,7 +238,10 @@ class MQTTBridge:
             self.db_conn.commit()
 
             # Clear pending invite on first data received (held in RAM until connected)
-            clear_invite(agent_id)
+            if clear_invite(agent_id):
+                log(agent_id, f'Cleared pending invite for {agent_id}')
+            else:
+                log(agent_id, f'No pending invite found for {agent_id}')
 
         except sqlite3.OperationalError as e:
             error_msg = str(e).lower()

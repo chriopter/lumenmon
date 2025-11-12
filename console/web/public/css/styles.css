@@ -1195,3 +1195,38 @@ footer {
         opacity: 0;
     }
 }
+
+/* ============================================================ */
+/* Collapsible Metric Groups */
+/* ============================================================ */
+.group-header {
+    background: var(--background2) !important;
+    cursor: pointer;
+    user-select: none;
+}
+
+.group-header:hover {
+    background: var(--background3) !important;
+}
+
+.group-header:focus {
+    outline: 2px solid var(--accent1);
+    outline-offset: -2px;
+}
+
+.group-header td {
+    padding: 0.5rem 0.75rem !important;
+    font-weight: bold;
+}
+
+.group-icon {
+    color: var(--accent1);
+    font-family: monospace;
+    margin-right: 0.5rem;
+}
+
+.group-count {
+    color: var(--foreground2);
+    font-weight: normal;
+    font-size: 0.85em;
+}
