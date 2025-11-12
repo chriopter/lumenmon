@@ -11,7 +11,7 @@ It's too damn complicated to quickly setup system monitoring for a few servers.
 
 Lumenmon fixes that. It's a simple monitoring tool inside a docker container, that you can install in under 30 seconds.
 
-Next steps: Live Data streaming to WebTUI directly from MQTT, Securing WebTUI Endpoints. Evaluate Glances Integration
+Uses **Glances** for comprehensive system monitoring - CPU, memory, disk, network, GPU, sensors, and more!
 
 ## Quick Start
 
@@ -41,7 +41,7 @@ lumenmon uninstall  # Remove everything
 
 There are two docker containers:
 
-**Agent** collects system metrics (CPU, memory, disk) and publishes to console via MQTT with TLS.
+**Agent** runs Glances to collect 150+ metrics (CPU, memory, disk, network, GPU, sensors) and publishes to console via MQTT.
 
 **Console** receives data via MQTT broker, stores in SQLite, and serves a web dashboard.
 
@@ -113,20 +113,33 @@ Agents publish JSON to MQTT topics → Console gateway writes to SQLite (one tab
 <summary>Development</summary>
 
 ```bash
-# Full auto-setup: reset, start containers, register agent, and launch WebTUI
+# Start console + 1 Glances agent with clean database
 ./dev/auto
 
-# Multi-agent testing (spawns 3 agents)
+# Add 3 more Glances agents for testing
 ./dev/add3
 
-# Create new release (interactive version bumping)
-./dev/release
+# Reset all data/databases (keeps containers running)
+./dev/reset-data
 
-# Update vendored CSS/JS dependencies
-./dev/updatedeps
+# Create git tag and trigger release (e.g., v0.13 → v0.14)
+./dev/git-tag-release
+
+# Update vendored CSS/JS dependencies (Chart.js, etc.)
+./dev/update-vendor-deps
 ```
+
+**Dev scripts:**
+- `./dev/auto` - Full setup: console + agent with clean DB (~25s)
+- `./dev/add3` - Add 3 test agents for multi-agent testing (~20s)
+- `./dev/reset-data` - Clear all data/DB for fresh testing
+- `./dev/git-tag-release` - Bump version and push git tag
+- `./dev/update-vendor-deps` - Update Chart.js and other vendors
+
+All scripts are inline bash (no lib files) - just open and read them!
+
 </details>
 
 ---
 
-Based on WebTUI, Flask, Docker, MQTT.
+**Powered by:** Glances • MQTT • SQLite • Flask • Docker • WebTUI
