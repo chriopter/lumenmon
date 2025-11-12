@@ -37,6 +37,26 @@ sleep 1
 echo "[console] Starting Caddy web server..."
 caddy start --config /etc/caddy/Caddyfile 2>&1 | sed 's/^/[caddy] /' &
 
+# Start daily cleanup task (runs at 3 AM)
+echo "[console] Starting daily cleanup task..."
+(
+  while true; do
+    # Wait until 3 AM
+    CURRENT_HOUR=$(date +%H)
+    CURRENT_MIN=$(date +%M)
+
+    # If it's 3 AM (03:00-03:59), run cleanup
+    if [ "$CURRENT_HOUR" -eq 3 ] && [ "$CURRENT_MIN" -lt 5 ]; then
+      /app/core/mqtt/cleanup_old_data.sh 2>&1 | sed 's/^/[cleanup] /'
+      # Sleep 1 hour to avoid running multiple times
+      sleep 3600
+    else
+      # Check every 5 minutes
+      sleep 300
+    fi
+  done
+) &
+
 # Display console info
 echo "[console] ======================================"
 echo "[console] Lumenmon Console Ready"
@@ -47,6 +67,7 @@ echo "[console] MQTT Internal: localhost:1883"
 echo "[console] MQTT WebSocket: Port 9001 (for web UI)"
 echo "[console] Web Interface: Port 80 (mapped to host 8080)"
 echo "[console] Database: /data/metrics.db"
+echo "[console] Data Retention: 7 days (cleanup runs daily at 3 AM)"
 echo "[console]"
 echo "[console] Access WebTUI: http://localhost:8080"
 echo "[console]"
