@@ -150,6 +150,11 @@ cat > /etc/lumenmon/glances.conf <<EOF
 check_update=false
 refresh=3
 
+[outputs]
+# Disable all output modules (web server, API, etc.)
+curse=false
+webserver=false
+
 [mqtt]
 host=$HOST
 port=$PORT
@@ -173,6 +178,7 @@ Wants=network-online.target
 
 [Service]
 Type=simple
+# Runs in standalone export mode (no ports opened, push-only to MQTT broker)
 ExecStart=/usr/bin/glances --quiet --export mqtt --conf /etc/lumenmon/glances.conf
 Restart=always
 RestartSec=10
