@@ -78,7 +78,7 @@ docker run -d \
     --hostname agent-glances \
     --network lumenmon-net \
     -v "$(pwd)/agent/data:/data:ro" \
-    nicolargo/glances:4.2.0-full \
+    nicolargo/glances:latest-full \
     glances --quiet --export mqtt --conf /data/glances/glances.conf \
     > /dev/null
 

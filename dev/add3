@@ -70,7 +70,7 @@ EOF
         --hostname "agent-$i" \
         --network lumenmon-net \
         -v "$(pwd)/$DATA_DIR:/data:ro" \
-        nicolargo/glances:4.2.0-full \
+        nicolargo/glances:latest-full \
         glances --quiet --export mqtt --conf /data/glances/glances.conf \
         > /dev/null
 
