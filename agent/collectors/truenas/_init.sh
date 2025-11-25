@@ -20,7 +20,7 @@ echo "[agent] TrueNAS $truenas_type detected"
 
 COLLECTOR_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-for collector in zfs shares; do
+for collector in zfs; do
     if [ -f "$COLLECTOR_DIR/${collector}.sh" ]; then
         run_collector "truenas_${collector}" "$COLLECTOR_DIR/${collector}.sh"
     fi
