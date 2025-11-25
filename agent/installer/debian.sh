@@ -35,7 +35,7 @@ done
 echo ""
 if [ $has_error -eq 1 ]; then
     echo "Missing requirements. Install with:"
-    echo "  sudo apt-get install$missing_pkgs"
+    echo "  sudo apt-get install $missing_pkgs"
     exit 1
 fi
 
