@@ -26,9 +26,9 @@ curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/agent/instal
 
 ## Supported Systems
 
-| Component | Requirements | Metrics |
-|-----------|--------------|---------|
-| Generic | Linux, bash, curl, openssl, systemd | cpu, memory, disk, heartbeat, hostname, os, kernel, uptime |
+| Component | Metrics |
+|-----------|---------|
+| Generic | cpu, memory, disk, heartbeat, hostname, os, kernel, uptime |
 
 ## Architecture
 
