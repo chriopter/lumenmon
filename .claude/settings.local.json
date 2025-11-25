@@ -22,7 +22,8 @@
       "Bash(xargs:*)",
       "Bash(cat:*)",
       "Bash(docker cp:*)",
-      "Bash(node -e:*)"
+      "Bash(node -e:*)",
+      "Bash(git update-index:*)"
     ],
     "deny": [],
     "ask": []

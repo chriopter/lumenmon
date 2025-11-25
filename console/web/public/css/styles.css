@@ -1380,6 +1380,15 @@ footer {
     font-weight: bold;
 }
 
+/* Stat value colors for sparkline widgets */
+.stat-ok {
+    color: #a6e3a1; /* Catppuccin green */
+}
+
+.stat-critical {
+    color: #f38ba8; /* Catppuccin red */
+}
+
 .capacity-value {
     display: inline-block;
     min-width: 2.5rem;

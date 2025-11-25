@@ -2,6 +2,58 @@
  * Proxmox ZFS Widget - Shows ZFS pool health, drive counts, and capacity
  */
 
+// Sparkline overview of all ZFS pools
+LumenmonWidget({
+    name: 'zfs_sparkline',
+    title: 'ZFS',
+    category: 'proxmox',
+    metrics: ['proxmox_zfs_*'],
+    size: 'sparkline',
+    render: function(data, agent) {
+        // Group metrics by pool name
+        const pools = {};
+        Object.entries(data).forEach(([name, table]) => {
+            const match = name.match(/^proxmox_zfs_(.+)_(drives|online|capacity)$/);
+            if (match) {
+                const poolName = match[1];
+                const metric = match[2];
+                if (!pools[poolName]) pools[poolName] = {};
+                pools[poolName][metric] = table.columns?.value || 0;
+            }
+        });
+
+        const poolList = Object.entries(pools);
+        if (poolList.length === 0) {
+            return '<span class="stat-label">ZFS</span><span class="stat-value">-</span>';
+        }
+
+        // Count total drives and online drives
+        let totalDrives = 0;
+        let onlineDrives = 0;
+        let degradedPools = [];
+
+        poolList.forEach(([name, p]) => {
+            totalDrives += p.drives || 0;
+            onlineDrives += p.online || 0;
+            if ((p.drives || 0) !== (p.online || 0)) {
+                degradedPools.push(name.replace(/_/g, '-'));
+            }
+        });
+
+        const healthy = totalDrives === onlineDrives;
+        const healthClass = healthy ? 'stat-ok' : 'stat-critical';
+        const healthIcon = healthy ? '●' : '⚠';
+        const statusText = healthy ? 'healthy' : `${degradedPools.join(', ')} degraded`;
+
+        return `
+            <span class="stat-label">ZFS</span>
+            <span class="stat-value ${healthClass}">${healthIcon} ${onlineDrives}/${totalDrives}</span>
+            <span class="stat-extra">${poolList.length} pools · ${statusText}</span>
+        `;
+    }
+});
+
+// Detailed table widget
 LumenmonWidget({
     name: 'proxmox_zfs',
     title: 'ZFS Pools',
