@@ -1,286 +1,12 @@
 <!--
-Detail view panel component with Chart.js line charts for CPU, memory, and disk metrics.
-Reads agent data from table row data attributes. Functions: openDetailView(), closeDetailView(), renderCharts().
+Detail view panel using modular widget system.
+Widgets auto-load based on available metrics. Functions: openDetailView(), closeDetailView().
 -->
 <script>
     // UI state managed in window.app (index.html)
 
-    function openDetailView() {
-        window.app.ui.detailViewOpen = true;
-        const agent = getSelectedAgent();
-        if (!agent) {
-            console.error('No agent selected');
-            return;
-        }
-
-        // Register refresh function with global clock (waits for async data)
-        window.globalClock.register(refreshDetailView);
-
-        try {
-            const panel = document.getElementById('detail-panel');
-            panel.classList.remove('detail-panel-empty');
-
-            // Check if this is an invite
-            if (agent.type === 'invite') {
-                renderInviteDetailView(agent, panel);
-                return;
-            }
-
-            // Get current values from history
-            const currentCpu = agent.cpuHistory && agent.cpuHistory.length > 0 ? agent.cpuHistory[agent.cpuHistory.length - 1].value : 0;
-            const currentMem = agent.memHistory && agent.memHistory.length > 0 ? agent.memHistory[agent.memHistory.length - 1].value : 0;
-            const currentDisk = agent.diskHistory && agent.diskHistory.length > 0 ? agent.diskHistory[agent.diskHistory.length - 1].value : 0;
-
-            // Calculate averages
-            const cpuValues = agent.cpuHistory && agent.cpuHistory.length > 0 ? agent.cpuHistory.map(h => h.value) : [];
-            const memValues = agent.memHistory && agent.memHistory.length > 0 ? agent.memHistory.map(h => h.value) : [];
-            const diskValues = agent.diskHistory && agent.diskHistory.length > 0 ? agent.diskHistory.map(h => h.value) : [];
-            const avgCpu = cpuValues.length > 0 ? (cpuValues.reduce((a, b) => a + b, 0) / cpuValues.length) : 0;
-            const avgMem = memValues.length > 0 ? (memValues.reduce((a, b) => a + b, 0) / memValues.length) : 0;
-
-            // Generate sparklines (last 8 values)
-            const cpuSparkline = generateSparkline(cpuValues.slice(-8));
-            const memSparkline = generateSparkline(memValues.slice(-8));
-            const diskSparkline = generateSparkline(diskValues.slice(-8));
-
-        // If agent is pending (not valid), show simplified invite view
-        if (!agent.valid && agent.pending_invite) {
-            const inviteData = agent.pending_invite;
-            const installCommand = inviteData.install_command ||
-                `curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/agent/install.sh | bash -s '${inviteData.invite_url}'`;
-
-            panel.innerHTML = `
-                <div class="detail-header-tui">
-                    <span class="status-dot offline"></span> ${agent.id} <span class="tui-badge">pending</span>
-                </div>
-
-                <div class="detail-content-tui">
-                    <div class="tui-box">
-                        <h3>install command</h3>
-                        <div class="tui-box-content" id="copy-install-cmd">${installCommand}</div>
-                    </div>
-
-                    <div class="tui-box">
-                        <h3>invite url</h3>
-                        <div class="tui-box-content" id="copy-invite-url">${inviteData.invite_url}</div>
-                    </div>
-
-                    <div class="tui-footer">
-                        <span class="pulse-dot"></span> waiting for data...
-                    </div>
-                </div>
-            `;
-
-            // Simple click handlers
-            const installBox = document.getElementById('copy-install-cmd');
-            const urlBox = document.getElementById('copy-invite-url');
-
-            const flashCopy = (box, label, message) => {
-                const header = box.previousElementSibling;
-                const originalText = header.textContent;
-
-                // Flash the content
-                box.style.background = '#a6e3a1';
-                box.style.color = '#1e1e2e';
-
-                // Flash the header text
-                header.textContent = message;
-                header.style.color = '#a6e3a1';
-
-                setTimeout(() => {
-                    box.style.background = '';
-                    box.style.color = '';
-                    header.textContent = originalText;
-                    header.style.color = '';
-                }, 500);
-            };
-
-            installBox.addEventListener('click', async () => {
-                if (navigator.clipboard) {
-                    await navigator.clipboard.writeText(installCommand);
-                    flashCopy(installBox, 'install command', 'copied!');
-                    addLog('copied install command', 'success');
-                } else {
-                    addLog('clipboard unavailable (use https or localhost)', 'error');
-                }
-            });
-
-            urlBox.addEventListener('click', async () => {
-                if (navigator.clipboard) {
-                    await navigator.clipboard.writeText(inviteData.invite_url);
-                    flashCopy(urlBox, 'invite url', 'copied!');
-                    addLog('copied invite url', 'success');
-                } else {
-                    addLog('clipboard unavailable (use https or localhost)', 'error');
-                }
-            });
-
-            return;
-        }
-
-        panel.innerHTML = `
-            <div class="detail-header">
-                <h2><span class="status-dot ${agent.status}"></span>${agent.hostname || agent.id}</h2>
-                <div class="detail-header-right">
-                    <span class="detail-status">${agent.id}</span>
-                    <span class="status-warnings" id="status-warnings"></span>
-                </div>
-            </div>
-            <div class="detail-content">
-                <div class="detail-stats">
-                    <div class="stat-column">
-                        <div class="stat-line">
-                            <span class="stat-label">CPU</span>
-                            <span class="stat-value">${currentCpu.toFixed(1)}%</span>
-                            <span class="sparkline">${cpuSparkline}</span>
-                            <span class="stat-extra">avg ${avgCpu.toFixed(1)}%</span>
-                        </div>
-                        <div class="stat-line">
-                            <span class="stat-label">MEM</span>
-                            <span class="stat-value">${currentMem.toFixed(1)}%</span>
-                            <span class="sparkline">${memSparkline}</span>
-                            <span class="stat-extra">avg ${avgMem.toFixed(1)}%</span>
-                        </div>
-                        <div class="stat-line">
-                            <span class="stat-label">DISK</span>
-                            <span class="stat-value">${currentDisk.toFixed(1)}%</span>
-                            <span class="sparkline">${diskSparkline}</span>
-                            <span class="stat-extra">free ${(100 - currentDisk).toFixed(1)}%</span>
-                        </div>
-                    </div>
-                    <div class="stat-column">
-                        <div class="stat-line">
-                            <span class="stat-label">KERNEL</span>
-                            <span class="stat-value" id="kernel-value">-</span>
-                        </div>
-                        <div class="stat-line">
-                            <span class="stat-label">OS</span>
-                            <span class="stat-value" id="os-value">-</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="charts-grid">
-                    <div class="chart-section">
-                        <h3>cpu history</h3>
-                        <canvas id="cpu-chart"></canvas>
-                    </div>
-                    <div class="chart-section">
-                        <h3>memory history</h3>
-                        <canvas id="mem-chart"></canvas>
-                    </div>
-                    <div class="chart-section">
-                        <h3>disk history</h3>
-                        <canvas id="disk-chart"></canvas>
-                    </div>
-                </div>
-
-                <div class="metrics-section">
-                    <h3>All Values</h3>
-                    <div id="metrics-list" class="metrics-list">
-                        <span class="loading-text">Loading metrics...</span>
-                    </div>
-                </div>
-            </div>
-        `;
-
-            renderCharts(agent);
-            loadMetrics(agent.id);
-            loadSystemStatus(agent.id, agent.type || 'agent');
-            loadSystemInfo(agent.id);
-        } catch (error) {
-            console.error('Error opening detail view:', error);
-            addLog(`error opening detail: ${error.message}`, 'error');
-        }
-    }
-
-    async function refreshDetailView() {
-        // Async refresh - waits for data before updating UI
-        if (!window.app.ui.detailViewOpen) return;
-
-        const agent = getSelectedAgent();
-        if (!agent) return;
-
-        try {
-            // Get current values from history
-            const currentCpu = agent.cpuHistory && agent.cpuHistory.length > 0 ? agent.cpuHistory[agent.cpuHistory.length - 1].value : 0;
-            const currentMem = agent.memHistory && agent.memHistory.length > 0 ? agent.memHistory[agent.memHistory.length - 1].value : 0;
-            const currentDisk = agent.diskHistory && agent.diskHistory.length > 0 ? agent.diskHistory[agent.diskHistory.length - 1].value : 0;
-
-            // Calculate averages
-            const cpuValues = agent.cpuHistory && agent.cpuHistory.length > 0 ? agent.cpuHistory.map(h => h.value) : [];
-            const memValues = agent.memHistory && agent.memHistory.length > 0 ? agent.memHistory.map(h => h.value) : [];
-            const avgCpu = cpuValues.length > 0 ? (cpuValues.reduce((a, b) => a + b, 0) / cpuValues.length) : 0;
-            const avgMem = memValues.length > 0 ? (memValues.reduce((a, b) => a + b, 0) / memValues.length) : 0;
-
-            // Generate sparklines
-            const cpuSparkline = generateSparkline(cpuValues.slice(-8));
-            const memSparkline = generateSparkline(memValues.slice(-8));
-            const diskValues = agent.diskHistory && agent.diskHistory.length > 0 ? agent.diskHistory.map(h => h.value) : [];
-            const diskSparkline = generateSparkline(diskValues.slice(-8));
-
-            // Wait for metrics data to load before updating UI
-            await loadMetrics(agent.id);
-
-            // Queue DOM updates (or run immediately if not in globalClock)
-            const updateUI = () => {
-                // Update stat values only (not the whole panel to avoid re-rendering charts)
-                const statLines = document.querySelectorAll('.stat-line');
-                if (statLines.length >= 3) {
-                    statLines[0].querySelector('.stat-value').textContent = `${currentCpu.toFixed(1)}%`;
-                    statLines[0].querySelector('.sparkline').textContent = cpuSparkline;
-                    statLines[0].querySelector('.stat-extra').textContent = `avg ${avgCpu.toFixed(1)}%`;
-
-                    statLines[1].querySelector('.stat-value').textContent = `${currentMem.toFixed(1)}%`;
-                    statLines[1].querySelector('.sparkline').textContent = memSparkline;
-                    statLines[1].querySelector('.stat-extra').textContent = `avg ${avgMem.toFixed(1)}%`;
-
-                    statLines[2].querySelector('.stat-value').textContent = `${currentDisk.toFixed(1)}%`;
-                    statLines[2].querySelector('.sparkline').textContent = diskSparkline;
-                    statLines[2].querySelector('.stat-extra').textContent = `free ${(100 - currentDisk).toFixed(1)}%`;
-                }
-
-                // Update header status
-                const detailStatus = document.querySelector('.detail-status');
-                if (detailStatus) {
-                    detailStatus.textContent = agent.id;
-                }
-            };
-
-            if (window.globalClock.pendingDomUpdates) {
-                window.globalClock.pendingDomUpdates.push(updateUI);
-            } else {
-                updateUI();
-            }
-        } catch (error) {
-            console.error('Error refreshing detail view:', error);
-        }
-    }
-
-    function closeDetailView() {
-        window.app.ui.detailViewOpen = false;
-
-        // Unregister refresh function when closing detail view
-        window.globalClock.unregister(refreshDetailView);
-
-        const panel = document.getElementById('detail-panel');
-        panel.classList.add('detail-panel-empty');
-        panel.innerHTML = '<span class="detail-placeholder">← Select an agent and press <kbd>Enter</kbd></span>';
-    }
-
-    function renderCharts(agent) {
-        if (agent.cpuHistory && agent.cpuHistory.length > 0) {
-            renderChart('cpu-chart', 'CPU Usage', agent.cpuHistory, '#a6e3a1', '%');
-        }
-        if (agent.memHistory && agent.memHistory.length > 0) {
-            renderChart('mem-chart', 'Memory Usage', agent.memHistory, '#89b4fa', '%');
-        }
-        if (agent.diskHistory && agent.diskHistory.length > 0) {
-            renderChart('disk-chart', 'Disk Usage', agent.diskHistory, '#f9e2af', '%');
-        }
-    }
-
-    function renderChart(canvasId, label, data, color, suffix = '') {
+    // Chart rendering helper for widgets
+    function renderMetricChart(canvasId, label, data, color, suffix = '') {
         const ctx = document.getElementById(canvasId);
         if (!ctx) return;
 
@@ -289,11 +15,8 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
             window.app.charts[canvasId].destroy();
         }
 
-        // Extract timestamps and values
-        const timestamps = data.map(d => d.timestamp * 1000); // Convert to milliseconds
+        const timestamps = data.map(d => d.timestamp * 1000);
         const values = data.map(d => d.value);
-
-        // Create time labels
         const labels = timestamps.map(ts => {
             const date = new Date(ts);
             return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
@@ -328,12 +51,8 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
                         borderWidth: 1,
                         displayColors: false,
                         callbacks: {
-                            title: function(context) {
-                                return context[0].label;
-                            },
-                            label: function(context) {
-                                return context.parsed.y.toFixed(1) + suffix;
-                            }
+                            title: function(context) { return context[0].label; },
+                            label: function(context) { return context.parsed.y.toFixed(1) + suffix; }
                         }
                     }
                 },
@@ -344,275 +63,183 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
                         ticks: {
                             color: '#6c7086',
                             stepSize: 25,
-                            callback: function(value) {
-                                return value + suffix;
-                            }
+                            callback: function(value) { return value + suffix; }
                         },
-                        grid: {
-                            color: '#313244',
-                            drawTicks: false
-                        }
+                        grid: { color: '#313244', drawTicks: false }
                     },
                     x: {
-                        ticks: {
-                            color: '#6c7086',
-                            maxTicksLimit: 6,
-                            maxRotation: 0,
-                            minRotation: 0
-                        },
-                        grid: {
-                            display: false
-                        }
+                        ticks: { color: '#6c7086', maxTicksLimit: 6, maxRotation: 0, minRotation: 0 },
+                        grid: { display: false }
                     }
                 }
             }
         });
     }
 
-    function generateSparkline(values) {
-        if (!values || values.length === 0) return '';
+    async function openDetailView() {
+        window.app.ui.detailViewOpen = true;
+        const agent = getSelectedAgent();
+        if (!agent) {
+            console.error('No agent selected');
+            return;
+        }
 
-        const blocks = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'];
-        const minVal = Math.min(...values);
-        const maxVal = Math.max(...values);
-        const range = maxVal - minVal || 1;
+        // Register refresh function with global clock
+        window.globalClock.register(refreshDetailView);
 
-        return values.map(val => {
-            const normalized = (val - minVal) / range;
-            const index = Math.floor(normalized * (blocks.length - 1));
-            return blocks[index];
-        }).join('');
-    }
-
-    function formatTimestampAge(timestamp) {
-        if (!timestamp || timestamp === '-') return '-';
-
-        const now = Math.floor(Date.now() / 1000);
-        const seconds = now - parseInt(timestamp);
-
-        if (seconds < 0) return 'just now';
-        if (seconds < 60) return `${seconds}s ago`;
-
-        const minutes = Math.floor(seconds / 60);
-        if (minutes < 60) return `${minutes}m ago`;
-
-        const hours = Math.floor(minutes / 60);
-        if (hours < 24) return `${hours}h ago`;
-
-        const days = Math.floor(hours / 24);
-        return `${days}d ago`;
-    }
-
-    async function loadMetrics(agentId) {
         try {
-            const response = await fetch(`/api/agents/${agentId}/tables`);
-            if (!response.ok) {
-                throw new Error(`HTTP error ${response.status}`);
-            }
+            const panel = document.getElementById('detail-panel');
+            panel.classList.remove('detail-panel-empty');
 
-            const data = await response.json();
-            const metricsList = document.getElementById('metrics-list');
-
-            if (!data.tables || data.tables.length === 0) {
-                metricsList.innerHTML = '<span class="no-data-text">no database entries found</span>';
+            // Check if this is a pending invite
+            if (!agent.valid && agent.pending_invite) {
+                renderPendingInviteView(agent, panel);
                 return;
             }
 
-            // Store previous values for flash detection
-            const previousValues = window.metricsPreviousValues || {};
-            const currentValues = {};
+            // Check if this is an invite without data
+            if (agent.type === 'invite') {
+                renderInviteDetailView(agent, panel);
+                return;
+            }
 
-            // Get dynamic column names from first row
-            const firstTable = data.tables[0];
-            const columnNames = firstTable ? Object.keys(firstTable.columns) : [];
+            // Fetch metric tables for this agent
+            const response = await fetch(`/api/agents/${agent.id}/tables`);
+            const data = await response.json();
+            const tables = data.tables || [];
 
-            // Build table dynamically
-            let html = '<table id="metrics-table"><thead><tr>';
-            html += '<td>NAME</td>';
+            // Build detail view with header and widget container
+            panel.innerHTML = `
+                <div class="detail-header">
+                    <h2><span class="status-dot ${agent.status}"></span>${agent.hostname || agent.id}</h2>
+                    <div class="detail-header-right">
+                        <span class="detail-status">${agent.id}</span>
+                        <span class="status-warnings" id="status-warnings"></span>
+                    </div>
+                </div>
+                <div class="detail-content">
+                    <div id="widgets-container"></div>
+                    <div class="metrics-section">
+                        <h3>All Values</h3>
+                        <div id="metrics-list" class="metrics-list">
+                            <span class="loading-text">Loading metrics...</span>
+                        </div>
+                    </div>
+                </div>
+            `;
 
-            // Dynamic DB columns
-            columnNames.forEach((colName) => {
-                html += `<td>${colName.toUpperCase()}</td>`;
-            });
+            // Render widgets
+            const widgetsContainer = document.getElementById('widgets-container');
+            LumenmonWidgets.renderAll(widgetsContainer, agent, tables);
 
-            // Metadata columns (divider before first metadata column)
-            html += '<td class="db-content-separator">LAST UPDATE</td>';
-            html += '<td>NEXT UPDATE</td>';
-            html += '<td>TYPE</td>';
-            html += '<td>DATA SPAN</td>';
-            html += '<td># SAMPLES</td>';
-            html += '</tr></thead><tbody>';
+            // Load additional data
+            loadMetrics(agent.id);
+            loadSystemStatus(agent.id, agent.type || 'agent');
+        } catch (error) {
+            console.error('Error opening detail view:', error);
+            addLog(`error opening detail: ${error.message}`, 'error');
+        }
+    }
 
-            data.tables.forEach(table => {
-                const metricName = table.metric_name;
-                const columns = table.columns || {};
-                const metadata = table.metadata || {};
-                const staleness = table.staleness || {};  // Backend-calculated staleness (DRY)
+    async function refreshDetailView() {
+        if (!window.app.ui.detailViewOpen) return;
 
-                // Track value for flash detection
-                const value = columns.value;
-                currentValues[metricName] = value;
-                const flashClass = (previousValues[metricName] !== undefined &&
-                                   previousValues[metricName] !== value) ? 'value-flash' : '';
+        const agent = getSelectedAgent();
+        if (!agent) return;
 
-                // Use backend staleness calculation (single source of truth)
-                const isStale = staleness.is_stale || false;
-                const timeUntilNext = staleness.next_update_in || 0;
+        try {
+            // Fetch fresh data
+            const response = await fetch(`/api/agents/${agent.id}/tables`);
+            const data = await response.json();
+            const tables = data.tables || [];
 
-                // Special handling for interval=0 (one-time values like registration_test)
-                const isOneTime = columns.interval === 0;
+            // Update widgets with new data
+            const widgetsContainer = document.getElementById('widgets-container');
+            if (widgetsContainer) {
+                LumenmonWidgets.updateAll(widgetsContainer, agent, tables);
+            }
 
-                // 1 second grace period to prevent flickering from network/render delays
-                const gracePeriod = 1;
-                const isOverdue = !isOneTime && timeUntilNext < -gracePeriod;
+            // Update metrics table
+            await loadMetrics(agent.id);
+        } catch (error) {
+            console.error('Error refreshing detail view:', error);
+        }
+    }
 
-                // Format next update text
-                let nextUpdateText = '-';
-                if (isOneTime) {
-                    // One-time values never update
-                    nextUpdateText = 'once';
-                } else if (columns.timestamp > 0) {
-                    if (timeUntilNext >= 0) {
-                        // Future: show exact countdown including "in 0s"
-                        if (timeUntilNext < 60) {
-                            nextUpdateText = `in ${timeUntilNext}s`;
-                        } else if (timeUntilNext < 3600) {
-                            nextUpdateText = `in ${Math.floor(timeUntilNext / 60)}m`;
-                        } else {
-                            nextUpdateText = `in ${Math.floor(timeUntilNext / 3600)}h`;
-                        }
-                    } else if (timeUntilNext >= -gracePeriod) {
-                        // Grace period after expected: show "now"
-                        nextUpdateText = 'now';
-                    } else {
-                        // Overdue beyond grace: show "Xs ago" in red
-                        const overdue = Math.abs(timeUntilNext);
-                        if (overdue < 60) {
-                            nextUpdateText = `${overdue}s ago`;
-                        } else if (overdue < 3600) {
-                            nextUpdateText = `${Math.floor(overdue / 60)}m ago`;
-                        } else {
-                            nextUpdateText = `${Math.floor(overdue / 3600)}h ago`;
-                        }
-                    }
-                }
+    function closeDetailView() {
+        window.app.ui.detailViewOpen = false;
+        window.globalClock.unregister(refreshDetailView);
 
-                // Color code by type
-                let typeClass = 'type-text';
-                if (metadata.type === 'REAL') typeClass = 'type-real';
-                else if (metadata.type === 'INTEGER') typeClass = 'type-integer';
+        const panel = document.getElementById('detail-panel');
+        panel.classList.add('detail-panel-empty');
+        panel.innerHTML = '<span class="detail-placeholder">← Select an agent and press <kbd>Enter</kbd></span>';
+    }
 
-                // Add stale row class if data is old
-                const rowClass = isStale ? 'stale-row' : '';
+    function renderPendingInviteView(agent, panel) {
+        const inviteData = agent.pending_invite;
+        const installCommand = inviteData.install_command ||
+            `curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/agent/install.sh | bash -s '${inviteData.invite_url}'`;
 
-                html += `<tr class="${rowClass}">`;
-                html += `<td class="metric-name">${metricName}</td>`;
+        panel.innerHTML = `
+            <div class="detail-header-tui">
+                <span class="status-dot offline"></span> ${agent.id} <span class="tui-badge">pending</span>
+            </div>
+            <div class="detail-content-tui">
+                <div class="tui-box">
+                    <h3>install command</h3>
+                    <div class="tui-box-content" id="copy-install-cmd">${installCommand}</div>
+                </div>
+                <div class="tui-box">
+                    <h3>invite url</h3>
+                    <div class="tui-box-content" id="copy-invite-url">${inviteData.invite_url}</div>
+                </div>
+                <div class="tui-footer">
+                    <span class="pulse-dot"></span> waiting for data...
+                </div>
+            </div>
+        `;
 
-                // Dynamically render all DB columns
-                columnNames.forEach((colName) => {
-                    const val = columns[colName] !== undefined ? columns[colName] : '-';
+        // Click handlers for copying
+        const installBox = document.getElementById('copy-install-cmd');
+        const urlBox = document.getElementById('copy-invite-url');
 
-                    // Add styling to value column (flash + stale check)
-                    let cellClass = '';
-                    if (colName === 'value') {
-                        cellClass = `metric-value ${flashClass}`.trim();
-                    }
+        const flashCopy = (box, message) => {
+            const header = box.previousElementSibling;
+            const originalText = header.textContent;
+            box.style.background = '#a6e3a1';
+            box.style.color = '#1e1e2e';
+            header.textContent = message;
+            header.style.color = '#a6e3a1';
+            setTimeout(() => {
+                box.style.background = '';
+                box.style.color = '';
+                header.textContent = originalText;
+                header.style.color = '';
+            }, 500);
+        };
 
-                    // Format display - truncate long values
-                    let displayVal = val;
-                    if (colName === 'interval') {
-                        displayVal = val !== '-' ? `${val}s` : '-';
-                    } else if (typeof displayVal === 'string' && displayVal.length > 30) {
-                        displayVal = displayVal.substring(0, 27) + '...';
-                    }
-
-                    html += `<td class="${cellClass}" title="${val}">${displayVal}</td>`;
-                });
-
-                // Metadata columns (divider before first metadata column)
-                html += `<td class="db-content-separator">${metadata.timestamp_age || '-'}</td>`;
-                html += `<td class="${isOverdue ? 'overdue-text' : ''}">${nextUpdateText}</td>`;
-                html += `<td class="${typeClass}">${metadata.type || '-'}</td>`;
-                html += `<td>${metadata.data_span || '-'}</td>`;
-                html += `<td>${metadata.line_count || '-'}</td>`;
-                html += `</tr>`;
-            });
-
-            // Store current values for next refresh
-            window.metricsPreviousValues = currentValues;
-
-            html += '</tbody></table>';
-
-            // Queue DOM update (or run immediately if not in globalClock)
-            if (window.globalClock.pendingDomUpdates) {
-                window.globalClock.pendingDomUpdates.push(() => {
-                    metricsList.innerHTML = html;
-                });
+        installBox.addEventListener('click', async () => {
+            if (navigator.clipboard) {
+                await navigator.clipboard.writeText(installCommand);
+                flashCopy(installBox, 'copied!');
+                addLog('copied install command', 'success');
             } else {
-                metricsList.innerHTML = html;
+                addLog('clipboard unavailable (use https or localhost)', 'error');
             }
-        } catch (error) {
-            console.error('Error loading metrics:', error);
-            const metricsList = document.getElementById('metrics-list');
-            metricsList.innerHTML = '<span class="error-text">Failed to load metrics</span>';
-        }
-    }
+        });
 
-    async function loadSystemStatus(entityId, entityType) {
-        try {
-            const response = await fetch('/api/entities');
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-            const data = await response.json();
-            const entity = data.entities.find(e => e.id === entityId);
-
-            if (!entity) return;
-
-            // Show warnings only if something is missing
-            const warnings = [];
-            if (!entity.has_mqtt_user) {
-                warnings.push('MQTT USER MISSING');
+        urlBox.addEventListener('click', async () => {
+            if (navigator.clipboard) {
+                await navigator.clipboard.writeText(inviteData.invite_url);
+                flashCopy(urlBox, 'copied!');
+                addLog('copied invite url', 'success');
+            } else {
+                addLog('clipboard unavailable (use https or localhost)', 'error');
             }
-            if (entity.type === 'agent' && !entity.has_table) {
-                warnings.push('SQL TABLES MISSING');
-            }
-
-            const warningsEl = document.getElementById('status-warnings');
-            if (warningsEl) {
-                warningsEl.textContent = warnings.join(' · ');
-            }
-        } catch (error) {
-            console.error('Error loading system status:', error);
-        }
-    }
-
-    async function loadSystemInfo(agentId) {
-        try {
-            const response = await fetch(`/api/agents/${agentId}/tables`);
-            if (!response.ok) return;
-
-            const data = await response.json();
-
-            // Find kernel and OS values
-            const kernelTable = data.tables.find(t => t.metric_name === 'generic_sys_kernel');
-            const osTable = data.tables.find(t => t.metric_name === 'generic_sys_os');
-
-            const kernelEl = document.getElementById('kernel-value');
-            const osEl = document.getElementById('os-value');
-
-            if (kernelEl && kernelTable) {
-                kernelEl.textContent = kernelTable.columns.value || '-';
-            }
-            if (osEl && osTable) {
-                osEl.textContent = osTable.columns.value || '-';
-            }
-        } catch (error) {
-            console.error('Error loading system info:', error);
-        }
+        });
     }
 
     async function renderInviteDetailView(invite, panel) {
-        // SECURITY: Invite URLs shown ONCE at creation, never retrievable
         panel.innerHTML = `
             <div class="detail-header">
                 <h2><span class="status-dot online"></span>Invite: ${invite.id}</h2>
@@ -635,4 +262,127 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
         `;
     }
 
+    async function loadMetrics(agentId) {
+        try {
+            const response = await fetch(`/api/agents/${agentId}/tables`);
+            if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+
+            const data = await response.json();
+            const metricsList = document.getElementById('metrics-list');
+            if (!metricsList) return;
+
+            if (!data.tables || data.tables.length === 0) {
+                metricsList.innerHTML = '<span class="no-data-text">no database entries found</span>';
+                return;
+            }
+
+            const previousValues = window.metricsPreviousValues || {};
+            const currentValues = {};
+            const firstTable = data.tables[0];
+            const columnNames = firstTable ? Object.keys(firstTable.columns) : [];
+
+            let html = '<table id="metrics-table"><thead><tr>';
+            html += '<td>NAME</td>';
+            columnNames.forEach(colName => html += `<td>${colName.toUpperCase()}</td>`);
+            html += '<td class="db-content-separator">LAST UPDATE</td>';
+            html += '<td>NEXT UPDATE</td>';
+            html += '<td>TYPE</td>';
+            html += '<td>DATA SPAN</td>';
+            html += '<td># SAMPLES</td>';
+            html += '</tr></thead><tbody>';
+
+            data.tables.forEach(table => {
+                const metricName = table.metric_name;
+                const columns = table.columns || {};
+                const metadata = table.metadata || {};
+                const staleness = table.staleness || {};
+
+                const value = columns.value;
+                currentValues[metricName] = value;
+                const flashClass = (previousValues[metricName] !== undefined && previousValues[metricName] !== value) ? 'value-flash' : '';
+
+                const isStale = staleness.is_stale || false;
+                const timeUntilNext = staleness.next_update_in || 0;
+                const isOneTime = columns.interval === 0;
+                const gracePeriod = 1;
+                const isOverdue = !isOneTime && timeUntilNext < -gracePeriod;
+
+                let nextUpdateText = '-';
+                if (isOneTime) {
+                    nextUpdateText = 'once';
+                } else if (columns.timestamp > 0) {
+                    if (timeUntilNext >= 0) {
+                        if (timeUntilNext < 60) nextUpdateText = `in ${timeUntilNext}s`;
+                        else if (timeUntilNext < 3600) nextUpdateText = `in ${Math.floor(timeUntilNext / 60)}m`;
+                        else nextUpdateText = `in ${Math.floor(timeUntilNext / 3600)}h`;
+                    } else if (timeUntilNext >= -gracePeriod) {
+                        nextUpdateText = 'now';
+                    } else {
+                        const overdue = Math.abs(timeUntilNext);
+                        if (overdue < 60) nextUpdateText = `${overdue}s ago`;
+                        else if (overdue < 3600) nextUpdateText = `${Math.floor(overdue / 60)}m ago`;
+                        else nextUpdateText = `${Math.floor(overdue / 3600)}h ago`;
+                    }
+                }
+
+                let typeClass = 'type-text';
+                if (metadata.type === 'REAL') typeClass = 'type-real';
+                else if (metadata.type === 'INTEGER') typeClass = 'type-integer';
+
+                const rowClass = isStale ? 'stale-row' : '';
+
+                html += `<tr class="${rowClass}">`;
+                html += `<td class="metric-name">${metricName}</td>`;
+
+                columnNames.forEach(colName => {
+                    const val = columns[colName] !== undefined ? columns[colName] : '-';
+                    let cellClass = colName === 'value' ? `metric-value ${flashClass}`.trim() : '';
+                    let displayVal = val;
+                    if (colName === 'interval') displayVal = val !== '-' ? `${val}s` : '-';
+                    else if (typeof displayVal === 'string' && displayVal.length > 30) displayVal = displayVal.substring(0, 27) + '...';
+                    html += `<td class="${cellClass}" title="${val}">${displayVal}</td>`;
+                });
+
+                html += `<td class="db-content-separator">${metadata.timestamp_age || '-'}</td>`;
+                html += `<td class="${isOverdue ? 'overdue-text' : ''}">${nextUpdateText}</td>`;
+                html += `<td class="${typeClass}">${metadata.type || '-'}</td>`;
+                html += `<td>${metadata.data_span || '-'}</td>`;
+                html += `<td>${metadata.line_count || '-'}</td>`;
+                html += `</tr>`;
+            });
+
+            window.metricsPreviousValues = currentValues;
+            html += '</tbody></table>';
+
+            if (window.globalClock.pendingDomUpdates) {
+                window.globalClock.pendingDomUpdates.push(() => metricsList.innerHTML = html);
+            } else {
+                metricsList.innerHTML = html;
+            }
+        } catch (error) {
+            console.error('Error loading metrics:', error);
+            const metricsList = document.getElementById('metrics-list');
+            if (metricsList) metricsList.innerHTML = '<span class="error-text">Failed to load metrics</span>';
+        }
+    }
+
+    async function loadSystemStatus(entityId, entityType) {
+        try {
+            const response = await fetch('/api/entities');
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+            const data = await response.json();
+            const entity = data.entities.find(e => e.id === entityId);
+            if (!entity) return;
+
+            const warnings = [];
+            if (!entity.has_mqtt_user) warnings.push('MQTT USER MISSING');
+            if (entity.type === 'agent' && !entity.has_table) warnings.push('SQL TABLES MISSING');
+
+            const warningsEl = document.getElementById('status-warnings');
+            if (warningsEl) warningsEl.textContent = warnings.join(' · ');
+        } catch (error) {
+            console.error('Error loading system status:', error);
+        }
+    }
 </script>

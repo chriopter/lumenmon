@@ -27,6 +27,13 @@
         encode gzip
     }
 
+    handle /widgets/* {
+        root * /app/web/public
+        header Cache-Control "no-cache, max-age=0"
+        file_server
+        encode gzip
+    }
+
     # Custom error pages
     handle_errors {
         respond "{http.error.status_code} {http.error.status_text}"

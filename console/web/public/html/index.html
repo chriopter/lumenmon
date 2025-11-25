@@ -111,6 +111,17 @@ Loads CSS, Chart.js vendor library, and initializes components. Served by Flask 
     </footer>
 
     <script src="/js/vendor/chart.js?v={{ v }}"></script>
+    <script src="/js/widgets.js?v={{ v }}"></script>
+    <!-- Generic widgets -->
+    <script src="/widgets/generic/cpu.js?v={{ v }}"></script>
+    <script src="/widgets/generic/memory.js?v={{ v }}"></script>
+    <script src="/widgets/generic/disk.js?v={{ v }}"></script>
+    <script src="/widgets/generic/system.js?v={{ v }}"></script>
+    <!-- Proxmox widgets -->
+    <script src="/widgets/proxmox/vms.js?v={{ v }}"></script>
+    <script src="/widgets/proxmox/containers.js?v={{ v }}"></script>
+    <script src="/widgets/proxmox/storage.js?v={{ v }}"></script>
+    <script src="/widgets/proxmox/zfs.js?v={{ v }}"></script>
     {% include 'utils.html' %}
     {% include 'detail.html' %}
     {% include 'keyboard.html' %}

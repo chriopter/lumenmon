@@ -1195,3 +1195,245 @@ footer {
         opacity: 0;
     }
 }
+
+/* ============================================================ */
+/* Widget System */
+/* ============================================================ */
+
+/* Sparklines row at top */
+.widget-sparklines {
+    display: flex;
+    gap: 2rem;
+    margin-bottom: 1rem;
+    font-family: monospace;
+}
+
+.widget-sparkline {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    font-size: 0.8rem;
+}
+
+.widget-sparkline .stat-label {
+    color: var(--foreground2);
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    min-width: 3rem;
+}
+
+.widget-sparkline .stat-value {
+    color: var(--accent1);
+    font-weight: bold;
+    min-width: 3.5rem;
+    text-align: right;
+}
+
+.widget-sparkline .sparkline {
+    color: var(--accent1);
+    letter-spacing: 0.05em;
+}
+
+.widget-sparkline .stat-extra {
+    color: var(--foreground2);
+    font-size: 0.75rem;
+}
+
+/* Stats row */
+.widget-stats {
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+}
+
+.widget-stat {
+    font-family: monospace;
+    font-size: 0.8rem;
+}
+
+.widget-stat h4 {
+    margin: 0 0 0.5rem 0;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    color: var(--foreground2);
+}
+
+/* Charts grid */
+.widget-charts {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    row-gap: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.widget-chart {
+    border: 1px solid var(--foreground2);
+    border-radius: 4px;
+    padding: 0.5rem;
+    padding-top: 1rem;
+    position: relative;
+}
+
+.widget-chart h3 {
+    position: absolute;
+    top: -0.6rem;
+    left: 0.5rem;
+    margin: 0;
+    padding: 0 0.5rem;
+    font-size: 0.7rem;
+    text-transform: lowercase;
+    color: var(--foreground2);
+    background: var(--background0);
+}
+
+/* Tables section */
+.widget-tables {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.widget-table {
+    font-family: monospace;
+    font-size: 0.75rem;
+}
+
+.widget-table h4 {
+    margin: 0 0 0.5rem 0;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    color: var(--foreground2);
+}
+
+.widget-table-inner {
+    width: 100%;
+    border-collapse: collapse;
+    border: none !important;
+    --table-border-width: 0 !important;
+    --table-border-color: transparent !important;
+}
+
+.widget-table-inner:before,
+.widget-table-inner tr th:before,
+.widget-table-inner tr td:before,
+.widget-table-inner tr th:after,
+.widget-table-inner tr td:after {
+    display: none !important;
+}
+
+.widget-table-inner thead td {
+    padding: 0.25rem 0.5rem;
+    text-transform: uppercase;
+    font-weight: bold;
+    color: var(--foreground2);
+    font-size: 0.7rem;
+}
+
+.widget-table-inner tbody td {
+    padding: 0.25rem 0.5rem;
+    color: var(--foreground1);
+}
+
+/* Usage bars */
+.bar-cell {
+    width: 100px;
+    position: relative;
+}
+
+.usage-bar {
+    height: 0.5rem;
+    border-radius: 2px;
+    transition: width 0.3s ease;
+}
+
+.usage-bar-inline {
+    display: inline-block;
+    height: 0.4rem;
+    border-radius: 2px;
+    vertical-align: middle;
+    margin-left: 0.5rem;
+    min-width: 50px;
+}
+
+.bar-ok {
+    background: #a6e3a1; /* Catppuccin green */
+}
+
+.bar-warning {
+    background: #f9e2af; /* Catppuccin yellow */
+}
+
+.bar-critical {
+    background: #f38ba8; /* Catppuccin red */
+}
+
+/* Health indicators */
+.health-ok {
+    color: #a6e3a1; /* Catppuccin green */
+}
+
+.health-degraded {
+    color: #f38ba8; /* Catppuccin red */
+    font-weight: bold;
+}
+
+.capacity-value {
+    display: inline-block;
+    min-width: 2.5rem;
+    text-align: right;
+}
+
+/* Proxmox stat grid */
+.proxmox-stat-grid {
+    display: flex;
+    gap: 1.5rem;
+}
+
+.proxmox-stat {
+    text-align: center;
+}
+
+.proxmox-stat-value {
+    display: block;
+    font-size: 1.25rem;
+    font-weight: bold;
+    color: var(--foreground1);
+}
+
+.proxmox-stat-value.running {
+    color: #a6e3a1; /* Catppuccin green */
+}
+
+.proxmox-stat-value.stopped {
+    color: var(--foreground2);
+}
+
+.proxmox-stat-label {
+    font-size: 0.7rem;
+    color: var(--foreground2);
+    text-transform: uppercase;
+}
+
+/* Responsive widget layout */
+@media (max-width: 1000px) {
+    .widget-charts {
+        grid-template-columns: 1fr;
+    }
+
+    .widget-sparklines {
+        flex-wrap: wrap;
+    }
+}
+
+@media (max-width: 500px) {
+    .widget-stats {
+        flex-direction: column;
+    }
+
+    .proxmox-stat-grid {
+        justify-content: space-around;
+    }
+}
