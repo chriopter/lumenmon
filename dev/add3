@@ -44,9 +44,10 @@ for i in 1 2 3; do
     # Register
     docker run --rm \
         --network host \
+        -e LUMENMON_AUTO_ACCEPT=1 \
         -v "$PWD/$AGENT_DATA:/opt/lumenmon/data" \
         lumenmon-dev-agent \
-        sh -c "echo yes | /opt/lumenmon/core/setup/register.sh '$INVITE'" >/dev/null 2>&1
+        /opt/lumenmon/core/setup/register.sh "$INVITE" >/dev/null 2>&1
 
     # Start
     docker run -d \

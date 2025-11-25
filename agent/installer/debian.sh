@@ -43,8 +43,8 @@ if [ -n "$INVITE_URL" ]; then
     echo "  - Register with provided invite URL"
     echo "  - Start the agent service"
 fi
-echo ""
-read -p "Continue? [y/N] " -n 1 -r
+echo -n "Continue? [y/N] "
+read -n 1 -r REPLY < /dev/tty
 echo ""
 if [[ ! $REPLY =~ ^[Yy]$ ]]; then
     echo "Aborted."

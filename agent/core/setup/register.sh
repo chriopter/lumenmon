@@ -88,8 +88,14 @@ fi
 
 echo "[register] ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-# Ask user for confirmation
-read -p "[register] Accept this certificate? (yes/no): " RESPONSE
+# Ask user for confirmation (skip if LUMENMON_AUTO_ACCEPT is set)
+if [ "${LUMENMON_AUTO_ACCEPT:-}" = "1" ]; then
+    RESPONSE="yes"
+    echo "[register] Auto-accepting certificate (LUMENMON_AUTO_ACCEPT=1)"
+else
+    echo -n "[register] Accept this certificate? (yes/no): "
+    read RESPONSE < /dev/tty
+fi
 
 if [ "$RESPONSE" != "yes" ]; then
     echo "[register] Registration aborted by user"

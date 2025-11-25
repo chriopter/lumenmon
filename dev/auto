@@ -35,9 +35,10 @@ docker build -t lumenmon-dev-agent -f dev/Dockerfile.agent .
 echo "Registering agent..."
 docker run --rm \
     --network host \
+    -e LUMENMON_AUTO_ACCEPT=1 \
     -v "$PWD/dev/data:/opt/lumenmon/data" \
     lumenmon-dev-agent \
-    sh -c "echo yes | /opt/lumenmon/core/setup/register.sh '$INVITE'"
+    /opt/lumenmon/core/setup/register.sh "$INVITE"
 
 echo "Starting dev agent..."
 docker run -d \
