@@ -113,9 +113,9 @@ lumenmon/
 
 ### Agent (Bare Metal)
 - Pure bash + `mosquitto_pub` for MQTT
-- `$LUMENMON_HOME` points to install directory (default: `/opt/lumenmon`)
+- `$LUMENMON_HOME` points to agent directory (default: `/opt/lumenmon/agent`)
 - `$LUMENMON_DATA` points to data directory (`$LUMENMON_HOME/data`)
-- Collectors source `core/mqtt/publish.sh` for `publish_metric` function
+- Collectors source `$LUMENMON_HOME/core/mqtt/publish.sh` for `publish_metric` function
 - Runs as systemd service (`lumenmon-agent.service`)
 
 ### Console (Docker)
