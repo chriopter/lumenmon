@@ -7,7 +7,7 @@
 
 # Load credentials once (cached)
 _mqtt_load_creds() {
-    if [ -z "$_MQTT_CREDS_LOADED" ]; then
+    if [ -z "${_MQTT_CREDS_LOADED:-}" ]; then
         local data_dir="$LUMENMON_DATA/mqtt"
         _MQTT_HOST=$(cat "$data_dir/host" 2>/dev/null)
         _MQTT_USER=$(cat "$data_dir/username" 2>/dev/null)

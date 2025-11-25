@@ -19,13 +19,14 @@
       "Bash(docker build:*)",
       "Bash(tree:*)",
       "Bash(awk:*)",
-      "Bash(xargs:*)"
+      "Bash(xargs:*)",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": []
   },
   "sandbox": {
-    "autoAllowBashIfSandboxed": true,
-    "enabled": true
+    "enabled": true,
+    "autoAllowBashIfSandboxed": true
   }
 }

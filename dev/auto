@@ -1,18 +1,18 @@
 #!/bin/bash
-# Development auto-setup: resets console, registers local agent, starts collectors.
-# For development only - runs agent directly (not via systemd).
+# Development auto-setup: resets console, starts one dev agent in Docker.
+# For development only.
 
 set -e
 cd "$(dirname "$0")/.."
 
-echo "Stopping console..."
-docker stop lumenmon-console 2>/dev/null || true
-docker rm lumenmon-console 2>/dev/null || true
+echo "Stopping containers..."
+docker stop lumenmon-console lumenmon-dev-agent 2>/dev/null || true
+docker rm lumenmon-console lumenmon-dev-agent 2>/dev/null || true
 
 echo "Cleaning data..."
-rm -rf agent/data/mqtt/* 2>/dev/null || true
+rm -rf dev/data 2>/dev/null || true
 rm -rf console/data/mqtt/passwd console/data/*.log 2>/dev/null || true
-mkdir -p agent/data/mqtt console/data/mqtt
+mkdir -p dev/data/mqtt console/data/mqtt
 
 echo "Starting console..."
 echo "CONSOLE_HOST=localhost" > console/.env
@@ -29,11 +29,26 @@ if [ -z "$INVITE" ]; then
 fi
 echo "Invite: $INVITE"
 
-echo "Registering agent..."
-export LUMENMON_HOME="$PWD/agent"
-export LUMENMON_DATA="$LUMENMON_HOME/data"
-echo "yes" | "$LUMENMON_HOME/core/setup/register.sh" "$INVITE"
+echo "Building dev agent..."
+docker build -t lumenmon-dev-agent -f dev/Dockerfile.agent .
 
-echo "Starting agent (foreground for dev)..."
-echo "Press Ctrl+C to stop"
-exec "$LUMENMON_HOME/agent.sh"
+echo "Registering agent..."
+docker run --rm \
+    --network host \
+    -v "$PWD/dev/data:/opt/lumenmon/data" \
+    lumenmon-dev-agent \
+    sh -c "echo yes | /opt/lumenmon/core/setup/register.sh '$INVITE'"
+
+echo "Starting dev agent..."
+docker run -d \
+    --name lumenmon-dev-agent \
+    --network host \
+    -v "$PWD/dev/data:/opt/lumenmon/data" \
+    --restart unless-stopped \
+    lumenmon-dev-agent
+
+echo ""
+echo "Done! Dashboard: http://localhost:8080"
+echo ""
+echo "Logs:  docker logs -f lumenmon-dev-agent"
+echo "Stop:  docker stop lumenmon-dev-agent lumenmon-console"

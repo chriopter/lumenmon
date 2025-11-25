@@ -1,0 +1,6 @@
+FROM debian:bookworm-slim
+RUN apt-get update && apt-get install -y mosquitto-clients openssl && rm -rf /var/lib/apt/lists/*
+WORKDIR /opt/lumenmon
+COPY agent/ .
+RUN chmod +x *.sh lumenmon-agent core/*.sh core/*/*.sh collectors/generic/*.sh
+CMD ["./agent.sh"]
