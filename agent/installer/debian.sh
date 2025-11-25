@@ -89,6 +89,11 @@ fi
 # Agent dir after sparse checkout
 AGENT_DIR="$INSTALL_DIR/agent"
 
+# Ensure scripts are executable
+$SUDO chmod +x "$AGENT_DIR"/*.sh "$AGENT_DIR"/lumenmon-agent
+$SUDO chmod +x "$AGENT_DIR"/core/*.sh "$AGENT_DIR"/core/*/*.sh
+$SUDO chmod +x "$AGENT_DIR"/collectors/*/*.sh 2>/dev/null || true
+
 # Create systemd service
 $SUDO tee /etc/systemd/system/lumenmon-agent.service > /dev/null << EOF
 [Unit]
