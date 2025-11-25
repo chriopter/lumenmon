@@ -4,9 +4,6 @@
 
 set -e
 
-# Version
-INSTALLER_VERSION="0.14.0"
-
 # Configuration
 INSTALL_DIR="$HOME/.lumenmon"
 GITHUB_RAW="https://raw.githubusercontent.com/chriopter/lumenmon/refs/heads/main"
@@ -29,7 +26,6 @@ show_logo() {
     echo "  ███████╗╚██████╔╝██║ ╚═╝ ██║███████╗██║ ╚████║██║ ╚═╝ ██║╚██████╔╝██║ ╚████║"
     echo "  ╚══════╝ ╚═════╝ ╚═╝     ╚═╝╚══════╝╚═╝  ╚═══╝╚═╝     ╚═╝ ╚═════╝ ╚═╝  ╚═══╝"
     echo -e "\033[0m"
-    echo "  Console Installer v${INSTALLER_VERSION}"
     echo ""
 }
 
@@ -174,29 +170,11 @@ show_completion() {
     echo ""
 }
 
-# Get image version info
-get_image_version() {
-    local image="$1"
-    docker pull -q "$image" >/dev/null 2>&1 || return
-    docker inspect "$image" --format '{{.Created}} {{.Id}}' 2>/dev/null | \
-        awk '{split($1,d,"T"); split($2,id,":"); printf "%s %s", d[1], substr(id[2],1,12)}'
-}
-
 # Main installation flow
 main() {
     show_logo
     check_requirements
 
-    # Show version info
-    status_progress "Checking latest version..."
-    CONSOLE_VERSION=$(get_image_version "$GITHUB_IMAGE_CONSOLE")
-
-    echo ""
-    echo "  Installer version: v${INSTALLER_VERSION}"
-    if [ -n "$CONSOLE_VERSION" ]; then
-        echo "  Latest console:    ${CONSOLE_VERSION}"
-    fi
-    echo ""
     echo "  Installation path: $INSTALL_DIR"
     echo ""
 
