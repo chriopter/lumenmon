@@ -30,24 +30,6 @@ curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/agent/instal
 | Console | Docker, Docker Compose |
 | Agent | Debian or Ubuntu, bash, curl, openssl, systemd |
 
-<details>
-<summary>Agent Installation Details</summary>
-
-The installer will ask for confirmation before making any changes. It will:
-
-1. **Install package:** `mosquitto-clients` via apt-get
-2. **Download scripts** from GitHub to `/opt/lumenmon/`
-3. **Create systemd service:** `lumenmon-agent.service`
-4. **Create CLI symlink:** `/usr/local/bin/lumenmon-agent`
-
-The agent is pure bash scripts - no compiled binaries. All scripts are downloaded from this repository and can be inspected at `/opt/lumenmon/`.
-
-**Updates:** Run `lumenmon-agent update` to download the latest scripts from GitHub. This stops the service, replaces the scripts, and restarts. Your credentials and configuration in `/opt/lumenmon/data/` are preserved.
-
-**Uninstall:** Run `lumenmon-agent uninstall` to stop the service, remove all files, and delete the systemd service.
-
-</details>
-
 ## Commands
 
 **Console** (`lumenmon`):
@@ -81,9 +63,36 @@ lumenmon-agent uninstall    # Remove agent
   (bare metal)                   (Docker)
 ```
 
-**Agent** collects metrics and publishes to console via MQTT with TLS.
+<details>
+<summary>Console</summary>
 
-**Console** runs MQTT broker, stores in SQLite, serves web dashboard.
+Docker container running MQTT broker (Mosquitto), SQLite database, and web dashboard (Flask + Caddy).
+
+**Install:** Downloads `docker-compose.yml`, pulls image from GitHub Container Registry, starts container.
+
+**Update:** `lumenmon update` pulls latest image and restarts container. Data in `~/.lumenmon/console/data/` is preserved.
+
+**Uninstall:** `lumenmon uninstall` stops container, removes image and all data.
+
+</details>
+
+<details>
+<summary>Agent</summary>
+
+Pure bash scripts that collect metrics and publish via `mosquitto_pub` over TLS. No Docker, no compiled binaries.
+
+**Install:** Asks for confirmation, then:
+1. Installs `mosquitto-clients` via apt-get
+2. Downloads scripts from GitHub to `/opt/lumenmon/`
+3. Creates systemd service `lumenmon-agent.service`
+4. Creates CLI `/usr/local/bin/lumenmon-agent`
+5. Registers with console and starts service (if invite URL provided)
+
+**Update:** `lumenmon-agent update` downloads latest scripts from GitHub, restarts service. Credentials in `/opt/lumenmon/data/` are preserved.
+
+**Uninstall:** `lumenmon-agent uninstall` stops service, removes all files.
+
+</details>
 
 <details>
 <summary>Security</summary>
