@@ -50,6 +50,12 @@ lumenmon-agent logs         # View logs
 lumenmon-agent uninstall    # Remove agent
 ```
 
+## Metrics
+
+| System | Metrics |
+|--------|---------|
+| Generic | cpu, memory, disk, heartbeat, hostname, os, kernel, uptime |
+
 ## Architecture
 
 ```
