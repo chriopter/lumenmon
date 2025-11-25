@@ -32,6 +32,7 @@ window.LumenmonWidgets = {
             size: config.size || 'stat',
             interval: config.interval || 1000,
             render: config.render || function() {},
+            init: config.init || null,  // Init function for charts
             update: config.update || null  // Optional update function for live refresh
         };
     },
@@ -187,6 +188,10 @@ window.LumenmonWidgets = {
             if (instance.widget.update) {
                 // Use custom update function if available
                 instance.widget.update(el, widgetData, agent);
+            } else if (instance.widget.init) {
+                // Chart widgets: re-render and re-init
+                el.innerHTML = instance.widget.render(widgetData, agent);
+                instance.widget.init(el, widgetData, agent);
             } else {
                 // Default: re-render entire widget
                 el.innerHTML = instance.widget.render(widgetData, agent);

@@ -5,8 +5,8 @@ Widgets auto-load based on available metrics. Functions: openDetailView(), close
 <script>
     // UI state managed in window.app (index.html)
 
-    // Chart rendering helper for widgets
-    function renderMetricChart(canvasId, label, data, color, suffix = '') {
+    // Chart rendering helper for widgets (global for widget access)
+    window.renderMetricChart = function(canvasId, label, data, color, suffix = '') {
         const ctx = document.getElementById(canvasId);
         if (!ctx) return;
 
@@ -74,7 +74,7 @@ Widgets auto-load based on available metrics. Functions: openDetailView(), close
                 }
             }
         });
-    }
+    };
 
     async function openDetailView() {
         window.app.ui.detailViewOpen = true;

@@ -57,11 +57,9 @@ Provides addLog(message, level) function for inline event logging. Max 50 entrie
         }
     }
 
-    // Start MQTT polling when page loads
-    window.addEventListener('load', () => {
-        // Initial check
-        checkMqttMessages();
-        // Poll every 2 seconds
-        window.app.mqtt.checkInterval = setInterval(checkMqttMessages, 2000);
-    });
+    // MQTT polling disabled - endpoint not implemented
+    // window.addEventListener('load', () => {
+    //     checkMqttMessages();
+    //     window.app.mqtt.checkInterval = setInterval(checkMqttMessages, 2000);
+    // });
 </script>

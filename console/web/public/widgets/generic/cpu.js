@@ -40,7 +40,7 @@ LumenmonWidget({
     },
     init: function(container, data, agent) {
         if (agent.cpuHistory && agent.cpuHistory.length > 0) {
-            renderMetricChart('cpu-chart', 'CPU Usage', agent.cpuHistory, '#a6e3a1', '%');
+            window.renderMetricChart('cpu-chart', 'CPU Usage', agent.cpuHistory, '#a6e3a1', '%');
         }
     }
 });
