@@ -2,7 +2,14 @@
 # Lumenmon agent CLI - manages the monitoring agent service.
 # Commands: status, register, start, stop, restart, logs, uninstall
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Resolve symlinks to get real script location
+SCRIPT_PATH="${BASH_SOURCE[0]}"
+while [ -L "$SCRIPT_PATH" ]; do
+    SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_PATH")" && pwd)"
+    SCRIPT_PATH="$(readlink "$SCRIPT_PATH")"
+    [[ $SCRIPT_PATH != /* ]] && SCRIPT_PATH="$SCRIPT_DIR/$SCRIPT_PATH"
+done
+SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_PATH")" && pwd)"
 export LUMENMON_HOME="${LUMENMON_HOME:-$SCRIPT_DIR}"
 export LUMENMON_DATA="${LUMENMON_DATA:-$LUMENMON_HOME/data}"
 

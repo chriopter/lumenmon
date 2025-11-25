@@ -109,6 +109,7 @@ EOF
 $SUDO systemctl daemon-reload
 
 # CLI symlink
+$SUDO mkdir -p /usr/local/bin
 $SUDO ln -sf "$AGENT_DIR/lumenmon-agent" /usr/local/bin/lumenmon-agent
 
 echo ""
