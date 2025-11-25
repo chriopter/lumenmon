@@ -26,7 +26,7 @@ curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/agent/instal
 
 <img width="700" alt="image" src="https://github.com/user-attachments/assets/6e9a1e4c-59ca-4b34-bfa5-269ab3f99b37" />
 
-## Supported Systems
+## Supported Agent Systems
 
 | OS | Components |
 |----|------------|
@@ -34,11 +34,13 @@ curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/agent/instal
 | Proxmox VE | **generic** + **proxmox**: vms, containers, storage, ZFS |
 | TrueNAS SCALE | **generic** + **truenas**: ZFS pools (health, capacity) |
 
-| OS | Install Path | Service |
-|----|--------------|---------|
-| Debian/Ubuntu | `/opt/lumenmon/` | systemd |
-| Proxmox VE | `/opt/lumenmon/` | systemd |
-| TrueNAS SCALE | `/mnt/pool/lumenmon/` | Init Script (WebUI) |
+### Agent Installer
+
+| OS | Install Method |
+|----|----------------|
+| Debian/Ubuntu | systemd service → `/opt/lumenmon/` |
+| Proxmox VE | systemd service → `/opt/lumenmon/` |
+| TrueNAS SCALE | Init Script (WebUI) → `/mnt/pool/lumenmon/` |
 
 ## Architecture
 
