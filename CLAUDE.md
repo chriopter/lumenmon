@@ -31,10 +31,11 @@ lumenmon-agent uninstall    # Remove agent
 
 ### Development Commands
 ```bash
-./dev/auto      # Full reset and setup
-./dev/add3      # Spawn 3 test agents
-./dev/release   # Create new release
-./dev/updatedeps # Update vendored CSS/JS
+./dev/auto         # Full reset and setup
+./dev/add3         # Spawn 3 test agents
+./dev/add-virtual  # Virtual agent with ALL metrics (Proxmox/ZFS data without real infra)
+./dev/release      # Create new release
+./dev/updatedeps   # Update vendored CSS/JS
 ```
 
 ## Installation

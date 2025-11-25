@@ -121,9 +121,12 @@ Pure bash scripts that collect metrics and publish via `mosquitto_pub` over TLS.
 <summary>Development</summary>
 
 ```bash
-./dev/auto      # Full reset and setup
-./dev/add3      # Spawn 3 test agents
-./dev/release   # Create new release
+./dev/auto         # Full reset and setup
+./dev/add3         # Spawn 3 test agents
+./dev/add-virtual  # Virtual agent with ALL metrics (no Proxmox/ZFS needed)
+./dev/release      # Create new release
 ```
+
+The virtual agent publishes fake data for all collectors (generic + proxmox + zfs) for testing widgets without real infrastructure.
 
 </details>

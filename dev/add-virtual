@@ -1,0 +1,125 @@
+#!/bin/bash
+# Creates a virtual test agent that publishes fake data for ALL collectors.
+# Useful for testing all widgets without real Proxmox/ZFS infrastructure.
+
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+AGENT_NAME="virtual-test"
+AGENT_DATA="dev/data/agents/$AGENT_NAME"
+
+echo "Creating virtual test agent..."
+
+# Check if console is running
+if ! docker ps | grep -q lumenmon-console; then
+    echo "Console not running. Start it first with ./dev/auto"
+    exit 1
+fi
+
+# Clean up existing
+docker stop "lumenmon-$AGENT_NAME" 2>/dev/null || true
+docker rm "lumenmon-$AGENT_NAME" 2>/dev/null || true
+rm -rf "$AGENT_DATA" 2>/dev/null || true
+
+# Create data dir
+mkdir -p "$AGENT_DATA/mqtt"
+
+# Get invite and register
+echo "Registering agent..."
+INVITE=$(docker exec lumenmon-console /app/core/enrollment/invite_create.sh 2>&1 | grep "^lumenmon://" | head -1)
+if [ -z "$INVITE" ]; then
+    echo "Failed to create invite"
+    exit 1
+fi
+
+# Build agent image if needed
+if ! docker images | grep -q lumenmon-dev-agent; then
+    echo "Building dev agent image..."
+    docker build -t lumenmon-dev-agent -f dev/Dockerfile.agent .
+fi
+
+# Register
+docker run --rm \
+    --network host \
+    -e LUMENMON_AUTO_ACCEPT=1 \
+    -v "$PWD/$AGENT_DATA:/opt/lumenmon/data" \
+    lumenmon-dev-agent \
+    /opt/lumenmon/core/setup/register.sh "$INVITE" >/dev/null 2>&1
+
+echo "Registered!"
+
+# Extract MQTT credentials
+MQTT_HOST=$(cat "$AGENT_DATA/mqtt/host")
+MQTT_USER=$(cat "$AGENT_DATA/mqtt/username")
+MQTT_PASS=$(cat "$AGENT_DATA/mqtt/password")
+MQTT_CERT="$PWD/$AGENT_DATA/mqtt/server.crt"
+
+echo "Starting virtual agent (publishing fake data for all collectors)..."
+
+# Function to publish metric
+publish() {
+    local name="$1"
+    local value="$2"
+    local type="$3"
+    local interval="${4:-60}"
+
+    mosquitto_pub \
+        -h "$MQTT_HOST" -p 8884 \
+        -u "$MQTT_USER" -P "$MQTT_PASS" \
+        --cafile "$MQTT_CERT" \
+        -t "metrics/$MQTT_USER/$name" \
+        -m "{\"value\":$value,\"type\":\"$type\",\"interval\":$interval}" 2>/dev/null
+}
+
+# Publish initial system info (one-time)
+publish "generic_hostname" '"virtual-test-agent"' "TEXT" 0
+publish "generic_lumenmon_version" '"1.0.0-virtual"' "TEXT" 0
+
+echo "Publishing metrics (Ctrl+C to stop)..."
+
+# Main loop
+while true; do
+    # === Generic collectors ===
+
+    # CPU (varies 5-45%)
+    cpu=$(awk "BEGIN {printf \"%.1f\", 5 + rand() * 40}")
+    publish "generic_cpu" "$cpu" "REAL" 1
+
+    # Memory (varies 30-70%)
+    mem=$(awk "BEGIN {printf \"%.1f\", 30 + rand() * 40}")
+    publish "generic_memory" "$mem" "REAL" 10
+
+    # Disk (slowly varies 45-55%)
+    disk=$(awk "BEGIN {printf \"%.1f\", 45 + rand() * 10}")
+    publish "generic_disk" "$disk" "REAL" 60
+
+    # Heartbeat
+    publish "generic_heartbeat" "$(date +%s)" "INTEGER" 10
+
+    # === Proxmox collectors ===
+
+    # VMs: running/total
+    publish "proxmox_vms_running" "$((3 + RANDOM % 3))" "INTEGER" 60
+    publish "proxmox_vms_total" "8" "INTEGER" 60
+
+    # Containers: running/total
+    publish "proxmox_containers_running" "$((5 + RANDOM % 4))" "INTEGER" 60
+    publish "proxmox_containers_total" "12" "INTEGER" 60
+
+    # Storage pools
+    publish "proxmox_storage_local_used" "$((40 + RANDOM % 20))" "REAL" 60
+    publish "proxmox_storage_local_total" "500" "REAL" 60
+    publish "proxmox_storage_nas_used" "$((1200 + RANDOM % 400))" "REAL" 60
+    publish "proxmox_storage_nas_total" "4000" "REAL" 60
+
+    # ZFS pools
+    publish "proxmox_zfs_rpool_drives" "2" "INTEGER" 60
+    publish "proxmox_zfs_rpool_online" "2" "INTEGER" 60
+    publish "proxmox_zfs_rpool_capacity" "$((35 + RANDOM % 10))" "REAL" 60
+
+    publish "proxmox_zfs_tank_drives" "4" "INTEGER" 60
+    publish "proxmox_zfs_tank_online" "$((3 + RANDOM % 2))" "INTEGER" 60  # Sometimes degraded
+    publish "proxmox_zfs_tank_capacity" "$((60 + RANDOM % 15))" "REAL" 60
+
+    sleep 1
+done
