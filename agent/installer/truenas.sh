@@ -26,26 +26,35 @@ if [ "$(id -u)" -ne 0 ]; then
     exit 1
 fi
 
-# List available pools
-echo "Available pools:"
-pools=$(zpool list -H -o name 2>/dev/null || true)
-if [ -z "$pools" ]; then
+# Get available pools
+pools=($(zpool list -H -o name 2>/dev/null))
+if [ ${#pools[@]} -eq 0 ]; then
     echo -e "${RED}Error: No ZFS pools found${NC}"
     exit 1
 fi
 
-echo "$pools" | while read pool; do
-    echo "  /mnt/$pool"
-done
-echo ""
-
 # Get install path from user
 if [ -z "${LUMENMON_INSTALL_DIR:-}" ]; then
-    first_pool=$(echo "$pools" | head -1)
-    default_path="/mnt/$first_pool/lumenmon"
-    echo -n "Install path [$default_path]: "
-    read -r INSTALL_DIR < /dev/tty
-    INSTALL_DIR="${INSTALL_DIR:-$default_path}"
+    echo "Select pool:"
+    for i in "${!pools[@]}"; do
+        echo "  $((i+1))) ${pools[$i]}"
+    done
+    echo "  c) Custom path"
+    echo ""
+    echo -n "Choice [1]: "
+    read -r choice < /dev/tty
+    choice="${choice:-1}"
+
+    if [ "$choice" = "c" ] || [ "$choice" = "C" ]; then
+        echo -n "Enter full path: "
+        read -r INSTALL_DIR < /dev/tty
+    elif [[ "$choice" =~ ^[0-9]+$ ]] && [ "$choice" -ge 1 ] && [ "$choice" -le ${#pools[@]} ]; then
+        selected_pool="${pools[$((choice-1))]}"
+        INSTALL_DIR="/mnt/$selected_pool/lumenmon"
+    else
+        echo -e "${RED}Invalid choice${NC}"
+        exit 1
+    fi
 else
     INSTALL_DIR="$LUMENMON_INSTALL_DIR"
 fi
@@ -55,6 +64,9 @@ if [[ ! "$INSTALL_DIR" =~ ^/mnt/ ]]; then
     echo -e "${RED}Error: Install path must be under /mnt/ (on a pool)${NC}"
     exit 1
 fi
+
+echo ""
+echo "Install path: $INSTALL_DIR"
 
 # Check requirements
 echo ""
