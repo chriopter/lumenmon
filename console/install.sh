@@ -1,210 +1,156 @@
 #!/bin/bash
 # Lumenmon Console installer (Docker) - for the central monitoring dashboard.
-# For agents, use install-agent.sh (bare metal, no Docker required).
-
 set -e
 
-# Configuration
 INSTALL_DIR="$HOME/.lumenmon"
-GITHUB_RAW="https://raw.githubusercontent.com/chriopter/lumenmon/refs/heads/main"
-GITHUB_IMAGE_CONSOLE="ghcr.io/chriopter/lumenmon-console:latest"
+GITHUB_RAW="https://raw.githubusercontent.com/chriopter/lumenmon/main"
 
-# Output helpers
-status_ok() { echo -e "[\033[1;32m✓\033[0m] $1"; }
-status_error() { echo -e "[\033[1;31m✗\033[0m] $1"; exit 1; }
-status_warn() { echo -e "[\033[1;33m⚠\033[0m] $1"; }
-status_progress() { echo -e "[\033[1;36m→\033[0m] $1"; }
+# Colors
+C_RESET='\033[0m'
+C_CYAN='\033[0;36m'
+C_GREEN='\033[1;32m'
+C_YELLOW='\033[1;33m'
+C_RED='\033[1;31m'
+C_DIM='\033[2m'
 
-# Show logo
+ok() { echo -e "  ${C_GREEN}✓${C_RESET} $1"; }
+err() { echo -e "  ${C_RED}✗${C_RESET} $1"; exit 1; }
+info() { echo -e "  ${C_DIM}$1${C_RESET}"; }
+line() { echo -e "${C_DIM}────────────────────────────────────────────────────────────${C_RESET}"; }
+
 show_logo() {
     clear
-    echo -e "\033[0;36m"
+    echo -e "${C_CYAN}"
     echo "  ██╗     ██╗   ██╗███╗   ███╗███████╗███╗   ██╗███╗   ██╗ ██████╗ ███╗   ██╗"
     echo "  ██║     ██║   ██║████╗ ████║██╔════╝████╗  ██║████╗ ████║██╔═══██╗████╗  ██║"
     echo "  ██║     ██║   ██║██╔████╔██║█████╗  ██╔██╗ ██║██╔████╔██║██║   ██║██╔██╗ ██║"
     echo "  ██║     ██║   ██║██║╚██╔╝██║██╔══╝  ██║╚██╗██║██║╚██╔╝██║██║   ██║██║╚██╗██║"
     echo "  ███████╗╚██████╔╝██║ ╚═╝ ██║███████╗██║ ╚████║██║ ╚═╝ ██║╚██████╔╝██║ ╚████║"
     echo "  ╚══════╝ ╚═════╝ ╚═╝     ╚═╝╚══════╝╚═╝  ╚═══╝╚═╝     ╚═╝ ╚═════╝ ╚═╝  ╚═══╝"
-    echo -e "\033[0m"
+    echo -e "${C_RESET}"
     echo ""
 }
 
-# Check prerequisites
 check_requirements() {
-    status_progress "Checking requirements..."
-    command -v docker >/dev/null 2>&1 || status_error "Docker not found - please install docker"
-    docker compose version >/dev/null 2>&1 || status_error "'docker compose' not available - please install Docker Compose v2"
-    command -v curl >/dev/null 2>&1 || status_error "curl not found - please install curl"
-    status_ok "All requirements met"
+    echo "  Checking requirements..."
+    command -v docker >/dev/null 2>&1 || err "Docker not found"
+    docker compose version >/dev/null 2>&1 || err "Docker Compose v2 not found"
+    command -v curl >/dev/null 2>&1 || err "curl not found"
+    ok "All requirements met"
 }
 
-# Download file from GitHub raw
-download_file() {
-    local url="$1"
-    local dest="$2"
-    status_progress "Downloading $(basename "$dest")..."
-    curl -fsSL "$url" -o "$dest" || status_error "Failed to download $url"
-}
-
-# Install console
 install_console() {
     local hostname="$1"
 
-    status_progress "Installing Console to $INSTALL_DIR/console/"
-    mkdir -p "$INSTALL_DIR/console"
+    echo ""
+    echo "  Installing console..."
+    mkdir -p "$INSTALL_DIR/console/data"
 
     # Download docker-compose.yml
-    download_file "$GITHUB_RAW/console/docker-compose.yml" "$INSTALL_DIR/console/docker-compose.yml"
-
-    # Generate .env
+    curl -fsSL "$GITHUB_RAW/console/docker-compose.yml" -o "$INSTALL_DIR/console/docker-compose.yml"
     echo "CONSOLE_HOST=$hostname" > "$INSTALL_DIR/console/.env"
 
-    # Pre-create data directories
-    mkdir -p "$INSTALL_DIR/console/data"
-    chmod 755 "$INSTALL_DIR/console/data"
-
-    # Pull latest image and show version
-    status_progress "Pulling latest console image..."
+    # Pull and start
     cd "$INSTALL_DIR/console"
-    docker compose pull 2>&1 | grep -E "(Pulling|Downloaded|Status:|digest:)" || true
-
-    # Show pulled image version for verification
-    IMAGE=$(docker compose config 2>/dev/null | grep "image:" | head -1 | awk '{print $2}')
-    if [ -n "$IMAGE" ]; then
-        IMAGE_INFO=$(docker images --format "{{.Repository}}:{{.Tag}} ({{.ID}} created {{.CreatedAt}})" "$IMAGE" 2>/dev/null | head -1)
-        echo "[i] Pulled: $IMAGE_INFO" >&2
-    fi
-
-    # Start console
-    status_progress "Starting console..."
+    docker compose pull -q 2>/dev/null || true
     docker compose up -d 2>&1 | grep -v "Pulling" || true
-
-    status_ok "Console installed at $INSTALL_DIR/console/"
+    ok "Console started"
 }
 
-# Generate invite
-generate_invite() {
-    sleep 3  # Wait for console to be ready
-    docker exec lumenmon-console /app/core/enrollment/invite_create.sh --full 2>/dev/null || echo ""
-}
-
-# Install CLI command
 install_cli() {
-    status_progress "Installing lumenmon CLI..."
-
-    # Download CLI script
-    download_file "$GITHUB_RAW/console/lumenmon" "$INSTALL_DIR/console/lumenmon"
+    curl -fsSL "$GITHUB_RAW/console/lumenmon" -o "$INSTALL_DIR/console/lumenmon"
     chmod +x "$INSTALL_DIR/console/lumenmon"
 
-    # Create symlink
     if ln -sf "$INSTALL_DIR/console/lumenmon" /usr/local/bin/lumenmon 2>/dev/null; then
-        status_ok "CLI installed: lumenmon"
+        ok "CLI installed: lumenmon"
     elif mkdir -p ~/.local/bin && ln -sf "$INSTALL_DIR/console/lumenmon" ~/.local/bin/lumenmon 2>/dev/null; then
-        status_ok "CLI installed: ~/.local/bin/lumenmon"
-        if ! echo "$PATH" | grep -q "$HOME/.local/bin"; then
-            status_warn "Add ~/.local/bin to your PATH to use 'lumenmon' command"
-        fi
+        ok "CLI installed: ~/.local/bin/lumenmon"
     else
-        status_warn "Could not create symlink. Use: $INSTALL_DIR/console/lumenmon"
+        info "CLI at: $INSTALL_DIR/console/lumenmon"
     fi
 }
 
-# Show completion message
+wait_for_console() {
+    echo ""
+    echo "  Waiting for services..."
+    for i in $(seq 1 30); do
+        if docker exec lumenmon-console pgrep -x mosquitto >/dev/null 2>&1; then
+            ok "MQTT broker ready"
+            return 0
+        fi
+        sleep 1
+    done
+    err "Console failed to start"
+}
+
+generate_invite() {
+    sleep 2
+    docker exec lumenmon-console /app/core/enrollment/invite_create.sh 2>/dev/null | head -1
+}
+
 show_completion() {
     local invite_url="$1"
     local console_host="$2"
 
     echo ""
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo "✓ Lumenmon Console installed!"
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    line
+    echo -e "  ${C_GREEN}✓ Installation complete!${C_RESET}"
+    line
     echo ""
 
-    # Show current status
-    if command -v lumenmon >/dev/null 2>&1; then
-        sleep 2
-        lumenmon status
-        echo ""
+    # Parse invite
+    local agent_id=""
+    if [[ "$invite_url" =~ lumenmon://([^:]+): ]]; then
+        agent_id="${BASH_REMATCH[1]}"
     fi
 
-    # CLI commands
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo "Console Commands"
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo ""
-    echo "  lumenmon           - Open WebTUI (or status if not running)"
-    echo "  lumenmon status    - Show system status"
-    echo "  lumenmon logs      - View logs"
-    echo "  lumenmon invite    - Generate agent invite"
-    echo "  lumenmon update    - Pull latest container and restart"
-    echo "  lumenmon uninstall - Remove everything"
+    # Summary table
+    echo -e "  ${C_CYAN}Console${C_RESET}"
+    echo "  ├─ Dashboard    http://${console_host}:8080"
+    echo "  ├─ MQTT         ${console_host}:8884 (TLS)"
+    echo "  └─ Data         $INSTALL_DIR/console/data/"
     echo ""
 
-    # Invite section
+    echo -e "  ${C_CYAN}Commands${C_RESET}"
+    echo "  ├─ lumenmon invite     Generate agent invite"
+    echo "  ├─ lumenmon logs       View logs"
+    echo "  ├─ lumenmon update     Update console"
+    echo "  └─ lumenmon uninstall  Remove everything"
+    echo ""
+
     if [ -n "$invite_url" ]; then
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-        echo "Add Agents"
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        line
+        echo -e "  ${C_CYAN}Add Your First Agent${C_RESET}"
+        line
         echo ""
-        # Parse invite URL to extract components
-        if [[ "$invite_url" =~ lumenmon://([^:]+):([^@]+)@([^:#]+):?([0-9]*)#(.+)$ ]]; then
-            local agent_id="${BASH_REMATCH[1]}"
-            local fingerprint="${BASH_REMATCH[5]}"
-            echo "Agent ID: $agent_id"
-            echo "Certificate Fingerprint: $fingerprint"
-            echo ""
-        fi
-        echo "Install agent on target machine (single command):"
+        echo "  Run this on the machine you want to monitor:"
         echo ""
-        echo "  curl -sSL $GITHUB_RAW/agent/install.sh | bash -s '$invite_url'"
+        echo -e "  ${C_YELLOW}curl -sSL $GITHUB_RAW/agent/install.sh | bash -s '${invite_url}'${C_RESET}"
         echo ""
-        echo "Generate new invites anytime with: lumenmon invite"
-        echo ""
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        info "Generate more invites anytime: lumenmon invite"
         echo ""
     fi
-
-    # Dashboard URL
-    local dashboard_host="${console_host:-localhost}"
-    echo "Dashboard: http://${dashboard_host}:8080"
-    echo ""
 }
 
-# Main installation flow
 main() {
     show_logo
     check_requirements
 
-    echo "  Installation path: $INSTALL_DIR"
-    echo ""
-
-    # Get hostname for agent connections
+    # Get hostname
     DETECTED_HOST=$(hostname -I 2>/dev/null | awk '{print $1}')
     [ -z "$DETECTED_HOST" ] && DETECTED_HOST="localhost"
 
-    echo "  Enter hostname for agent connections"
-    echo "  (This will be in invite URLs for remote agents to connect)"
-    echo -n "  Hostname [$DETECTED_HOST]: "
+    echo ""
+    echo "  Hostname for agent connections (used in invite URLs)"
+    echo -n "  [$DETECTED_HOST]: "
     read -r USER_HOST < /dev/tty 2>/dev/null || true
     CONSOLE_HOST="${USER_HOST:-$DETECTED_HOST}"
 
-    echo ""
     install_console "$CONSOLE_HOST"
-
-    # Wait for MQTT broker to be ready
-    status_progress "Waiting for console to be ready..."
-    for i in $(seq 1 30); do
-        if docker exec lumenmon-console pgrep -x mosquitto >/dev/null 2>&1; then
-            break
-        fi
-        sleep 1
-    done
-    sleep 1
-
-    # Generate invite for first agent
-    INVITE_URL=$(generate_invite)
-
+    wait_for_console
     install_cli
+
+    INVITE_URL=$(generate_invite)
     show_completion "$INVITE_URL" "$CONSOLE_HOST"
 }
 

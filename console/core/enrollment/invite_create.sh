@@ -36,32 +36,8 @@ FINGERPRINT=$(cat "$FINGERPRINT_FILE")
 # Build invite URL
 INVITE_URL="lumenmon://$USERNAME:$PASSWORD@$CONSOLE_HOST:8884#$FINGERPRINT"
 
-# Output bare URL first (for installer to parse)
+# Output bare URL (for scripts to parse)
 echo "$INVITE_URL"
-echo ""
-
-# Output invite information
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "Agent Registration Invite"
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo ""
-echo "Agent ID: $USERNAME"
-echo "Certificate Fingerprint: $FINGERPRINT"
-echo ""
-echo "One-Click Install (copy to target machine):"
-echo ""
-echo "  curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/refs/heads/main/install.sh | \\"
-echo "    LUMENMON_INVITE=\"$INVITE_URL\" bash"
-echo ""
-echo "Or manual registration (if lumenmon already installed):"
-echo ""
-echo "  lumenmon register \"$INVITE_URL\""
-echo ""
-echo "Security:"
-echo "  • Credentials are permanent (no rotation needed)"
-echo "  • ACL enforces topic isolation (write-only to metrics/$USERNAME/#)"
-echo "  • Keep this URL secure - it contains credentials"
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 # Also output machine-readable JSON for Flask API
 echo "{\"username\":\"$USERNAME\",\"url\":\"$INVITE_URL\",\"fingerprint\":\"$FINGERPRINT\"}" > /tmp/last_invite.json

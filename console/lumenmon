@@ -5,6 +5,13 @@
 DIR="$(dirname "$(readlink -f "$0")")"
 cd "$DIR"
 
+# Colors
+C_RESET='\033[0m'
+C_CYAN='\033[0;36m'
+C_GREEN='\033[1;32m'
+C_YELLOW='\033[1;33m'
+C_DIM='\033[2m'
+
 is_running() { docker ps | grep -q "lumenmon-console"; }
 
 case "$1" in
@@ -23,13 +30,31 @@ case "$1" in
             echo "Console not running"
             exit 1
         fi
+        INVITE=$(docker exec lumenmon-console /app/core/enrollment/invite_create.sh 2>/dev/null | head -1)
+
+        # Parse invite for display
+        if [[ "$INVITE" =~ lumenmon://([^:]+):([^@]+)@([^:#]+):([0-9]+)#(.+)$ ]]; then
+            AGENT_ID="${BASH_REMATCH[1]}"
+            HOST="${BASH_REMATCH[3]}"
+            FINGERPRINT="${BASH_REMATCH[5]}"
+        fi
+
         echo ""
-        INVITE=$(docker exec lumenmon-console /app/core/enrollment/invite_create.sh 2>/dev/null | grep "^lumenmon://" | head -1)
-        echo "Invite URL:"
-        echo "$INVITE"
+        echo -e "${C_DIM}────────────────────────────────────────────────────────────${C_RESET}"
+        echo -e "  ${C_CYAN}Agent Invite${C_RESET}"
+        echo -e "${C_DIM}────────────────────────────────────────────────────────────${C_RESET}"
         echo ""
-        echo "Install agent (single command):"
-        echo "  curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/agent/install.sh | bash -s '$INVITE'"
+        echo "  Agent ID:     $AGENT_ID"
+        echo "  Console:      $HOST:8884"
+        echo "  Fingerprint:  ${FINGERPRINT:0:23}..."
+        echo ""
+        echo -e "${C_DIM}────────────────────────────────────────────────────────────${C_RESET}"
+        echo -e "  ${C_CYAN}Install Command${C_RESET}"
+        echo -e "${C_DIM}────────────────────────────────────────────────────────────${C_RESET}"
+        echo ""
+        echo "  Run on target machine:"
+        echo ""
+        echo -e "  ${C_YELLOW}curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/agent/install.sh | bash -s '$INVITE'${C_RESET}"
         echo ""
         ;;
 
@@ -61,7 +86,7 @@ case "$1" in
             if ! diff -q "$DIR/lumenmon" "$TEMP" >/dev/null 2>&1; then
                 cp "$TEMP" "$DIR/lumenmon"
                 chmod +x "$DIR/lumenmon"
-                echo "CLI updated"
+                echo "  CLI updated"
             fi
         fi
         rm -f "$TEMP"
@@ -72,7 +97,7 @@ case "$1" in
             if ! diff -q "$DIR/docker-compose.yml" "$TEMP" >/dev/null 2>&1; then
                 cp "$DIR/docker-compose.yml" "$DIR/docker-compose.yml.bak"
                 cp "$TEMP" "$DIR/docker-compose.yml"
-                echo "Compose updated"
+                echo "  Compose updated"
             fi
         fi
         rm -f "$TEMP"
