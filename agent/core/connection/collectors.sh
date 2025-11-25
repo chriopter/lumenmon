@@ -6,6 +6,24 @@ set -euo pipefail
 # LUMENMON_HOME must be set by agent.sh before sourcing
 : ${LUMENMON_HOME:?LUMENMON_HOME not set}
 
+# Collector log file
+COLLECTOR_LOG="${LUMENMON_DATA}/collectors.log"
+
+# Wrapper to run collectors with logging
+# Usage: run_collector <name> <script_path>
+run_collector() {
+    local name="$1"
+    local script="$2"
+
+    {
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] STARTED $name"
+        "$script" 2>&1
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] CRASHED $name (exit: $?)"
+    } >> "$COLLECTOR_LOG" 2>&1 &
+
+    echo "[agent] Started: $name"
+}
+
 echo "[agent] Starting collectors..."
 
 # Run _init.sh in each collector directory
