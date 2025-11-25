@@ -23,7 +23,8 @@
       "Bash(cat:*)",
       "Bash(docker cp:*)",
       "Bash(node -e:*)",
-      "Bash(git update-index:*)"
+      "Bash(git update-index:*)",
+      "WebSearch"
     ],
     "deny": [],
     "ask": []

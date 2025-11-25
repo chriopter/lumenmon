@@ -31,7 +31,8 @@ curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/agent/instal
 | Component | Metrics |
 |-----------|---------|
 | Generic | cpu, memory, disk, heartbeat, hostname, os, kernel, uptime |
-| Proxmox | vms running/stopped, containers running/stopped, storage pools |
+| Proxmox | vms, containers, storage pools, ZFS pools (health, capacity) |
+| TrueNAS | ZFS pools (health, capacity), SMB/NFS shares |
 
 ## Architecture
 
@@ -93,17 +94,32 @@ Docker container running MQTT broker (Mosquitto), SQLite database, and web dashb
 
 Pure bash scripts that collect metrics and publish via `mosquitto_pub` over TLS. No Docker, no compiled binaries.
 
-**Requirements:** Debian/Ubuntu with `mosquitto-clients` installed (`sudo apt-get install mosquitto-clients`)
+**Supported Platforms:**
 
-**Install:** Asks for confirmation, then:
-1. Downloads scripts from GitHub to `/opt/lumenmon/`
+| Platform | Install Path | Service |
+|----------|--------------|---------|
+| Debian/Ubuntu | `/opt/lumenmon/` | systemd |
+| TrueNAS SCALE | `/mnt/yourpool/lumenmon/` | Init Script (WebUI) |
+| Proxmox VE | `/opt/lumenmon/` | systemd |
+
+**Requirements:** `mosquitto-clients` (`apt install mosquitto-clients`)
+
+**Debian/Ubuntu Install:**
+1. Downloads scripts to `/opt/lumenmon/`
 2. Creates systemd service `lumenmon-agent.service`
 3. Creates CLI `/usr/local/bin/lumenmon-agent`
-4. Registers with console and starts service (if invite URL provided)
 
-**Update:** `lumenmon-agent update` downloads latest scripts from GitHub, restarts service. Credentials in `/opt/lumenmon/data/` are preserved.
+**TrueNAS SCALE Install:**
+1. Prompts for install path (must be on a pool under `/mnt/`)
+2. Downloads scripts to chosen path (survives TrueNAS updates)
+3. Requires manual Init Script setup in WebUI:
+   - System Settings → Advanced → Init/Shutdown Scripts
+   - Type: Script, When: Post Init
+   - Script: `/mnt/yourpool/lumenmon/start-agent.sh`
 
-**Uninstall:** `lumenmon-agent uninstall` stops service, removes all files.
+**Update:** `lumenmon-agent update` pulls latest scripts. Credentials preserved.
+
+**Uninstall:** `lumenmon-agent uninstall` stops service/process, removes files.
 
 </details>
 

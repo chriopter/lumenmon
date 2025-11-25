@@ -1,6 +1,6 @@
 #!/bin/bash
 # Lumenmon agent installer - detects OS and runs appropriate installer.
-# Supports: Debian, Ubuntu
+# Supports: Debian, Ubuntu, TrueNAS SCALE
 # Usage: install.sh [invite-url]
 set -e
 
@@ -19,6 +19,24 @@ fi
 
 . /etc/os-release
 
+# Check for TrueNAS SCALE (Debian-based but needs special handling)
+IS_TRUENAS=false
+if [ -f /etc/version ] && grep -qi "truenas" /etc/version 2>/dev/null; then
+    IS_TRUENAS=true
+elif command -v midclt &>/dev/null; then
+    IS_TRUENAS=true
+fi
+
+if [ "$IS_TRUENAS" = true ]; then
+    echo "Detected: TrueNAS SCALE"
+    echo ""
+    curl -fsSL "$GITHUB_RAW/truenas.sh" -o /tmp/lumenmon-install.sh
+    chmod +x /tmp/lumenmon-install.sh
+    /tmp/lumenmon-install.sh "$INVITE_URL"
+    rm -f /tmp/lumenmon-install.sh
+    exit 0
+fi
+
 case "$ID" in
     debian|ubuntu)
         echo "Detected: $NAME"
@@ -26,7 +44,7 @@ case "$ID" in
         ;;
     *)
         echo "Error: Unsupported OS: $NAME ($ID)"
-        echo "Supported: Debian, Ubuntu"
+        echo "Supported: Debian, Ubuntu, TrueNAS SCALE"
         exit 1
         ;;
 esac

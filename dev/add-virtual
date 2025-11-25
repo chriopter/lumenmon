@@ -121,5 +121,20 @@ while true; do
     publish "proxmox_zfs_tank_online" "$((3 + RANDOM % 2))" "INTEGER" 60  # Sometimes degraded
     publish "proxmox_zfs_tank_capacity" "$((60 + RANDOM % 15))" "REAL" 60
 
+    # === TrueNAS collectors ===
+
+    # ZFS pools (different names to test TrueNAS widget)
+    publish "truenas_zfs_boot_pool_drives" "2" "INTEGER" 60
+    publish "truenas_zfs_boot_pool_online" "2" "INTEGER" 60
+    publish "truenas_zfs_boot_pool_capacity" "$((25 + RANDOM % 10))" "REAL" 60
+
+    publish "truenas_zfs_data_drives" "8" "INTEGER" 60
+    publish "truenas_zfs_data_online" "$((7 + RANDOM % 2))" "INTEGER" 60  # Sometimes degraded
+    publish "truenas_zfs_data_capacity" "$((70 + RANDOM % 15))" "REAL" 60
+
+    # Shares
+    publish "truenas_shares_smb" "12" "INTEGER" 60
+    publish "truenas_shares_nfs" "4" "INTEGER" 60
+
     sleep 1
 done
