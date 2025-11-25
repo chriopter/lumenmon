@@ -28,11 +28,11 @@ curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/agent/instal
 
 ## Supported Systems
 
-| Component | Metrics |
-|-----------|---------|
-| Generic | cpu, memory, disk, heartbeat, hostname, os, kernel, uptime |
-| Proxmox | vms, containers, storage pools, ZFS pools (health, capacity) |
-| TrueNAS | ZFS pools (health, capacity), SMB/NFS shares |
+| OS | Installer | Components |
+|----|-----------|------------|
+| Debian/Ubuntu | systemd `/opt/lumenmon/` | **generic**: cpu, memory, disk, heartbeat, hostname |
+| Proxmox VE | systemd `/opt/lumenmon/` | **generic** + **proxmox**: vms, containers, storage, ZFS |
+| TrueNAS SCALE | Init Script `/mnt/pool/` | **generic** + **truenas**: ZFS pools (health, capacity) |
 
 ## Architecture
 
