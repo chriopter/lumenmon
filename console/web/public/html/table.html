@@ -68,7 +68,7 @@ Fetches server-rendered rows every 1s. Provides row selection, navigation functi
                         const cpuHistory = JSON.stringify(entity.cpuHistory || []);
                         const memHistory = JSON.stringify(entity.memHistory || []);
                         const diskHistory = JSON.stringify(entity.diskHistory || []);
-                        const pendingInvite = entity.pending_invite ? JSON.stringify(entity.pending_invite) : '';
+                        const pendingInvite = entity.pending_invite ? JSON.stringify(entity.pending_invite).replace(/'/g, '&#39;') : '';
 
                         html += `<tr class="agent-row ${selected} ${validClass}" data-index="${index}" data-entity-id="${entity.id}" data-entity-type="agent" data-hostname="${hostname}" data-status="${statusDot}" data-valid="${entity.valid}" data-age="${entity.age || 0}" data-uptime="${entity.uptime || ''}" data-heartbeat="${entity.heartbeat || 0}" data-cpu-history='${cpuHistory}' data-mem-history='${memHistory}' data-disk-history='${diskHistory}' data-pending-invite='${pendingInvite}'>`;
                         const pendingSymbol = entity.valid ? '' : ' (pending)';
