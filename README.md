@@ -30,6 +30,24 @@ curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/agent/instal
 | Console | Docker, Docker Compose |
 | Agent | Debian or Ubuntu, bash, curl, openssl, systemd |
 
+<details>
+<summary>Agent Installation Details</summary>
+
+The installer will ask for confirmation before making any changes. It will:
+
+1. **Install package:** `mosquitto-clients` via apt-get
+2. **Download scripts** from GitHub to `/opt/lumenmon/`
+3. **Create systemd service:** `lumenmon-agent.service`
+4. **Create CLI symlink:** `/usr/local/bin/lumenmon-agent`
+
+The agent is pure bash scripts - no compiled binaries. All scripts are downloaded from this repository and can be inspected at `/opt/lumenmon/`.
+
+**Updates:** Run `lumenmon-agent update` to download the latest scripts from GitHub. This stops the service, replaces the scripts, and restarts. Your credentials and configuration in `/opt/lumenmon/data/` are preserved.
+
+**Uninstall:** Run `lumenmon-agent uninstall` to stop the service, remove all files, and delete the systemd service.
+
+</details>
+
 ## Commands
 
 **Console** (`lumenmon`):
