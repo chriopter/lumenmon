@@ -81,12 +81,13 @@ Docker container running MQTT broker (Mosquitto), SQLite database, and web dashb
 
 Pure bash scripts that collect metrics and publish via `mosquitto_pub` over TLS. No Docker, no compiled binaries.
 
+**Requirements:** Debian/Ubuntu with `mosquitto-clients` installed (`sudo apt-get install mosquitto-clients`)
+
 **Install:** Asks for confirmation, then:
-1. Installs `mosquitto-clients` via apt-get
-2. Downloads scripts from GitHub to `/opt/lumenmon/`
-3. Creates systemd service `lumenmon-agent.service`
-4. Creates CLI `/usr/local/bin/lumenmon-agent`
-5. Registers with console and starts service (if invite URL provided)
+1. Downloads scripts from GitHub to `/opt/lumenmon/`
+2. Creates systemd service `lumenmon-agent.service`
+3. Creates CLI `/usr/local/bin/lumenmon-agent`
+4. Registers with console and starts service (if invite URL provided)
 
 **Update:** `lumenmon-agent update` downloads latest scripts from GitHub, restarts service. Credentials in `/opt/lumenmon/data/` are preserved.
 
