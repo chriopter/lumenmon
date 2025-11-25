@@ -28,8 +28,7 @@ curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/agent/instal
 
 | Component | Requirements | Metrics |
 |-----------|--------------|---------|
-| Console | Docker, Docker Compose | — |
-| Agent (Generic) | Linux, bash, curl, openssl, systemd | cpu, memory, disk, heartbeat, hostname, os, kernel, uptime |
+| Generic | Linux, bash, curl, openssl, systemd | cpu, memory, disk, heartbeat, hostname, os, kernel, uptime |
 
 ## Architecture
 
