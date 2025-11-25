@@ -52,12 +52,16 @@ case "${1:-}" in
         # Stop service
         $SUDO systemctl stop lumenmon-agent 2>/dev/null || true
 
-        # Pull latest
-        $SUDO git -C "$GIT_ROOT" pull --ff-only
-
-        # Restart service
-        $SUDO systemctl start lumenmon-agent
-        echo "Updated and restarted"
+        # Fetch and reset to remote (discard any local changes)
+        if $SUDO git -C "$GIT_ROOT" fetch origin && \
+           $SUDO git -C "$GIT_ROOT" reset --hard origin/main; then
+            $SUDO systemctl start lumenmon-agent
+            echo "Updated and restarted"
+        else
+            $SUDO systemctl start lumenmon-agent
+            echo "Update failed, service restarted"
+            exit 1
+        fi
         ;;
     uninstall)
         echo "Stopping agent..."
