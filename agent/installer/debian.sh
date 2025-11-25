@@ -1,10 +1,10 @@
 #!/bin/bash
-# Debian/Ubuntu agent installer - installs deps, downloads files, creates systemd service.
+# Debian/Ubuntu agent installer - clones repo, creates systemd service.
 # Usage: debian.sh [invite-url]
 set -e
 
 INSTALL_DIR="${LUMENMON_INSTALL_DIR:-/opt/lumenmon}"
-GITHUB_RAW="https://raw.githubusercontent.com/chriopter/lumenmon/main/agent"
+GITHUB_REPO="https://github.com/chriopter/lumenmon.git"
 INVITE_URL="${1:-}"
 
 # Colors
@@ -12,37 +12,54 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 NC='\033[0m'
 
+# Use sudo if not root
+if [ "$(id -u)" -eq 0 ]; then
+    SUDO=""
+else
+    SUDO="sudo"
+fi
+
 # Check all requirements upfront
 echo "Checking requirements..."
 echo ""
 has_error=0
 missing_pkgs=""
 
-for cmd in bash curl openssl systemctl sudo mosquitto_pub; do
+for cmd in bash git openssl systemctl mosquitto_pub; do
     if command -v "$cmd" >/dev/null 2>&1; then
         echo -e "  $cmd ${GREEN}found${NC}"
     else
         echo -e "  $cmd ${RED}missing${NC}"
         has_error=1
         if [ "$cmd" = "mosquitto_pub" ]; then
-            missing_pkgs="mosquitto-clients"
+            missing_pkgs="$missing_pkgs mosquitto-clients"
         else
             missing_pkgs="$missing_pkgs $cmd"
         fi
     fi
 done
 
+# Check sudo only if not root
+if [ "$(id -u)" -ne 0 ]; then
+    if command -v sudo >/dev/null 2>&1; then
+        echo -e "  sudo ${GREEN}found${NC}"
+    else
+        echo -e "  sudo ${RED}missing${NC} (required when not running as root)"
+        has_error=1
+    fi
+fi
+
 echo ""
 if [ $has_error -eq 1 ]; then
     echo "Missing requirements. Install with:"
-    echo "  sudo apt-get install $missing_pkgs"
+    echo "  apt-get install$missing_pkgs"
     exit 1
 fi
 
 # Show what will be installed
 echo ""
 echo "This will:"
-echo "  - Download agent to $INSTALL_DIR"
+echo "  - Clone agent to $INSTALL_DIR"
 echo "  - Create systemd service: lumenmon-agent"
 echo "  - Create CLI: /usr/local/bin/lumenmon-agent"
 if [ -n "$INVITE_URL" ]; then
@@ -60,32 +77,20 @@ fi
 echo ""
 echo "Installing..."
 
-# Create directories
-sudo mkdir -p "$INSTALL_DIR/core/mqtt" "$INSTALL_DIR/core/setup" "$INSTALL_DIR/core/connection"
-sudo mkdir -p "$INSTALL_DIR/collectors/generic"
-sudo mkdir -p "$INSTALL_DIR/data/mqtt"
+# Clone repo (agent directory only)
+if [ -d "$INSTALL_DIR" ]; then
+    echo "Updating existing installation..."
+    $SUDO git -C "$INSTALL_DIR" pull --ff-only
+else
+    $SUDO git clone --depth 1 --filter=blob:none --sparse "$GITHUB_REPO" "$INSTALL_DIR"
+    $SUDO git -C "$INSTALL_DIR" sparse-checkout set agent
+fi
 
-# Download files
-sudo curl -fsSL "$GITHUB_RAW/agent.sh" -o "$INSTALL_DIR/agent.sh"
-sudo curl -fsSL "$GITHUB_RAW/lumenmon-agent" -o "$INSTALL_DIR/lumenmon-agent"
-sudo curl -fsSL "$GITHUB_RAW/core/mqtt/publish.sh" -o "$INSTALL_DIR/core/mqtt/publish.sh"
-sudo curl -fsSL "$GITHUB_RAW/core/setup/register.sh" -o "$INSTALL_DIR/core/setup/register.sh"
-sudo curl -fsSL "$GITHUB_RAW/core/connection/collectors.sh" -o "$INSTALL_DIR/core/connection/collectors.sh"
-sudo curl -fsSL "$GITHUB_RAW/core/status.sh" -o "$INSTALL_DIR/core/status.sh"
-
-for c in cpu disk heartbeat hostname lumenmon memory; do
-    sudo curl -fsSL "$GITHUB_RAW/collectors/generic/${c}.sh" -o "$INSTALL_DIR/collectors/generic/${c}.sh"
-done
-
-# Set permissions
-sudo chmod +x "$INSTALL_DIR/agent.sh" "$INSTALL_DIR/lumenmon-agent"
-sudo chmod +x "$INSTALL_DIR/core/status.sh" "$INSTALL_DIR/core/mqtt/publish.sh"
-sudo chmod +x "$INSTALL_DIR/core/setup/register.sh" "$INSTALL_DIR/core/connection/collectors.sh"
-sudo chmod +x "$INSTALL_DIR/collectors/generic/"*.sh
-sudo chmod 755 "$INSTALL_DIR/data"
+# Agent dir after sparse checkout
+AGENT_DIR="$INSTALL_DIR/agent"
 
 # Create systemd service
-sudo tee /etc/systemd/system/lumenmon-agent.service > /dev/null << EOF
+$SUDO tee /etc/systemd/system/lumenmon-agent.service > /dev/null << EOF
 [Unit]
 Description=Lumenmon Monitoring Agent
 After=network-online.target
@@ -93,7 +98,7 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-ExecStart=$INSTALL_DIR/agent.sh
+ExecStart=$AGENT_DIR/agent.sh
 Restart=always
 RestartSec=5
 
@@ -101,10 +106,10 @@ RestartSec=5
 WantedBy=multi-user.target
 EOF
 
-sudo systemctl daemon-reload
+$SUDO systemctl daemon-reload
 
 # CLI symlink
-sudo ln -sf "$INSTALL_DIR/lumenmon-agent" /usr/local/bin/lumenmon-agent
+$SUDO ln -sf "$AGENT_DIR/lumenmon-agent" /usr/local/bin/lumenmon-agent
 
 echo ""
 echo "Installation complete!"
@@ -113,14 +118,12 @@ echo "Installation complete!"
 if [ -n "$INVITE_URL" ]; then
     echo ""
     echo "Registering agent..."
-    export LUMENMON_HOME="$INSTALL_DIR"
-    export LUMENMON_DATA="$INSTALL_DIR/data"
-    "$INSTALL_DIR/core/setup/register.sh" "$INVITE_URL"
+    "$AGENT_DIR/core/setup/register.sh" "$INVITE_URL"
 
     echo ""
     echo "Starting agent..."
-    sudo systemctl start lumenmon-agent
-    sudo systemctl enable lumenmon-agent
+    $SUDO systemctl start lumenmon-agent
+    $SUDO systemctl enable lumenmon-agent
     echo "Agent is running."
 else
     echo ""

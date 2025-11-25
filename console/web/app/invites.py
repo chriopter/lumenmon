@@ -69,7 +69,7 @@ def create_invite():
                 pass  # Best effort cleanup
 
             # Generate install command
-            one_click = f'curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/refs/heads/main/install.sh | LUMENMON_INVITE="{invite_data["url"]}" bash'
+            one_click = f"curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/agent/install.sh | bash -s '{invite_data['url']}'"
 
             # Store invite data IN RAM for detail view display
             agent_id = invite_data['username']
@@ -132,7 +132,7 @@ def create_invite_full():
                 pass  # Best effort cleanup
 
             # Generate full install command
-            one_click = f'curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/refs/heads/main/install.sh | LUMENMON_INVITE="{invite_data["url"]}" bash'
+            one_click = f"curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/agent/install.sh | bash -s '{invite_data['url']}'"
 
             # Store invite data IN RAM (including URLs) for detail view display
             # NOTE: This is stored temporarily so detail view can show it, but

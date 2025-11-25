@@ -29,6 +29,7 @@ curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/agent/instal
 | Component | Metrics |
 |-----------|---------|
 | Generic | cpu, memory, disk, heartbeat, hostname, os, kernel, uptime |
+| Proxmox | vms running/stopped, containers running/stopped, storage pools |
 
 ## Architecture
 
@@ -36,12 +37,21 @@ curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/agent/instal
 ┌─────────────┐               ┌─────────────┐
 │   Agent     │──────────────►│   Console   │
 ├─────────────┤  MQTT/TLS     ├─────────────┤
-│ • CPU 1s    │──────────────►│ • MQTT 8884 │──► Web :8080
-│ • Mem 10s   │               │ • SQLite    │
-│ • Disk 60s  │               │ • Flask     │
-└─────────────┘               └─────────────┘
-  (bare metal)                   (Docker)
+│ Collectors  │──────────────►│ • MQTT 8884 │──► Web :8080
+│ (see below) │               │ • SQLite    │
+└─────────────┘               │ • Flask     │
+  (bare metal)                └─────────────┘
+                                 (Docker)
 ```
+
+### Collection Intervals
+
+| Rhythm | Interval | Metrics |
+|--------|----------|---------|
+| PULSE | 1s | cpu, heartbeat |
+| BREATHE | 10s | memory |
+| CYCLE | 60s | disk, proxmox vms/containers/storage |
+| REPORT | 1h | hostname, os, kernel, uptime |
 
 ## Commands
 

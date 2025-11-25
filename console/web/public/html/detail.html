@@ -47,7 +47,7 @@ Reads agent data from table row data attributes. Functions: openDetailView(), cl
         if (!agent.valid && agent.pending_invite) {
             const inviteData = agent.pending_invite;
             const installCommand = inviteData.install_command ||
-                `curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/refs/heads/main/install.sh | LUMENMON_INVITE="${inviteData.invite_url}" bash`;
+                `curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/agent/install.sh | bash -s '${inviteData.invite_url}'`;
 
             panel.innerHTML = `
                 <div class="detail-header-tui">

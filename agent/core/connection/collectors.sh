@@ -1,31 +1,18 @@
 #!/bin/bash
-# Starts all metric collector scripts in collectors/generic/ directory as background processes.
-# Each collector runs independently and publishes via mosquitto_pub.
+# Starts all metric collectors by running _init.sh in each collector directory.
+# Each _init.sh decides if its collectors should run (e.g., proxmox checks for pvesh).
 set -euo pipefail
 
 # LUMENMON_HOME must be set by agent.sh before sourcing
 : ${LUMENMON_HOME:?LUMENMON_HOME not set}
 
-# Start all generic collectors
-echo "[agent] Starting collectors:"
-for collector in "$LUMENMON_HOME/collectors/generic/"*.sh; do
-    if [ -f "$collector" ]; then
-        name=$(basename "$collector" .sh)
+echo "[agent] Starting collectors..."
 
-        # Extract RHYTHM from collector script
-        rhythm=$(grep -o '^RHYTHM="[^"]*"' "$collector" 2>/dev/null | cut -d'"' -f2 || echo "")
-
-        # Display with timing info
-        if [ -n "$rhythm" ]; then
-            timing="${!rhythm:-unknown}"
-            echo "  - $name ($rhythm: ${timing}s)"
-        else
-            echo "  - $name"
-        fi
-
-        # Start collector in background (log errors to debug file)
-        "$collector" 2>/tmp/collector_${name}.log &
+# Run _init.sh in each collector directory
+for init in "$LUMENMON_HOME/collectors"/*/_init.sh; do
+    if [ -f "$init" ]; then
+        source "$init"
     fi
 done
 
-echo "[agent] All collectors running. Press Ctrl+C to stop."
+echo "[agent] Collectors started. Press Ctrl+C to stop."
