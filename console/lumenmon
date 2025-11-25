@@ -28,10 +28,8 @@ case "$1" in
         echo "Invite URL:"
         echo "$INVITE"
         echo ""
-        echo "Install agent:"
-        echo "  curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/agent/install.sh | bash"
-        echo "  lumenmon-agent register '$INVITE'"
-        echo "  lumenmon-agent start"
+        echo "Install agent (single command):"
+        echo "  curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/agent/install.sh | bash -s '$INVITE'"
         echo ""
         ;;
 

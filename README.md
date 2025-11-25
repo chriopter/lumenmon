@@ -18,9 +18,7 @@ curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/console/inst
 
 **Agent** (on each monitored system):
 ```bash
-curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/agent/install.sh | bash
-lumenmon-agent register '<invite-url>'
-lumenmon-agent start
+curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/agent/install.sh | bash -s '<invite-url>'
 ```
 
 <img width="700" alt="image" src="https://github.com/user-attachments/assets/6e9a1e4c-59ca-4b34-bfa5-269ab3f99b37" />
@@ -30,7 +28,7 @@ lumenmon-agent start
 | Component | Requirements |
 |-----------|--------------|
 | Console | Docker, Docker Compose |
-| Agent | bash, openssl (installer handles mosquitto-clients) |
+| Agent | Debian or Ubuntu, bash, curl, openssl, systemd |
 
 ## Commands
 
