@@ -8,7 +8,6 @@ METRIC="generic_hostname"  # Metric name: generic_hostname
 TYPE="TEXT"                # SQLite column type for string values
 
 set -euo pipefail
-: ${LUMENMON_HOME:="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"}
 source "$LUMENMON_HOME/core/mqtt/publish.sh"
 
 while true; do

@@ -20,7 +20,9 @@
       "Bash(tree:*)",
       "Bash(awk:*)",
       "Bash(xargs:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(docker cp:*)",
+      "Bash(node -e:*)"
     ],
     "deny": [],
     "ask": []

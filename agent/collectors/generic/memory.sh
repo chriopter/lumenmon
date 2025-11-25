@@ -8,7 +8,6 @@ METRIC="generic_memory"   # Metric name: generic_memory
 TYPE="REAL"               # SQLite column type for decimal values
 
 set -euo pipefail
-: ${LUMENMON_HOME:="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"}
 source "$LUMENMON_HOME/core/mqtt/publish.sh"
 
 while true; do

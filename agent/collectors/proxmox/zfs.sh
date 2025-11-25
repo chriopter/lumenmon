@@ -5,6 +5,7 @@
 RHYTHM="CYCLE"
 TYPE="INTEGER"
 
+set -euo pipefail
 source "$LUMENMON_HOME/core/mqtt/publish.sh"
 
 # Get drive counts per pool

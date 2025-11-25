@@ -7,7 +7,6 @@ RHYTHM="CYCLE"             # Uses CYCLE timing (60s)
 TYPE="REAL"
 
 set -euo pipefail
-: ${LUMENMON_HOME:="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"}
 source "$LUMENMON_HOME/core/mqtt/publish.sh"
 
 # Check if pvesh exists
