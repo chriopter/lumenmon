@@ -121,8 +121,14 @@ echo "Installing..."
 
 # Clone repo (agent directory only)
 if [ -d "$INSTALL_DIR" ]; then
-    echo "Updating existing installation..."
-    git -C "$INSTALL_DIR" pull --ff-only
+    if [ -d "$INSTALL_DIR/.git" ]; then
+        echo "Updating existing installation..."
+        git -C "$INSTALL_DIR" pull --ff-only
+    else
+        echo -e "${RED}Error: $INSTALL_DIR exists but is not a lumenmon installation${NC}"
+        echo "Please remove it first or choose a different path."
+        exit 1
+    fi
 else
     git clone --depth 1 --filter=blob:none --sparse "$GITHUB_REPO" "$INSTALL_DIR"
     git -C "$INSTALL_DIR" sparse-checkout set agent
