@@ -88,22 +88,19 @@ fi
 
 echo "[register] ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-# Ask user for confirmation (skip if LUMENMON_AUTO_ACCEPT is set)
-if [ "${LUMENMON_AUTO_ACCEPT:-}" = "1" ]; then
-    RESPONSE="yes"
+# Auto-accept if fingerprint matches, ask only on mismatch
+if [ "$ACTUAL_FP" = "$EXPECTED_FP" ]; then
+    echo "[register] ✓ Certificate accepted (fingerprint verified)"
+elif [ "${LUMENMON_AUTO_ACCEPT:-}" = "1" ]; then
     echo "[register] Auto-accepting certificate (LUMENMON_AUTO_ACCEPT=1)"
 else
-    echo -n "[register] Accept this certificate? (yes/no): "
+    echo -n "[register] Accept this certificate anyway? (yes/no): "
     read RESPONSE < /dev/tty
+    if [ "$RESPONSE" != "yes" ]; then
+        echo "[register] Registration aborted by user"
+        exit 1
+    fi
 fi
-
-if [ "$RESPONSE" != "yes" ]; then
-    echo "[register] Registration aborted by user"
-    exit 1
-fi
-
-echo ""
-echo "[register] ✓ Certificate accepted by user"
 
 # Create mqtt data directory
 mkdir -p "$MQTT_DATA_DIR"
