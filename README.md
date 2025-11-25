@@ -6,8 +6,9 @@
   ███████╗╚██████╔╝██║ ╚═╝ ██║███████╗██║ ╚████║██║ ╚═╝ ██║╚██████╔╝██║ ╚████║
   ╚══════╝ ╚═════╝ ╚═╝     ╚═╝╚══════╝╚═╝  ╚═══╝╚═╝     ╚═╝ ╚═════╝ ╚═╝  ╚═══╝
 ```
+Lightweight system monitoring with MQTT transport. Sets up in 60 Seconds.
 
-Lightweight system monitoring with MQTT transport. Console runs in Docker, agents are bare metal bash scripts.
+Console runs in Docker, agents are bare metal bash scripts.as
 
 ## Quick Start
 
