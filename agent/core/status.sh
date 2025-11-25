@@ -1,20 +1,20 @@
 #!/bin/sh
-# Displays agent health status with color-coded checks for MQTT credentials, connection, and metrics flow.
-# Shows certificate status, MQTT connection test, and data sending verification.
+# Displays agent health status with color-coded checks.
+# Shows MQTT credentials, certificate, connection test, and collectors.
+
+# Resolve paths
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+LUMENMON_HOME="${LUMENMON_HOME:-$(cd "$SCRIPT_DIR/.." && pwd)}"
+LUMENMON_DATA="${LUMENMON_DATA:-$LUMENMON_HOME/data}"
+MQTT_DATA_DIR="$LUMENMON_DATA/mqtt"
 
 # Colors
 GREEN='\033[0;32m'
 RED='\033[0;31m'
 YELLOW='\033[0;33m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
 echo "Agent:"
-
-# Container
-printf "  Container    ${GREEN}✓${NC} Running\n"
-
-# MQTT credentials
-MQTT_DATA_DIR="/data/mqtt"
 if [ -f "$MQTT_DATA_DIR/username" ] && [ -f "$MQTT_DATA_DIR/password" ] && [ -f "$MQTT_DATA_DIR/host" ]; then
     AGENT_ID=$(cat "$MQTT_DATA_DIR/username")
     MQTT_HOST=$(cat "$MQTT_DATA_DIR/host")

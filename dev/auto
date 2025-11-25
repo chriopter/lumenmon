@@ -1,53 +1,39 @@
 #!/bin/bash
-# Development auto-setup that resets containers, registers agent, and launches TUI dashboard.
-# Performs full reset, creates invite, registers agent with console, and opens interactive TUI.
+# Development auto-setup: resets console, registers local agent, starts collectors.
+# For development only - runs agent directly (not via systemd).
 
-# Step 1: Reset everything (same as dev/reset)
-echo "🔄 Stopping containers..."
-docker stop lumenmon-console lumenmon-agent 2>/dev/null || true
-docker rm lumenmon-console lumenmon-agent 2>/dev/null || true
+set -e
+cd "$(dirname "$0")/.."
 
-echo "🧹 Cleaning data..."
+echo "Stopping console..."
+docker stop lumenmon-console 2>/dev/null || true
+docker rm lumenmon-console 2>/dev/null || true
+
+echo "Cleaning data..."
 rm -rf agent/data/mqtt/* 2>/dev/null || true
 rm -rf console/data/mqtt/passwd console/data/*.log 2>/dev/null || true
 mkdir -p agent/data/mqtt console/data/mqtt
 
-# Step 2: Start containers with rebuild
-echo "🚀 Starting fresh..."
-# Use Docker network hostname for internal communication
-echo "CONSOLE_HOST=lumenmon-console" > console/.env
+echo "Starting console..."
+echo "CONSOLE_HOST=localhost" > console/.env
 docker compose -f console/docker-compose.yml up -d --build
 
-# Agent connects via Docker network at lumenmon-console:8884 (MQTT TLS)
-# Both containers join the same "lumenmon-net" network and communicate internally
-docker compose -f agent/docker-compose.yml up -d --build
-
-# Step 3: Wait for console to be ready
-echo "⏳ Waiting for console to be ready..."
+echo "Waiting for console..."
 sleep 3
 
-# Step 4: Create invite and register agent
-echo "🔑 Creating invite..."
-
-# Generate invite for local agent (Docker network)
-# Uses lumenmon-console:8884 for MQTT TLS connection
-INVITE=$(docker exec lumenmon-console /app/core/enrollment/invite_create.sh 2>&1 | grep "lumenmon register" | sed 's/.*lumenmon register "\(.*\)"/\1/')
+echo "Creating invite..."
+INVITE=$(docker exec lumenmon-console /app/core/enrollment/invite_create.sh 2>&1 | grep "^lumenmon://" | head -1)
 if [ -z "$INVITE" ]; then
-    echo "❌ Failed to create invite"
+    echo "Failed to create invite"
     exit 1
 fi
-echo "   Invite: $INVITE"
+echo "Invite: $INVITE"
 
-echo "📝 Registering agent (auto-accepting certificate)..."
-echo "yes" | docker exec -i lumenmon-agent /app/core/setup/register.sh "$INVITE"
+echo "Registering agent..."
+export LUMENMON_HOME="$PWD/agent"
+export LUMENMON_DATA="$LUMENMON_HOME/data"
+echo "yes" | "$LUMENMON_HOME/core/setup/register.sh" "$INVITE"
 
-# Restart agent to load credentials and start collectors
-echo "🔄 Restarting agent to start collectors..."
-docker restart lumenmon-agent >/dev/null
-
-# Give agent a moment to connect
-echo "⏳ Waiting for agent to connect..."
-sleep 3
-
-# Step 5: Launch TUI
-echo "📊 Access WebTUI via http://localhost:8080/"
+echo "Starting agent (foreground for dev)..."
+echo "Press Ctrl+C to stop"
+exec "$LUMENMON_HOME/agent.sh"

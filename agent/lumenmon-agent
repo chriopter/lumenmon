@@ -1,0 +1,101 @@
+#!/bin/bash
+# Lumenmon agent CLI - manages the monitoring agent service.
+# Commands: status, register, start, stop, restart, logs, uninstall
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export LUMENMON_HOME="${LUMENMON_HOME:-$SCRIPT_DIR}"
+export LUMENMON_DATA="${LUMENMON_DATA:-$LUMENMON_HOME/data}"
+
+case "${1:-}" in
+    register|r)
+        shift
+        "$LUMENMON_HOME/core/setup/register.sh" "$@"
+        ;;
+    status|s|"")
+        "$LUMENMON_HOME/core/status.sh"
+        ;;
+    start)
+        sudo systemctl start lumenmon-agent
+        echo "Agent started"
+        ;;
+    stop)
+        sudo systemctl stop lumenmon-agent
+        echo "Agent stopped"
+        ;;
+    restart)
+        sudo systemctl restart lumenmon-agent
+        echo "Agent restarted"
+        ;;
+    logs|l)
+        journalctl -u lumenmon-agent -f
+        ;;
+    update|u)
+        GITHUB_RAW="https://raw.githubusercontent.com/chriopter/lumenmon/main/agent"
+        echo "Updating agent..."
+
+        # Download to temp dir
+        TEMP_DIR=$(mktemp -d)
+        trap "rm -rf $TEMP_DIR" EXIT
+
+        # Download all agent files
+        curl -fsSL "$GITHUB_RAW/agent.sh" -o "$TEMP_DIR/agent.sh"
+        curl -fsSL "$GITHUB_RAW/lumenmon-agent" -o "$TEMP_DIR/lumenmon-agent"
+        mkdir -p "$TEMP_DIR/core/mqtt" "$TEMP_DIR/core/setup" "$TEMP_DIR/core/connection"
+        mkdir -p "$TEMP_DIR/collectors/generic"
+        curl -fsSL "$GITHUB_RAW/core/mqtt/publish.sh" -o "$TEMP_DIR/core/mqtt/publish.sh"
+        curl -fsSL "$GITHUB_RAW/core/setup/register.sh" -o "$TEMP_DIR/core/setup/register.sh"
+        curl -fsSL "$GITHUB_RAW/core/connection/collectors.sh" -o "$TEMP_DIR/core/connection/collectors.sh"
+        curl -fsSL "$GITHUB_RAW/core/status.sh" -o "$TEMP_DIR/core/status.sh"
+        for c in cpu disk heartbeat hostname lumenmon memory; do
+            curl -fsSL "$GITHUB_RAW/collectors/generic/${c}.sh" -o "$TEMP_DIR/collectors/generic/${c}.sh"
+        done
+
+        # Stop service
+        sudo systemctl stop lumenmon-agent 2>/dev/null || true
+
+        # Copy new files (preserve data dir)
+        sudo cp "$TEMP_DIR/agent.sh" "$LUMENMON_HOME/"
+        sudo cp "$TEMP_DIR/lumenmon-agent" "$LUMENMON_HOME/"
+        sudo cp "$TEMP_DIR/core/status.sh" "$LUMENMON_HOME/core/"
+        sudo cp "$TEMP_DIR/core/mqtt/publish.sh" "$LUMENMON_HOME/core/mqtt/"
+        sudo cp "$TEMP_DIR/core/setup/register.sh" "$LUMENMON_HOME/core/setup/"
+        sudo cp "$TEMP_DIR/core/connection/collectors.sh" "$LUMENMON_HOME/core/connection/"
+        sudo cp "$TEMP_DIR/collectors/generic/"*.sh "$LUMENMON_HOME/collectors/generic/"
+
+        # Make executable
+        sudo chmod +x "$LUMENMON_HOME"/*.sh "$LUMENMON_HOME"/lumenmon-agent
+        sudo chmod +x "$LUMENMON_HOME"/core/*.sh "$LUMENMON_HOME"/core/*/*.sh
+        sudo chmod +x "$LUMENMON_HOME"/collectors/generic/*.sh
+
+        # Restart service
+        sudo systemctl start lumenmon-agent
+        echo "Updated and restarted"
+        ;;
+    uninstall)
+        echo "Stopping agent..."
+        sudo systemctl stop lumenmon-agent 2>/dev/null || true
+        sudo systemctl disable lumenmon-agent 2>/dev/null || true
+        sudo rm -f /etc/systemd/system/lumenmon-agent.service
+        sudo systemctl daemon-reload
+        echo "Removing files..."
+        sudo rm -rf "$LUMENMON_HOME"
+        sudo rm -f /usr/local/bin/lumenmon-agent
+        echo "Uninstalled"
+        ;;
+    help|h|--help|-h)
+        echo "Usage: lumenmon-agent <command>"
+        echo ""
+        echo "Commands:"
+        echo "  status          Show agent status (default)"
+        echo "  register <url>  Register with invite URL"
+        echo "  start           Start agent service"
+        echo "  stop            Stop agent service"
+        echo "  restart         Restart agent service"
+        echo "  logs            View agent logs"
+        echo "  update          Update agent from GitHub"
+        echo "  uninstall       Remove agent"
+        ;;
+    *)
+        echo "Unknown: $1 (try 'lumenmon-agent help')"
+        ;;
+esac

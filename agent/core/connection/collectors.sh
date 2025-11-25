@@ -1,19 +1,18 @@
 #!/bin/bash
 # Starts all metric collector scripts in collectors/generic/ directory as background processes.
-# Each collector runs independently and sends data through the established MQTT connection.
+# Each collector runs independently and publishes via mosquitto_pub.
 set -euo pipefail
 
-# Variables already exported by agent.sh before sourcing this script
+# LUMENMON_HOME must be set by agent.sh before sourcing
+: ${LUMENMON_HOME:?LUMENMON_HOME not set}
+
 # Start all generic collectors
 echo "[agent] Starting collectors:"
-for collector in collectors/generic/*.sh; do
+for collector in "$LUMENMON_HOME/collectors/generic/"*.sh; do
     if [ -f "$collector" ]; then
         name=$(basename "$collector" .sh)
 
-        # Extract RHYTHM from collector script (BusyBox-compatible grep)
-        # Docker container uses Alpine Linux with BusyBox grep which doesn't support -P (Perl regex)
-        # This applies to ALL installations regardless of host OS, since the container is always Alpine
-        # Solution: Use POSIX-compatible grep -o with cut instead of grep -oP with \K lookbehind
+        # Extract RHYTHM from collector script
         rhythm=$(grep -o '^RHYTHM="[^"]*"' "$collector" 2>/dev/null | cut -d'"' -f2 || echo "")
 
         # Display with timing info

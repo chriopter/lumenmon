@@ -8,7 +8,8 @@ METRIC="generic_cpu"   # Metric name: generic_cpu
 TYPE="REAL"            # SQLite column type for decimal values
 
 set -euo pipefail
-source /app/core/mqtt/publish.sh
+: ${LUMENMON_HOME:="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"}
+source "$LUMENMON_HOME/core/mqtt/publish.sh"
 
 # Read initial CPU state
 read prev_line < /proc/stat

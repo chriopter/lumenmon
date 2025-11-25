@@ -1,5 +1,5 @@
 #!/bin/bash
-# Collects system hostname from /host/etc/hostname and publishes via MQTT.
+# Collects system hostname and publishes via MQTT.
 # Reports hostname at REPORT interval (1hr).
 
 # Config
@@ -8,12 +8,15 @@ METRIC="generic_hostname"  # Metric name: generic_hostname
 TYPE="TEXT"                # SQLite column type for string values
 
 set -euo pipefail
-source /app/core/mqtt/publish.sh
+: ${LUMENMON_HOME:="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"}
+source "$LUMENMON_HOME/core/mqtt/publish.sh"
 
 while true; do
-    # Get host system hostname (not container hostname)
-    if [ -f /host/etc/hostname ]; then
-        hostname=$(cat /host/etc/hostname)
+    # Get system hostname
+    if command -v hostname >/dev/null 2>&1; then
+        hostname=$(hostname | tr -d '[:space:]')
+    elif [ -f /etc/hostname ]; then
+        hostname=$(cat /etc/hostname | tr -d '[:space:]')
     else
         hostname="unknown"
     fi

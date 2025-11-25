@@ -3,8 +3,17 @@
 # Parses invite URL, verifies MQTT server certificate, saves permanent credentials.
 set -euo pipefail
 
-INVITE_URL="$1"
-MQTT_DATA_DIR="/data/mqtt"
+# Resolve paths
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LUMENMON_HOME="${LUMENMON_HOME:-$(cd "$SCRIPT_DIR/../.." && pwd)}"
+LUMENMON_DATA="${LUMENMON_DATA:-$LUMENMON_HOME/data}"
+MQTT_DATA_DIR="$LUMENMON_DATA/mqtt"
+
+INVITE_URL="${1:-}"
+if [ -z "$INVITE_URL" ]; then
+    echo "Usage: lumenmon-agent register <invite_url>"
+    exit 1
+fi
 
 # Parse URI: lumenmon://username:password@host:port#fingerprint
 if [[ ! "$INVITE_URL" =~ lumenmon://([^:]+):([^@]+)@([^:#]+):?([0-9]*)\#(.+)$ ]]; then

@@ -1,0 +1,118 @@
+#!/bin/bash
+# Console CLI - manages the Lumenmon console container.
+# Commands: status, invite, logs, start, update, uninstall
+
+DIR="$(dirname "$(readlink -f "$0")")"
+cd "$DIR"
+
+is_running() { docker ps | grep -q "lumenmon-console"; }
+
+case "$1" in
+    ""|status|s)
+        echo "Lumenmon Console"
+        echo "━━━━━━━━━━━━━━━━━"
+        if is_running; then
+            docker exec lumenmon-console /app/core/status.sh 2>/dev/null
+        else
+            echo "Console: not running"
+        fi
+        ;;
+
+    invite|i)
+        if ! is_running; then
+            echo "Console not running"
+            exit 1
+        fi
+        echo ""
+        INVITE=$(docker exec lumenmon-console /app/core/enrollment/invite_create.sh 2>/dev/null | grep "^lumenmon://" | head -1)
+        echo "Invite URL:"
+        echo "$INVITE"
+        echo ""
+        echo "Install agent:"
+        echo "  curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/agent/install.sh | bash"
+        echo "  lumenmon-agent register '$INVITE'"
+        echo "  lumenmon-agent start"
+        echo ""
+        ;;
+
+    logs|l)
+        docker logs -f lumenmon-console
+        ;;
+
+    start)
+        if is_running; then
+            echo "Console already running"
+        else
+            docker compose up -d
+            echo "Console started"
+        fi
+        ;;
+
+    stop)
+        docker compose down
+        echo "Console stopped"
+        ;;
+
+    update|u)
+        GITHUB_RAW="https://raw.githubusercontent.com/chriopter/lumenmon/main"
+        echo "Updating console..."
+
+        # Update CLI
+        TEMP=$(mktemp)
+        if curl -fsSL "$GITHUB_RAW/console/lumenmon" -o "$TEMP" 2>/dev/null; then
+            if ! diff -q "$DIR/lumenmon" "$TEMP" >/dev/null 2>&1; then
+                cp "$TEMP" "$DIR/lumenmon"
+                chmod +x "$DIR/lumenmon"
+                echo "CLI updated"
+            fi
+        fi
+        rm -f "$TEMP"
+
+        # Update compose
+        TEMP=$(mktemp)
+        if curl -fsSL "$GITHUB_RAW/console/docker-compose.yml" -o "$TEMP" 2>/dev/null; then
+            if ! diff -q "$DIR/docker-compose.yml" "$TEMP" >/dev/null 2>&1; then
+                cp "$DIR/docker-compose.yml" "$DIR/docker-compose.yml.bak"
+                cp "$TEMP" "$DIR/docker-compose.yml"
+                echo "Compose updated"
+            fi
+        fi
+        rm -f "$TEMP"
+
+        # Pull and restart
+        docker compose pull
+        docker compose up -d --force-recreate
+        echo "Done"
+        ;;
+
+    uninstall)
+        echo "This will remove console and all data."
+        read -r -p "Continue? [y/N]: " -n 1 CONFIRM
+        echo ""
+        [[ ! $CONFIRM =~ ^[Yy]$ ]] && exit 0
+
+        docker compose down -v 2>/dev/null
+        docker network rm lumenmon-net 2>/dev/null || true
+        rm -f /usr/local/bin/lumenmon ~/.local/bin/lumenmon 2>/dev/null || true
+        cd "$HOME"
+        rm -rf "$DIR"
+        echo "Uninstalled"
+        ;;
+
+    help|h|--help|-h)
+        echo "Usage: lumenmon <command>"
+        echo ""
+        echo "Commands:"
+        echo "  status      Show console status (default)"
+        echo "  invite      Generate agent invite"
+        echo "  logs        View console logs"
+        echo "  start       Start console"
+        echo "  stop        Stop console"
+        echo "  update      Update console"
+        echo "  uninstall   Remove console"
+        ;;
+
+    *)
+        echo "Unknown: $1 (try 'lumenmon help')"
+        ;;
+esac

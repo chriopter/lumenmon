@@ -3,21 +3,18 @@
 # Checks for credentials, starts collectors. Requires registration via invite URL first.
 set -euo pipefail
 
-echo "[agent] Starting Lumenmon Agent (MQTT mode)"
+# Resolve paths
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export LUMENMON_HOME="${LUMENMON_HOME:-$SCRIPT_DIR}"
+export LUMENMON_DATA="${LUMENMON_DATA:-$LUMENMON_HOME/data}"
+
+echo "[agent] Starting Lumenmon Agent"
 
 # Check if agent is registered (has MQTT credentials)
-MQTT_DATA_DIR="/data/mqtt"
+MQTT_DATA_DIR="$LUMENMON_DATA/mqtt"
 if [ ! -f "$MQTT_DATA_DIR/username" ] || [ ! -f "$MQTT_DATA_DIR/password" ] || [ ! -f "$MQTT_DATA_DIR/host" ]; then
-    echo "[agent] ERROR: Agent not registered!"
-    echo "[agent]"
-    echo "[agent] To register this agent:"
-    echo "[agent]   1. Get an invite URL from your console (run: lumenmon invite)"
-    echo "[agent]   2. Register: docker exec lumenmon-agent /app/core/setup/register.sh '<invite_url>'"
-    echo "[agent]"
-    echo "[agent] Container will keep running. Register when ready."
-
-    # Keep container running so user can exec register command
-    tail -f /dev/null
+    echo "[agent] Not registered. Run: lumenmon-agent register '<invite_url>'"
+    exit 1
 fi
 
 # Load credentials
@@ -41,18 +38,12 @@ echo "[agent] MQTT Broker: ${MQTT_HOST}:${MQTT_PORT} (TLS)"
 # Cleanup on exit
 cleanup() {
   echo "[agent] Shutting down..."
-
-  # Kill all collector processes
   jobs -p | xargs -r kill 2>/dev/null || true
-
-  # Clean up Unix socket
-  rm -f /tmp/mqtt.sock 2>/dev/null || true
-
   exit 0
 }
 trap cleanup SIGTERM SIGINT EXIT
 
-# Export variables needed by collectors (background jobs need explicit export)
+# Export variables needed by collectors
 export AGENT_ID MQTT_HOST MQTT_PORT MQTT_USERNAME MQTT_PASSWORD
 export PULSE BREATHE CYCLE REPORT
 
@@ -61,15 +52,11 @@ export PULSE BREATHE CYCLE REPORT
 : ${AGENT_ID:?AGENT_ID not set} ${MQTT_HOST:?MQTT_HOST not set} ${MQTT_PORT:?MQTT_PORT not set}
 : ${MQTT_USERNAME:?MQTT_USERNAME not set} ${MQTT_PASSWORD:?MQTT_PASSWORD not set}
 
-# Start Python MQTT publisher daemon (single persistent connection)
-echo "[agent] Starting MQTT publisher daemon..."
-python3 /app/core/mqtt/mqtt_publisher.py 2>&1 | sed 's/^/[mqtt-pub] /' &
-sleep 2  # Wait for Unix socket to be ready
-
 # Start collectors (background jobs)
-source core/connection/collectors.sh
+cd "$LUMENMON_HOME"
+source "$LUMENMON_HOME/core/connection/collectors.sh"
 
-echo "[agent] All collectors started. MQTT handles reconnection automatically."
+echo "[agent] All collectors started."
 
-# Keep running (no watchdog needed - MQTT client handles reconnection)
+# Keep running
 tail -f /dev/null

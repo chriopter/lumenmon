@@ -6,7 +6,8 @@
 RHYTHM="REPORT"  # Uses REPORT timing from agent.sh (1hr)
 
 set -euo pipefail
-source /app/core/mqtt/publish.sh
+: ${LUMENMON_HOME:="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"}
+source "$LUMENMON_HOME/core/mqtt/publish.sh"
 
 while true; do
     # Get OS name from /etc/os-release

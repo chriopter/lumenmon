@@ -8,7 +8,8 @@ METRIC="generic_heartbeat"  # Metric name: generic_heartbeat
 TYPE="INTEGER"              # SQLite column type for whole numbers
 
 set -euo pipefail
-source /app/core/mqtt/publish.sh
+: ${LUMENMON_HOME:="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"}
+source "$LUMENMON_HOME/core/mqtt/publish.sh"
 
 while true; do
     sleep $PULSE

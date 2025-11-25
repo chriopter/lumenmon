@@ -1,81 +1,49 @@
 #!/bin/bash
-# Spawns 3 agent containers and auto-registers them with the console.
-# Useful for testing multi-agent scenarios without overwhelming the system.
+# Spawns 3 agent instances as background processes for testing.
+# Each agent runs in its own data directory.
 
 set -euo pipefail
+cd "$(dirname "$0")/.."
 
-echo "🚀 Adding 3 agents to console..."
+echo "Adding 3 agents..."
 
 # Check if console is running
 if ! docker ps | grep -q lumenmon-console; then
-    echo "❌ Console not running. Start it first with ./dev/start"
+    echo "Console not running. Start it first with ./dev/auto"
     exit 1
 fi
 
 # Clean up any existing test agents
-echo "🧹 Cleaning up existing test agents..."
-docker stop $(docker ps -q --filter name=lumenmon-agent-) 2>/dev/null || true
-docker rm $(docker ps -aq --filter name=lumenmon-agent-) 2>/dev/null || true
-rm -rf agent/data/agents/agent-* 2>/dev/null || true
+echo "Cleaning up existing test agents..."
+pkill -f "agent/data/agents/agent-" 2>/dev/null || true
+rm -rf agent/data/agents 2>/dev/null || true
 
-# Create temp directory for log files
-TEMP_DIR=$(mktemp -d)
-trap "rm -rf $TEMP_DIR" EXIT
-
-# Function to create and register a single agent
-create_agent() {
-    local i=$1
-    local AGENT_NAME="agent-$i"
-    local LOG_FILE="$TEMP_DIR/agent-$i.log"
-
-    {
-        echo ""
-        echo "📦 Creating agent $i/3: $AGENT_NAME"
-
-        # Create isolated data directory for this agent
-        local AGENT_DATA_DIR="agent/data/agents/$AGENT_NAME"
-        mkdir -p "$AGENT_DATA_DIR/mqtt"
-
-        # Create invite
-        echo "🔑 Creating invite for $AGENT_NAME..."
-        local INVITE=$(docker exec lumenmon-console /app/core/enrollment/invite_create.sh 2>&1 | grep "lumenmon register" | sed 's/.*lumenmon register "\(.*\)"/\1/')
-        if [ -z "$INVITE" ]; then
-            echo "❌ Failed to create invite for $AGENT_NAME"
-            return 1
-        fi
-
-        # Start agent container on lumenmon-net network
-        echo "🚀 Starting $AGENT_NAME..."
-        docker run -d \
-            --name "lumenmon-$AGENT_NAME" \
-            --hostname "$AGENT_NAME" \
-            --network lumenmon-net \
-            -v "$(pwd)/$AGENT_DATA_DIR/mqtt:/data/mqtt" \
-            ghcr.io/chriopter/lumenmon-agent:latest \
-            > /dev/null
-
-        # Wait for agent container to initialize
-        sleep 2
-
-        # Register agent with auto-accept certificate
-        echo "📝 Registering $AGENT_NAME..."
-        echo "yes" | docker exec -i "lumenmon-$AGENT_NAME" /app/core/setup/register.sh "$INVITE" 2>&1 | grep -E "\[register\]|ERROR|✓" || true
-
-        # Restart agent to start collectors
-        docker restart "lumenmon-$AGENT_NAME" > /dev/null
-    } > "$LOG_FILE" 2>&1
-}
-
-# Create 3 agents sequentially (no need for staggering with just 3)
+# Create agents
 for i in $(seq 1 3); do
-    create_agent $i
+    AGENT_NAME="agent-$i"
+    AGENT_DATA="agent/data/agents/$AGENT_NAME"
+
+    echo "Creating $AGENT_NAME..."
+    mkdir -p "$AGENT_DATA/mqtt"
+
+    # Get invite
+    INVITE=$(docker exec lumenmon-console /app/core/enrollment/invite_create.sh 2>&1 | grep "^lumenmon://" | head -1)
+    if [ -z "$INVITE" ]; then
+        echo "Failed to create invite for $AGENT_NAME"
+        continue
+    fi
+
+    # Register
+    export LUMENMON_HOME="$PWD/agent"
+    export LUMENMON_DATA="$PWD/$AGENT_DATA"
+    echo "yes" | "$LUMENMON_HOME/core/setup/register.sh" "$INVITE" >/dev/null 2>&1
+
+    # Start in background
+    "$LUMENMON_HOME/agent.sh" &
+    echo "  Started $AGENT_NAME (PID $!)"
 done
 
 echo ""
-echo "✅ All 3 agents created and registered!"
-echo ""
-echo "📊 View dashboard:"
-echo "   docker exec -it lumenmon-console /app/tui.sh"
-echo ""
-echo "🧹 Cleanup all agents:"
-echo "   docker stop \$(docker ps -q --filter name=lumenmon-agent-) && docker rm \$(docker ps -aq --filter name=lumenmon-agent-)"
+echo "All 3 agents started!"
+echo "View: http://localhost:8080/"
+echo "Stop: pkill -f 'agent/data/agents/agent-'"
