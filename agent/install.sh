@@ -30,12 +30,8 @@ fi
 if [ "$IS_TRUENAS" = true ]; then
     echo "Detected: TrueNAS SCALE"
     echo ""
-    # TrueNAS restricts /tmp execution, use home dir
-    TEMP_SCRIPT="$HOME/lumenmon-install.sh"
-    curl -fsSL "$GITHUB_RAW/truenas.sh" -o "$TEMP_SCRIPT"
-    chmod +x "$TEMP_SCRIPT"
-    "$TEMP_SCRIPT" "$INVITE_URL"
-    rm -f "$TEMP_SCRIPT"
+    # TrueNAS restricts execution everywhere, pipe directly to bash
+    curl -fsSL "$GITHUB_RAW/truenas.sh" | bash -s "$INVITE_URL"
     exit 0
 fi
 
