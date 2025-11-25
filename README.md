@@ -23,12 +23,25 @@ curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/agent/instal
 
 <img width="700" alt="image" src="https://github.com/user-attachments/assets/6e9a1e4c-59ca-4b34-bfa5-269ab3f99b37" />
 
-## Requirements
+## Supported Systems
 
-| Component | Requirements |
-|-----------|--------------|
-| Console | Docker, Docker Compose |
-| Agent | Debian or Ubuntu, bash, curl, openssl, systemd |
+| Component | Requirements | Metrics |
+|-----------|--------------|---------|
+| Console | Docker, Docker Compose | — |
+| Agent (Generic) | Linux, bash, curl, openssl, systemd | cpu, memory, disk, heartbeat, hostname, os, kernel, uptime |
+
+## Architecture
+
+```
+┌─────────────┐               ┌─────────────┐
+│   Agent     │──────────────►│   Console   │
+├─────────────┤  MQTT/TLS     ├─────────────┤
+│ • CPU 1s    │──────────────►│ • MQTT 8884 │──► Web :8080
+│ • Mem 10s   │               │ • SQLite    │
+│ • Disk 60s  │               │ • Flask     │
+└─────────────┘               └─────────────┘
+  (bare metal)                   (Docker)
+```
 
 ## Commands
 
@@ -48,25 +61,6 @@ lumenmon-agent register     # Register with invite URL
 lumenmon-agent start/stop   # Control service
 lumenmon-agent logs         # View logs
 lumenmon-agent uninstall    # Remove agent
-```
-
-## Metrics
-
-| System | Metrics |
-|--------|---------|
-| Generic | cpu, memory, disk, heartbeat, hostname, os, kernel, uptime |
-
-## Architecture
-
-```
-┌─────────────┐               ┌─────────────┐
-│   Agent     │──────────────►│   Console   │
-├─────────────┤  MQTT/TLS     ├─────────────┤
-│ • CPU 1s    │──────────────►│ • MQTT 8884 │──► Web :8080
-│ • Mem 10s   │               │ • SQLite    │
-│ • Disk 60s  │               │ • Flask     │
-└─────────────┘               └─────────────┘
-  (bare metal)                   (Docker)
 ```
 
 <details>
