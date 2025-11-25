@@ -16,26 +16,32 @@ NC='\033[0m'
 echo "Checking requirements..."
 echo ""
 has_error=0
+missing_pkgs=""
 
-for cmd in bash curl openssl systemctl sudo apt-get; do
+for cmd in bash curl openssl systemctl sudo mosquitto_pub; do
     if command -v "$cmd" >/dev/null 2>&1; then
         echo -e "  $cmd ${GREEN}found${NC}"
     else
         echo -e "  $cmd ${RED}missing${NC}"
         has_error=1
+        if [ "$cmd" = "mosquitto_pub" ]; then
+            missing_pkgs="mosquitto-clients"
+        else
+            missing_pkgs="$missing_pkgs $cmd"
+        fi
     fi
 done
 
 echo ""
 if [ $has_error -eq 1 ]; then
-    echo "Please install missing commands and try again."
+    echo "Missing requirements. Install with:"
+    echo "  sudo apt-get install$missing_pkgs"
     exit 1
 fi
 
 # Show what will be installed
 echo ""
 echo "This will:"
-echo "  - Install mosquitto-clients (apt-get)"
 echo "  - Download agent to $INSTALL_DIR"
 echo "  - Create systemd service: lumenmon-agent"
 echo "  - Create CLI: /usr/local/bin/lumenmon-agent"
@@ -53,12 +59,6 @@ fi
 
 echo ""
 echo "Installing..."
-
-# Install mosquitto-clients
-if ! command -v mosquitto_pub >/dev/null 2>&1; then
-    sudo apt-get update -qq
-    sudo apt-get install -y -qq mosquitto-clients
-fi
 
 # Create directories
 sudo mkdir -p "$INSTALL_DIR/core/mqtt" "$INSTALL_DIR/core/setup" "$INSTALL_DIR/core/connection"
