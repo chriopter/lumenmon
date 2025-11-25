@@ -16,11 +16,9 @@ jobs:
     - name: Test shell scripts syntax
       run: |
         find . -name "*.sh" -type f -exec bash -n {} \;
-        echo "✓ Shell scripts valid"
+        echo "Shell scripts valid"
 
-    - name: Test Docker builds
+    - name: Test console Docker build
       run: |
         docker build -t test-console:ci ./console
-        echo "✓ Console container builds"
-        docker build -t test-agent:ci ./agent
-        echo "✓ Agent container builds"
+        echo "Console container builds"

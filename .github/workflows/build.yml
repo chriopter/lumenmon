@@ -35,11 +35,9 @@ jobs:
         if [[ "${{ github.ref }}" == "refs/tags/v"* ]]; then
           VERSION=${GITHUB_REF#refs/tags/}
           echo "CONSOLE_TAGS=${{ env.REGISTRY }}/${{ env.OWNER }}/lumenmon-console:${VERSION},${{ env.REGISTRY }}/${{ env.OWNER }}/lumenmon-console:latest" >> $GITHUB_OUTPUT
-          echo "AGENT_TAGS=${{ env.REGISTRY }}/${{ env.OWNER }}/lumenmon-agent:${VERSION},${{ env.REGISTRY }}/${{ env.OWNER }}/lumenmon-agent:latest" >> $GITHUB_OUTPUT
           echo "IS_RELEASE=true" >> $GITHUB_OUTPUT
         else
           echo "CONSOLE_TAGS=${{ env.REGISTRY }}/${{ env.OWNER }}/lumenmon-console:dev" >> $GITHUB_OUTPUT
-          echo "AGENT_TAGS=${{ env.REGISTRY }}/${{ env.OWNER }}/lumenmon-agent:dev" >> $GITHUB_OUTPUT
           echo "IS_RELEASE=false" >> $GITHUB_OUTPUT
         fi
 
@@ -52,19 +50,11 @@ jobs:
         cache-from: type=gha
         cache-to: type=gha,mode=max
 
-    - name: Build and push Agent
-      uses: docker/build-push-action@v6
-      with:
-        context: ./agent
-        push: true
-        tags: ${{ steps.tags.outputs.AGENT_TAGS }}
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
-
     - name: Create Release
       if: steps.tags.outputs.IS_RELEASE == 'true'
       uses: softprops/action-gh-release@v2
       with:
         generate_release_notes: true
         body: |
-          Update with: `lumenmon --update`
+          **Console:** `lumenmon update`
+          **Agent:** `lumenmon-agent update`
