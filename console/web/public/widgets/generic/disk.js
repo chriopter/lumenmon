@@ -8,6 +8,7 @@ LumenmonWidget({
     category: 'generic',
     metrics: ['generic_disk'],
     size: 'sparkline',
+    priority: 12,  // Show third (after MEM)
     expandable: true,
     render: function(data, agent) {
         const diskData = agent.diskHistory || [];

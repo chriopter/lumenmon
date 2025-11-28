@@ -10,12 +10,13 @@ window.LumenmonWidgets = {
     expandedWidget: null,
     focusedIndex: -1,
 
-    // Grid size mapping: size -> CSS class
+    // Grid size mapping: size -> CSS class (4-column grid)
+    // xs=1/4, sm=2/4, md=3/4, lg=4/4 (full)
     gridSizes: {
-        'sparkline': 'grid-sm',   // Small: 2 columns
-        'stat': 'grid-sm',        // Small: 2 columns
-        'chart': 'grid-lg',       // Large: 6 columns (full width)
-        'table': 'grid-lg'        // Large: 6 columns (full width)
+        'sparkline': 'grid-xs',   // 1/4 width (1 column)
+        'stat': 'grid-sm',        // 2/4 width (2 columns)
+        'chart': 'grid-lg',       // Full width (4 columns)
+        'table': 'grid-lg'        // Full width (4 columns)
     },
 
     /**
@@ -44,6 +45,7 @@ window.LumenmonWidgets = {
             metrics: config.metrics || [config.name],
             size: config.size || 'stat',
             gridSize: config.gridSize || null,
+            priority: config.priority || 50,  // Lower = first (default 50)
             expandable: config.expandable !== undefined ? config.expandable : (config.size === 'sparkline'),
             interval: config.interval || 1000,
             render: config.render || function() {},
@@ -108,9 +110,16 @@ window.LumenmonWidgets = {
         this.expandedWidget = null;
         this.focusedIndex = -1;
 
-        // Sort widgets: sparklines first, then stats, then charts, then tables
+        // Sort widgets: by priority first (lower = first), then by size
         const sizeOrder = { 'sparkline': 0, 'stat': 1, 'chart': 2, 'table': 3 };
-        matched.sort((a, b) => (sizeOrder[a.widget.size] || 99) - (sizeOrder[b.widget.size] || 99));
+        matched.sort((a, b) => {
+            // Priority first (lower = first)
+            if (a.widget.priority !== b.widget.priority) {
+                return a.widget.priority - b.widget.priority;
+            }
+            // Then by size
+            return (sizeOrder[a.widget.size] || 99) - (sizeOrder[b.widget.size] || 99);
+        });
 
         // Build unified grid
         let html = '<div class="widget-grid">';

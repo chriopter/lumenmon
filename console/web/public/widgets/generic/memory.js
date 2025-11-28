@@ -8,6 +8,7 @@ LumenmonWidget({
     category: 'generic',
     metrics: ['generic_memory'],
     size: 'sparkline',
+    priority: 11,  // Show second (after CPU)
     expandable: true,
     render: function(data, agent) {
         const memData = agent.memHistory || [];

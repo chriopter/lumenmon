@@ -8,6 +8,7 @@ LumenmonWidget({
     category: 'generic',
     metrics: ['generic_cpu'],
     size: 'sparkline',
+    priority: 10,  // Show first
     expandable: true,
     render: function(data, agent) {
         const cpuData = agent.cpuHistory || [];

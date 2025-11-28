@@ -1125,7 +1125,10 @@ footer {
     padding: 0.5rem;
     padding-top: 1rem;
     position: relative;
-    margin-bottom: 1rem;
+    margin-bottom: 0;
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
 }
 
 .tui-box h3 {
@@ -1448,46 +1451,41 @@ footer {
 }
 
 /* ============================================================ */
-/* TUI Grid System - 3 Sizes */
+/* TUI Grid System - 4 Sizes (1/4, 2/4, 3/4, 4/4) */
 /* ============================================================ */
 
-/* Grid container for all widgets */
+/* Grid container for all widgets - 4 column base */
 .widget-grid {
     display: grid;
-    grid-template-columns: repeat(6, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 0.75rem;
     margin-bottom: 1rem;
+    align-items: stretch;
+    justify-items: stretch;
 }
 
-/* Grid sizes: sm (2 cols), md (3 cols), lg (6 cols / full width) */
+/* Grid sizes: xs (1/4), sm (2/4), md (3/4), lg (4/4 full width) */
+.grid-xs { grid-column: span 1; }
 .grid-sm { grid-column: span 2; }
 .grid-md { grid-column: span 3; }
-.grid-lg { grid-column: span 6; }
+.grid-lg { grid-column: span 4; }
 
 /* Responsive grid */
-@media (max-width: 1200px) {
-    .widget-grid {
-        grid-template-columns: repeat(4, 1fr);
-    }
-    .grid-sm { grid-column: span 2; }
-    .grid-md { grid-column: span 2; }
-    .grid-lg { grid-column: span 4; }
-}
-
-@media (max-width: 800px) {
+@media (max-width: 1000px) {
     .widget-grid {
         grid-template-columns: repeat(2, 1fr);
     }
+    .grid-xs { grid-column: span 1; }
     .grid-sm { grid-column: span 1; }
     .grid-md { grid-column: span 2; }
     .grid-lg { grid-column: span 2; }
 }
 
-@media (max-width: 500px) {
+@media (max-width: 600px) {
     .widget-grid {
         grid-template-columns: 1fr;
     }
-    .grid-sm, .grid-md, .grid-lg { grid-column: span 1; }
+    .grid-xs, .grid-sm, .grid-md, .grid-lg { grid-column: span 1; }
 }
 
 /* ============================================================ */
@@ -1504,8 +1502,14 @@ footer {
     cursor: pointer;
     transition: border-color 0.15s, box-shadow 0.15s;
     outline: none;
-    height: 100%;
     box-sizing: border-box;
+}
+
+/* Make metric boxes fill their grid cells */
+.widget-grid .tui-metric-box,
+.widget-grid .tui-box {
+    width: 100% !important;
+    flex: 1 !important;
 }
 
 .tui-metric-box:hover {
@@ -1539,6 +1543,12 @@ footer {
     font-weight: bold;
     color: var(--accent1);
     margin-bottom: 0.25rem;
+}
+
+.tui-unit {
+    font-size: 0.8rem;
+    font-weight: normal;
+    color: var(--foreground2);
 }
 
 .tui-metric-sparkline {
@@ -1621,6 +1631,22 @@ footer {
 }
 
 /* ============================================================ */
+/* Widget Container - fill grid cell */
+/* ============================================================ */
+
+.widget {
+    display: flex;
+    width: 100%;
+    min-width: 0;  /* Allow shrinking in grid */
+}
+
+.widget > .tui-metric-box,
+.widget > .tui-box {
+    flex: 1 1 100% !important;
+    width: 100% !important;
+}
+
+/* ============================================================ */
 /* Widget Focus States */
 /* ============================================================ */
 
@@ -1643,15 +1669,15 @@ footer {
     min-height: 200px;
 }
 
-@media (max-width: 1200px) {
+@media (max-width: 1000px) {
     .widget-expanded {
-        grid-column: span 4 !important;
+        grid-column: span 2 !important;
     }
 }
 
-@media (max-width: 800px) {
+@media (max-width: 600px) {
     .widget-expanded {
-        grid-column: span 2 !important;
+        grid-column: span 1 !important;
     }
 }
 

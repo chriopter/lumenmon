@@ -8,6 +8,7 @@ LumenmonWidget({
     category: 'generic',
     metrics: ['generic_sys_kernel', 'generic_sys_os'],
     size: 'stat',
+    gridSize: 'sm',
     expandable: false,
     render: function(data, agent) {
         const kernel = data['generic_sys_kernel']?.columns?.value || '-';

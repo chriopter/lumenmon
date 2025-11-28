@@ -8,7 +8,8 @@ LumenmonWidget({
     category: 'proxmox',
     metrics: ['proxmox_storage_*'],
     size: 'stat',
-    gridSize: 'md',
+    gridSize: 'sm',
+    expandable: false,
     render: function(data, agent) {
         // Group storage metrics by pool name (e.g., local, nas)
         const poolData = {};
