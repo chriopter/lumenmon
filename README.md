@@ -12,6 +12,7 @@ Console runs in Docker, agents are bare metal bash scripts.as
 
 Next up: Smart Collector Fail Detection (zfs.sh), Proxmox Support, Failed Value State detection
 
+
 ## Quick Start
 
 **Console** (central dashboard):
