@@ -8,18 +8,22 @@ LumenmonWidget({
     category: 'generic',
     metrics: ['generic_sys_kernel', 'generic_sys_os'],
     size: 'stat',
+    expandable: false,
     render: function(data, agent) {
         const kernel = data['generic_sys_kernel']?.columns?.value || '-';
         const os = data['generic_sys_os']?.columns?.value || '-';
 
         return `
-            <div class="stat-line">
-                <span class="stat-label">KERNEL</span>
-                <span class="stat-value">${kernel}</span>
-            </div>
-            <div class="stat-line">
-                <span class="stat-label">OS</span>
-                <span class="stat-value">${os}</span>
+            <div class="tui-metric-box tui-metric-box-info">
+                <div class="tui-metric-header">system</div>
+                <div class="tui-info-row">
+                    <span class="tui-info-label">kernel</span>
+                    <span class="tui-info-value">${kernel}</span>
+                </div>
+                <div class="tui-info-row">
+                    <span class="tui-info-label">os</span>
+                    <span class="tui-info-value">${os}</span>
+                </div>
             </div>
         `;
     }

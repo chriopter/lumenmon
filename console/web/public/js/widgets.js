@@ -7,6 +7,16 @@
 window.LumenmonWidgets = {
     registered: {},
     instances: {},
+    expandedWidget: null,
+    focusedIndex: -1,
+
+    // Grid size mapping: size -> CSS class
+    gridSizes: {
+        'sparkline': 'grid-sm',   // Small: 2 columns
+        'stat': 'grid-sm',        // Small: 2 columns
+        'chart': 'grid-lg',       // Large: 6 columns (full width)
+        'table': 'grid-lg'        // Large: 6 columns (full width)
+    },
 
     /**
      * Register a widget
@@ -16,8 +26,11 @@ window.LumenmonWidgets = {
      * @param {string} config.category - Category for grouping ('generic', 'proxmox')
      * @param {string[]} config.metrics - Metric patterns this widget handles (supports * wildcard)
      * @param {string} config.size - Widget size: 'sparkline' | 'stat' | 'chart' | 'table'
+     * @param {string} config.gridSize - Override grid size: 'sm' | 'md' | 'lg'
+     * @param {boolean} config.expandable - Whether widget can expand to show chart (default: true for sparklines)
      * @param {number} config.interval - Refresh interval in ms (default: 1000)
      * @param {Function} config.render - Render function(container, data, agent)
+     * @param {Function} config.renderExpanded - Render function for expanded view
      */
     register: function(config) {
         if (!config.name) {
@@ -30,9 +43,13 @@ window.LumenmonWidgets = {
             category: config.category || 'generic',
             metrics: config.metrics || [config.name],
             size: config.size || 'stat',
+            gridSize: config.gridSize || null,
+            expandable: config.expandable !== undefined ? config.expandable : (config.size === 'sparkline'),
             interval: config.interval || 1000,
             render: config.render || function() {},
+            renderExpanded: config.renderExpanded || null,
             init: config.init || null,  // Init function for charts
+            initExpanded: config.initExpanded || null,  // Init function for expanded charts
             update: config.update || null  // Optional update function for live refresh
         };
     },
@@ -86,90 +103,185 @@ window.LumenmonWidgets = {
         const metricNames = tables.map(t => t.metric_name);
         const matched = this.findMatching(metricNames);
 
-        // Group by category
-        const byCategory = {};
+        // Clear existing instances and state
+        this.instances = {};
+        this.expandedWidget = null;
+        this.focusedIndex = -1;
+
+        // Sort widgets: sparklines first, then stats, then charts, then tables
+        const sizeOrder = { 'sparkline': 0, 'stat': 1, 'chart': 2, 'table': 3 };
+        matched.sort((a, b) => (sizeOrder[a.widget.size] || 99) - (sizeOrder[b.widget.size] || 99));
+
+        // Build unified grid
+        let html = '<div class="widget-grid">';
+        let widgetIndex = 0;
+
         matched.forEach(m => {
-            const cat = m.widget.category;
-            if (!byCategory[cat]) byCategory[cat] = [];
-            byCategory[cat].push(m);
+            const widgetData = this.getWidgetData(m.metrics, tables);
+            const gridClass = m.widget.gridSize
+                ? `grid-${m.widget.gridSize}`
+                : (this.gridSizes[m.widget.size] || 'grid-sm');
+            const expandableAttr = m.widget.expandable ? 'data-expandable="true"' : '';
+            const tabIndex = m.widget.expandable || m.widget.size === 'sparkline' || m.widget.size === 'stat' ? '0' : '-1';
+
+            html += `<div class="widget widget-${m.widget.size} ${gridClass}" data-widget="${m.widget.name}" data-index="${widgetIndex}" ${expandableAttr} tabindex="${tabIndex}">`;
+            html += m.widget.render(widgetData, agent);
+            html += '</div>';
+
+            this.instances[m.widget.name] = {
+                widget: m.widget,
+                metrics: m.metrics,
+                index: widgetIndex,
+                data: widgetData,
+                agent: agent
+            };
+            widgetIndex++;
         });
 
-        // Group by size within category
-        const categoryOrder = ['generic', 'proxmox'];
-        const sizeOrder = ['sparkline', 'stat', 'chart', 'table'];
-
-        // Clear existing instances
-        this.instances = {};
-
-        // Build HTML structure
-        let html = '';
-
-        // Sparklines section (top overview)
-        const sparklineWidgets = matched.filter(m => m.widget.size === 'sparkline');
-        if (sparklineWidgets.length > 0) {
-            html += '<div class="widget-sparklines">';
-            sparklineWidgets.forEach(m => {
-                const widgetData = this.getWidgetData(m.metrics, tables);
-                html += `<div class="widget widget-sparkline" data-widget="${m.widget.name}">`;
-                html += m.widget.render(widgetData, agent);
-                html += '</div>';
-                this.instances[m.widget.name] = { widget: m.widget, metrics: m.metrics };
-            });
-            html += '</div>';
-        }
-
-        // Stats row
-        const statWidgets = matched.filter(m => m.widget.size === 'stat');
-        if (statWidgets.length > 0) {
-            html += '<div class="widget-stats">';
-            statWidgets.forEach(m => {
-                const widgetData = this.getWidgetData(m.metrics, tables);
-                html += `<div class="widget widget-stat" data-widget="${m.widget.name}">`;
-                html += m.widget.render(widgetData, agent);
-                html += '</div>';
-                this.instances[m.widget.name] = { widget: m.widget, metrics: m.metrics };
-            });
-            html += '</div>';
-        }
-
-        // Charts grid
-        const chartWidgets = matched.filter(m => m.widget.size === 'chart');
-        if (chartWidgets.length > 0) {
-            html += '<div class="widget-charts">';
-            chartWidgets.forEach(m => {
-                const widgetData = this.getWidgetData(m.metrics, tables);
-                html += `<div class="widget widget-chart" data-widget="${m.widget.name}">`;
-                html += m.widget.render(widgetData, agent);
-                html += '</div>';
-                this.instances[m.widget.name] = { widget: m.widget, metrics: m.metrics };
-            });
-            html += '</div>';
-        }
-
-        // Tables section
-        const tableWidgets = matched.filter(m => m.widget.size === 'table');
-        if (tableWidgets.length > 0) {
-            html += '<div class="widget-tables">';
-            tableWidgets.forEach(m => {
-                const widgetData = this.getWidgetData(m.metrics, tables);
-                html += `<div class="widget widget-table" data-widget="${m.widget.name}">`;
-                html += m.widget.render(widgetData, agent);
-                html += '</div>';
-                this.instances[m.widget.name] = { widget: m.widget, metrics: m.metrics };
-            });
-            html += '</div>';
-        }
-
+        html += '</div>';
         container.innerHTML = html;
 
-        // Initialize charts after DOM is ready
-        chartWidgets.forEach(m => {
+        // Attach click/keyboard handlers for expandable widgets
+        this.attachWidgetHandlers(container, agent, tables);
+
+        // Initialize any widgets that need it
+        matched.forEach(m => {
             if (m.widget.init) {
                 const widgetData = this.getWidgetData(m.metrics, tables);
                 const el = container.querySelector(`[data-widget="${m.widget.name}"]`);
                 if (el) m.widget.init(el, widgetData, agent);
             }
         });
+    },
+
+    /**
+     * Attach click and keyboard handlers to widgets
+     */
+    attachWidgetHandlers: function(container, agent, tables) {
+        const widgets = container.querySelectorAll('.widget[data-expandable="true"]');
+        const self = this;
+
+        widgets.forEach(el => {
+            // Click to expand/collapse
+            el.addEventListener('click', (e) => {
+                if (e.target.classList.contains('tui-collapse-btn')) {
+                    self.collapseWidget(container, agent, tables);
+                } else {
+                    self.toggleWidget(el, container, agent, tables);
+                }
+            });
+
+            // Keyboard: Enter to expand/collapse
+            el.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    self.toggleWidget(el, container, agent, tables);
+                } else if (e.key === 'Escape' && self.expandedWidget) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    self.collapseWidget(container, agent, tables);
+                }
+            });
+        });
+
+        // Widget grid keyboard navigation
+        container.addEventListener('keydown', (e) => {
+            if (e.target.classList.contains('widget')) {
+                const widgetEls = Array.from(container.querySelectorAll('.widget[tabindex="0"]'));
+                const currentIndex = widgetEls.indexOf(e.target);
+
+                if (e.key === 'ArrowRight' || e.key === 'l') {
+                    e.preventDefault();
+                    const next = widgetEls[currentIndex + 1];
+                    if (next) next.focus();
+                } else if (e.key === 'ArrowLeft' || e.key === 'h') {
+                    e.preventDefault();
+                    const prev = widgetEls[currentIndex - 1];
+                    if (prev) prev.focus();
+                } else if (e.key === 'Tab' && !e.shiftKey) {
+                    // Let tab work naturally but track focus
+                }
+            }
+        });
+    },
+
+    /**
+     * Toggle widget expansion
+     */
+    toggleWidget: function(el, container, agent, tables) {
+        const widgetName = el.dataset.widget;
+        const instance = this.instances[widgetName];
+        if (!instance) return;
+
+        if (this.expandedWidget === widgetName) {
+            // Collapse
+            this.collapseWidget(container, agent, tables);
+        } else {
+            // Expand
+            this.expandWidget(el, instance, container, agent, tables);
+        }
+    },
+
+    /**
+     * Expand a widget to show full chart
+     */
+    expandWidget: function(el, instance, container, agent, tables) {
+        const widget = instance.widget;
+        const widgetData = this.getWidgetData(instance.metrics, tables);
+
+        // Collapse any existing expanded widget first
+        if (this.expandedWidget) {
+            this.collapseWidget(container, agent, tables);
+        }
+
+        this.expandedWidget = widget.name;
+        el.classList.add('widget-expanded');
+
+        // Render expanded view
+        if (widget.renderExpanded) {
+            el.innerHTML = widget.renderExpanded(widgetData, agent);
+        } else {
+            // Default expanded view with chart
+            const chartId = `chart-${widget.name}-expanded`;
+            el.innerHTML = `
+                <div class="tui-metric-box">
+                    <div class="tui-metric-header">${widget.title}</div>
+                    <span class="tui-collapse-btn" title="collapse">esc ×</span>
+                    <div class="widget-chart-container">
+                        <canvas id="${chartId}"></canvas>
+                    </div>
+                </div>
+            `;
+
+            // Initialize chart if widget has initExpanded
+            if (widget.initExpanded) {
+                widget.initExpanded(el, widgetData, agent, chartId);
+            } else if (widget.init) {
+                // Fall back to regular init
+                widget.init(el, widgetData, agent);
+            }
+        }
+
+        el.focus();
+    },
+
+    /**
+     * Collapse expanded widget
+     */
+    collapseWidget: function(container, agent, tables) {
+        if (!this.expandedWidget) return;
+
+        const el = container.querySelector(`[data-widget="${this.expandedWidget}"]`);
+        const instance = this.instances[this.expandedWidget];
+
+        if (el && instance) {
+            el.classList.remove('widget-expanded');
+            const widgetData = this.getWidgetData(instance.metrics, tables);
+            el.innerHTML = instance.widget.render(widgetData, agent);
+            el.focus();
+        }
+
+        this.expandedWidget = null;
     },
 
     /**
@@ -183,7 +295,20 @@ window.LumenmonWidgets = {
             const el = container.querySelector(`[data-widget="${name}"]`);
             if (!el) continue;
 
+            // Update stored agent data for expand/collapse
+            instance.agent = agent;
+
             const widgetData = this.getWidgetData(instance.metrics, tables);
+            instance.data = widgetData;
+
+            // Skip update if this widget is expanded - it has its own chart that doesn't need re-render
+            if (this.expandedWidget === name) {
+                // Update the expanded chart if widget has initExpanded
+                if (instance.widget.initExpanded) {
+                    instance.widget.initExpanded(el, widgetData, agent, `chart-${name}-expanded`);
+                }
+                continue;
+            }
 
             if (instance.widget.update) {
                 // Use custom update function if available

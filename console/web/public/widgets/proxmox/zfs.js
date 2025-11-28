@@ -9,6 +9,7 @@ LumenmonWidget({
     category: 'proxmox',
     metrics: ['proxmox_zfs_*'],
     size: 'sparkline',
+    expandable: false,
     render: function(data, agent) {
         // Group metrics by pool name
         const pools = {};
@@ -24,7 +25,12 @@ LumenmonWidget({
 
         const poolList = Object.entries(pools);
         if (poolList.length === 0) {
-            return '<span class="stat-label">ZFS</span><span class="stat-value">-</span>';
+            return `
+                <div class="tui-metric-box">
+                    <div class="tui-metric-header">zfs</div>
+                    <div class="tui-metric-value">-</div>
+                </div>
+            `;
         }
 
         // Count total drives and online drives
@@ -41,14 +47,16 @@ LumenmonWidget({
         });
 
         const healthy = totalDrives === onlineDrives;
-        const healthClass = healthy ? 'stat-ok' : 'stat-critical';
+        const healthClass = healthy ? 'tui-health-ok' : 'tui-health-degraded';
         const healthIcon = healthy ? '●' : '⚠';
         const statusText = healthy ? 'healthy' : `${degradedPools.join(', ')} degraded`;
 
         return `
-            <span class="stat-label">ZFS</span>
-            <span class="stat-value ${healthClass}">${healthIcon} ${onlineDrives}/${totalDrives}</span>
-            <span class="stat-extra">${poolList.length} pools · ${statusText}</span>
+            <div class="tui-metric-box">
+                <div class="tui-metric-header">zfs</div>
+                <div class="tui-metric-value ${healthClass}">${healthIcon} ${onlineDrives}/${totalDrives}</div>
+                <div class="tui-metric-extra">${poolList.length} pools · ${statusText}</div>
+            </div>
         `;
     }
 });
