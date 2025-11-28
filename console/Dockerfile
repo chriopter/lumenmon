@@ -17,8 +17,12 @@ RUN apt-get update && apt-get install -y \
     ca-certificates \
     && curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg \
     && curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | tee /etc/apt/sources.list.d/caddy-stable.list \
+    && install -m 0755 -d /etc/apt/keyrings \
+    && curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc \
+    && chmod a+r /etc/apt/keyrings/docker.asc \
+    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian bookworm stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null \
     && apt-get update \
-    && apt-get install -y caddy \
+    && apt-get install -y caddy docker-ce-cli docker-compose-plugin \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python packages
