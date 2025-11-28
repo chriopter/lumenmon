@@ -33,7 +33,6 @@ lumenmon-agent uninstall    # Remove agent
 ```bash
 ./dev/auto         # Full reset, setup, virtual agent, and watch for .reset
 ./dev/add3         # Spawn 3 test agents
-./dev/add-virtual  # Virtual agent with ALL metrics (Proxmox/ZFS data without real infra)
 ./dev/release      # Create new release
 ./dev/updatedeps   # Update vendored CSS/JS
 ```

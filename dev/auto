@@ -9,13 +9,13 @@ cd "$(dirname "$0")/.."
 rm -f .reset
 
 echo "Stopping containers..."
-docker stop lumenmon-console lumenmon-dev-agent lumenmon-virtual-test 2>/dev/null || true
-docker rm lumenmon-console lumenmon-dev-agent lumenmon-virtual-test 2>/dev/null || true
+docker stop lumenmon-console lumenmon-dev-agent 2>/dev/null || true
+docker rm lumenmon-console lumenmon-dev-agent 2>/dev/null || true
 
 echo "Cleaning data..."
 rm -rf dev/data 2>/dev/null || true
 rm -rf console/data/mqtt/passwd console/data/*.log 2>/dev/null || true
-mkdir -p dev/data/mqtt console/data/mqtt
+mkdir -p dev/data/mqtt dev/data/agents/virtual-test/mqtt console/data/mqtt
 
 echo "Starting console..."
 echo "CONSOLE_HOST=localhost" > console/.env
@@ -51,10 +51,37 @@ docker run -d \
     --restart unless-stopped \
     lumenmon-dev-agent
 
+# === Virtual test agent (inline) ===
 echo ""
-echo "Starting virtual test agent..."
-./dev/add-virtual &
-VIRTUAL_PID=$!
+echo "Setting up virtual test agent..."
+VIRTUAL_DATA="dev/data/agents/virtual-test"
+
+VIRTUAL_INVITE=$(docker exec lumenmon-console /app/core/enrollment/invite_create.sh 2>&1 | grep "^lumenmon://" | head -1)
+docker run --rm \
+    --network host \
+    -e LUMENMON_AUTO_ACCEPT=1 \
+    -v "$PWD/$VIRTUAL_DATA:/opt/lumenmon/data" \
+    lumenmon-dev-agent \
+    /opt/lumenmon/core/setup/register.sh "$VIRTUAL_INVITE" >/dev/null 2>&1
+
+MQTT_HOST=$(cat "$VIRTUAL_DATA/mqtt/host")
+MQTT_USER=$(cat "$VIRTUAL_DATA/mqtt/username")
+MQTT_PASS=$(cat "$VIRTUAL_DATA/mqtt/password")
+MQTT_CERT="$PWD/$VIRTUAL_DATA/mqtt/server.crt"
+
+# Function to publish metric
+publish() {
+    mosquitto_pub \
+        -h "$MQTT_HOST" -p 8884 \
+        -u "$MQTT_USER" -P "$MQTT_PASS" \
+        --cafile "$MQTT_CERT" \
+        -t "metrics/$MQTT_USER/$1" \
+        -m "{\"value\":$2,\"type\":\"$3\",\"interval\":${4:-60}}" 2>/dev/null
+}
+
+# Publish initial system info
+publish "generic_hostname" '"virtual-test-agent"' "TEXT" 0
+publish "generic_lumenmon_version" '"1.0.0-virtual"' "TEXT" 0
 
 echo ""
 echo "Done! Dashboard: http://localhost:8080"
@@ -62,16 +89,41 @@ echo ""
 echo "Logs:  docker logs -f lumenmon-dev-agent"
 echo "Stop:  docker stop lumenmon-dev-agent lumenmon-console"
 echo ""
-echo "Watching for .reset file (touch .reset to restart)..."
+echo "Virtual agent publishing metrics. Watching for .reset file..."
 
-# Watch for .reset file to trigger restart
+# Main loop: publish virtual metrics + watch for .reset
 while true; do
+    # Check for reset file
     if [ -f .reset ]; then
         echo ""
         echo "[reset] .reset file detected, restarting..."
         rm -f .reset
-        kill $VIRTUAL_PID 2>/dev/null || true
         exec "$0"
     fi
+
+    # Publish virtual metrics
+    publish "generic_cpu" "$(awk 'BEGIN {printf "%.1f", 5 + rand() * 40}')" "REAL" 1
+    publish "generic_memory" "$(awk 'BEGIN {printf "%.1f", 30 + rand() * 40}')" "REAL" 10
+    publish "generic_disk" "$(awk 'BEGIN {printf "%.1f", 45 + rand() * 10}')" "REAL" 60
+    publish "generic_heartbeat" "$(date +%s)" "INTEGER" 10
+
+    # Proxmox metrics
+    publish "proxmox_vms_running" "$((3 + RANDOM % 3))" "INTEGER" 60
+    publish "proxmox_vms_total" "8" "INTEGER" 60
+    publish "proxmox_containers_running" "$((5 + RANDOM % 4))" "INTEGER" 60
+    publish "proxmox_containers_total" "12" "INTEGER" 60
+    publish "proxmox_storage_local_used" "$((40 + RANDOM % 20))" "REAL" 60
+    publish "proxmox_storage_local_total" "500" "REAL" 60
+    publish "proxmox_storage_nas_used" "$((1200 + RANDOM % 400))" "REAL" 60
+    publish "proxmox_storage_nas_total" "4000" "REAL" 60
+
+    # ZFS metrics
+    publish "proxmox_zfs_rpool_drives" "2" "INTEGER" 60
+    publish "proxmox_zfs_rpool_online" "2" "INTEGER" 60
+    publish "proxmox_zfs_rpool_capacity" "$((35 + RANDOM % 10))" "REAL" 60
+    publish "proxmox_zfs_tank_drives" "4" "INTEGER" 60
+    publish "proxmox_zfs_tank_online" "$((3 + RANDOM % 2))" "INTEGER" 60
+    publish "proxmox_zfs_tank_capacity" "$((60 + RANDOM % 15))" "REAL" 60
+
     sleep 1
 done
