@@ -77,12 +77,19 @@ Widgets auto-load based on available metrics. Functions: openDetailView(), close
     };
 
     async function openDetailView() {
-        window.app.ui.detailViewOpen = true;
         const agent = getSelectedAgent();
         if (!agent) {
             console.error('No agent selected');
             return;
         }
+
+        // If detail view is already open for this agent, just refresh (don't re-render)
+        if (window.app.ui.detailViewOpen && window.app.ui.currentAgentId === agent.id) {
+            return;
+        }
+
+        window.app.ui.detailViewOpen = true;
+        window.app.ui.currentAgentId = agent.id;
 
         // Register refresh function with global clock
         window.globalClock.register(refreshDetailView);
@@ -168,6 +175,7 @@ Widgets auto-load based on available metrics. Functions: openDetailView(), close
 
     function closeDetailView() {
         window.app.ui.detailViewOpen = false;
+        window.app.ui.currentAgentId = null;
         window.globalClock.unregister(refreshDetailView);
 
         const panel = document.getElementById('detail-panel');

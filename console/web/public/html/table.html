@@ -107,11 +107,20 @@ Fetches server-rendered rows every 1s. Provides row selection, navigation functi
                 // Restore highlight after content refresh
                 const rows = tbody.querySelectorAll('.agent-row');
                 if (rows.length > 0) {
-                    // Clamp selectedRow to valid range
-                    if (window.app.ui.selectedRow >= rows.length) {
-                        window.app.ui.selectedRow = rows.length - 1;
+                    // On first load, try to restore agent from URL
+                    if (window.app.data.isFirstLoad && window.app.data.initialAgentId) {
+                        const restored = selectAgentById(window.app.data.initialAgentId);
+                        if (!restored) {
+                            // Agent not found, fall back to first
+                            selectRow(0);
+                        }
+                    } else {
+                        // Clamp selectedRow to valid range
+                        if (window.app.ui.selectedRow >= rows.length) {
+                            window.app.ui.selectedRow = rows.length - 1;
+                        }
+                        selectRow(window.app.ui.selectedRow);
                     }
-                    selectRow(window.app.ui.selectedRow);
                 }
 
                 const currentCount = rows.length;
@@ -256,9 +265,53 @@ Fetches server-rendered rows every 1s. Provides row selection, navigation functi
         }
     }
 
+    // Get agent ID from URL hash
+    function getAgentIdFromUrl() {
+        const hash = window.location.hash;
+        if (hash.startsWith('#agent=')) {
+            return hash.substring(7);
+        }
+        return null;
+    }
+
+    // Set agent ID in URL hash
+    function setAgentIdInUrl(agentId) {
+        if (agentId) {
+            const newUrl = window.location.pathname + window.location.search + '#agent=' + agentId;
+            window.history.replaceState(null, '', newUrl);
+        }
+    }
+
+    // Find and select agent by ID
+    function selectAgentById(agentId) {
+        const rows = document.querySelectorAll('.agent-row');
+        for (let i = 0; i < rows.length; i++) {
+            if (rows[i].dataset.entityId === agentId) {
+                selectRow(i);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // Override selectRow to update URL
+    const originalSelectRow = selectRow;
+    selectRow = function(index) {
+        originalSelectRow(index);
+        // Update URL with selected agent ID
+        const row = document.querySelector(`.agent-row[data-index="${index}"]`);
+        if (row && row.dataset.entityId) {
+            setAgentIdInUrl(row.dataset.entityId);
+        }
+    };
+
     // Initialize
     addLog('console started', 'success');
     addLog('loading agents...', 'info');
+
+    // Store the agent ID from URL to restore after first load
+    window.app.data.initialAgentId = getAgentIdFromUrl();
+
     fetchAgents();
     window.globalClock.register(fetchAgents);
 </script>

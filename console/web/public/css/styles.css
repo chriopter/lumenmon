@@ -1448,6 +1448,249 @@ footer {
 }
 
 /* ============================================================ */
+/* TUI Grid System - 3 Sizes */
+/* ============================================================ */
+
+/* Grid container for all widgets */
+.widget-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+/* Grid sizes: sm (2 cols), md (3 cols), lg (6 cols / full width) */
+.grid-sm { grid-column: span 2; }
+.grid-md { grid-column: span 3; }
+.grid-lg { grid-column: span 6; }
+
+/* Responsive grid */
+@media (max-width: 1200px) {
+    .widget-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+    .grid-sm { grid-column: span 2; }
+    .grid-md { grid-column: span 2; }
+    .grid-lg { grid-column: span 4; }
+}
+
+@media (max-width: 800px) {
+    .widget-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .grid-sm { grid-column: span 1; }
+    .grid-md { grid-column: span 2; }
+    .grid-lg { grid-column: span 2; }
+}
+
+@media (max-width: 500px) {
+    .widget-grid {
+        grid-template-columns: 1fr;
+    }
+    .grid-sm, .grid-md, .grid-lg { grid-column: span 1; }
+}
+
+/* ============================================================ */
+/* TUI Metric Boxes (Sparklines & Stats) */
+/* ============================================================ */
+
+.tui-metric-box {
+    border: 1px solid var(--foreground2);
+    border-radius: 4px;
+    padding: 0.5rem 0.75rem;
+    font-family: monospace;
+    position: relative;
+    background: var(--background0);
+    cursor: pointer;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    outline: none;
+    height: 100%;
+    box-sizing: border-box;
+}
+
+.tui-metric-box:hover {
+    border-color: var(--accent1);
+}
+
+.tui-metric-box:focus {
+    border-color: var(--accent1);
+    box-shadow: 0 0 0 2px rgba(203, 166, 247, 0.3);
+}
+
+.tui-metric-box.selected {
+    border-color: var(--accent1);
+    border-width: 2px;
+}
+
+.tui-metric-header {
+    position: absolute;
+    top: -0.5rem;
+    left: 0.5rem;
+    padding: 0 0.4rem;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    color: var(--foreground2);
+    background: var(--background0);
+    letter-spacing: 0.05em;
+}
+
+.tui-metric-value {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: var(--accent1);
+    margin-bottom: 0.25rem;
+}
+
+.tui-metric-sparkline {
+    font-size: 0.9rem;
+    letter-spacing: -0.05em;
+    margin-bottom: 0.25rem;
+}
+
+.tui-metric-extra {
+    font-size: 0.7rem;
+    color: var(--foreground2);
+}
+
+/* Expand hint */
+.tui-expand-hint {
+    position: absolute;
+    bottom: 0.25rem;
+    right: 0.5rem;
+    font-size: 0.6rem;
+    color: var(--foreground2);
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+
+.tui-metric-box:hover .tui-expand-hint,
+.tui-metric-box:focus .tui-expand-hint {
+    opacity: 1;
+}
+
+/* Info rows (for system widget) */
+.tui-info-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.15rem 0;
+    font-size: 0.75rem;
+}
+
+.tui-info-label {
+    color: var(--foreground2);
+    text-transform: uppercase;
+    font-size: 0.65rem;
+}
+
+.tui-info-value {
+    color: var(--foreground1);
+    text-align: right;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 140px;
+}
+
+/* Stat grid (for VMs widget) */
+.tui-stat-grid {
+    display: flex;
+    gap: 1rem;
+    justify-content: space-around;
+}
+
+.tui-stat {
+    text-align: center;
+}
+
+.tui-stat-value {
+    display: block;
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: var(--foreground1);
+}
+
+.tui-stat-label {
+    font-size: 0.65rem;
+    color: var(--foreground2);
+    text-transform: uppercase;
+}
+
+.tui-muted {
+    color: var(--foreground2) !important;
+}
+
+/* ============================================================ */
+/* Expanded Widget (Chart View) */
+/* ============================================================ */
+
+.widget-expanded {
+    grid-column: span 6 !important;
+    min-height: 200px;
+}
+
+.widget-expanded .tui-metric-box {
+    display: flex;
+    flex-direction: column;
+}
+
+.widget-expanded .widget-chart-container {
+    flex: 1;
+    min-height: 150px;
+    margin-top: 0.5rem;
+}
+
+.widget-expanded .widget-chart-container canvas {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* Collapse button in expanded view */
+.tui-collapse-btn {
+    position: absolute;
+    top: 0.25rem;
+    right: 0.5rem;
+    font-size: 0.7rem;
+    color: var(--foreground2);
+    cursor: pointer;
+    padding: 0.1rem 0.3rem;
+    border-radius: 2px;
+}
+
+.tui-collapse-btn:hover {
+    color: var(--accent1);
+    background: var(--background1);
+}
+
+/* Expanded widget stats row */
+.widget-expanded-stats {
+    display: flex;
+    gap: 1.5rem;
+    font-size: 0.75rem;
+    color: var(--foreground2);
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--foreground2);
+}
+
+.widget-expanded-stats strong {
+    color: var(--accent1);
+}
+
+/* Legacy widget layouts - keep for backward compatibility */
+.widget-sparklines {
+    display: none; /* Replaced by grid */
+}
+
+.widget-stats {
+    display: none; /* Replaced by grid */
+}
+
+.widget-charts {
+    display: none; /* Replaced by grid */
+}
+
+/* ============================================================ */
 /* TUI Storage & ZFS Widgets */
 /* ============================================================ */
 
