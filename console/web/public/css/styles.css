@@ -1,7 +1,20 @@
 /*
-Lumenmon Console custom styles for TUI-themed dashboard layout.
-Uses Catppuccin Mocha CSS variables from catppuccin.css. Defines log box, table, sparklines, badges, overlays.
-*/
+ * Lumenmon Console Styles
+ * TUI-themed dashboard using Catppuccin Mocha colors.
+ *
+ * Structure:
+ * 1. Base & Layout
+ * 2. Utility Classes (DRY)
+ * 3. Components (Log, Agents, Detail Panel)
+ * 4. Grid System (4-column)
+ * 5. Widgets (Metrics, Storage, ZFS)
+ * 6. Modals
+ * 7. Responsive
+ */
+
+/* ============================================================
+   1. BASE & LAYOUT
+   ============================================================ */
 
 body {
     margin: 0.5rem;
@@ -13,95 +26,6 @@ body {
     line-height: 1.3;
 }
 
-/* ============================================================ */
-/* Log Box */
-/* ============================================================ */
-.log-box {
-    padding: 0.5rem;
-    border: 1px solid #cba6f7; /* Catppuccin mauve/purple */
-    border-radius: 6px;
-    background: var(--background1);
-    height: 180px;
-    overflow-y: auto;
-    font-size: 0.75rem;
-    scrollbar-width: none; /* Firefox */
-    -ms-overflow-style: none; /* IE/Edge */
-    flex-shrink: 0;
-}
-
-.log-box::-webkit-scrollbar {
-    display: none; /* Chrome, Safari, Opera */
-}
-
-.logo-ascii {
-    color: var(--accent1);
-    font-size: 8px;
-    line-height: 1.1;
-    margin-bottom: 0.5rem;
-    white-space: pre;
-}
-
-.log-entry {
-    margin: 0.1rem 0;
-    color: var(--foreground1);
-    line-height: 1.2;
-}
-
-.log-timestamp {
-    color: var(--foreground2);
-    margin-right: 0.5rem;
-}
-
-.log-level-info {
-    color: var(--accent2);
-}
-
-.log-level-success {
-    color: var(--accent3);
-}
-
-.log-level-error {
-    color: var(--accent4);
-}
-
-.log-level-mqtt {
-    color: var(--accent5);
-    font-style: italic;
-}
-
-.invite-url-log {
-    color: var(--accent1);
-    cursor: pointer;
-    text-decoration: underline;
-    font-family: monospace;
-    position: relative;
-}
-
-.invite-url-log:hover {
-    color: transparent;
-    text-decoration: none;
-}
-
-.invite-url-log:hover::before {
-    content: 'click to copy!';
-    position: absolute;
-    left: 0;
-    top: 0;
-    background: #a6e3a1;
-    color: #1e1e2e;
-    padding: 0.1rem 0.3rem;
-    border-radius: 3px;
-    font-weight: bold;
-    white-space: nowrap;
-}
-
-/* ============================================================ */
-/* Footer - One Line Design */
-/* ============================================================ */
-
-/* ============================================================ */
-/* Main Content - Split Screen */
-/* ============================================================ */
 .main-content {
     display: flex;
     gap: 0.5rem;
@@ -125,22 +49,248 @@ body {
     overflow: hidden;
 }
 
-/* ============================================================ */
-/* Agents Table - TUI Style */
-/* ============================================================ */
+/* ============================================================
+   2. UTILITY CLASSES (DRY)
+   ============================================================ */
+
+/* Hide scrollbars - apply to any scrollable container */
+.no-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
+/* Reset WebTUI table borders - apply to borderless tables */
+.tui-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: monospace;
+    border: none !important;
+    --table-border-width: 0 !important;
+    --table-border-color: transparent !important;
+}
+.tui-table:before,
+.tui-table tr th:before,
+.tui-table tr td:before,
+.tui-table tr th:after,
+.tui-table tr td:after {
+    display: none !important;
+}
+.tui-table thead td {
+    padding: 0.25rem 0.35rem;
+    text-transform: uppercase;
+    font-weight: bold;
+    color: var(--foreground2);
+    font-size: 0.7rem;
+}
+.tui-table tbody td {
+    padding: 0.25rem 0.35rem;
+    font-size: 0.75rem;
+    color: var(--foreground1);
+}
+
+/* TUI bordered box with floating header */
+.tui-box {
+    border: 1px solid var(--foreground2);
+    border-radius: 4px;
+    padding: 0.5rem;
+    padding-top: 1rem;
+    position: relative;
+    background: var(--background0);
+    box-sizing: border-box;
+}
+.tui-box h3 {
+    position: absolute;
+    top: -0.6rem;
+    left: 0.5rem;
+    margin: 0;
+    padding: 0 0.5rem;
+    font-size: 0.7rem;
+    text-transform: lowercase;
+    color: var(--foreground2);
+    background: var(--background0);
+    font-weight: normal;
+}
+
+/* Status colors */
+.status-online { color: #a6e3a1; }
+.status-warning { color: #f9e2af; }
+.status-error { color: #f38ba8; }
+
+/* Type badges */
+.type-text { color: #89b4fa; font-weight: bold; text-transform: uppercase; }
+.type-real { color: #a6e3a1; font-weight: bold; text-transform: uppercase; }
+.type-integer { color: #f9e2af; font-weight: bold; text-transform: uppercase; }
+
+/* Bar colors */
+.bar-ok { background: #a6e3a1; }
+.bar-warning { background: #f9e2af; }
+.bar-critical { background: #f38ba8; }
+
+/* TUI bar colors (text) */
+.tui-bar-ok { color: #a6e3a1; }
+.tui-bar-warning { color: #f9e2af; }
+.tui-bar-critical { color: #f38ba8; }
+
+/* Health indicators */
+.health-ok { color: #a6e3a1; }
+.health-degraded { color: #f38ba8; font-weight: bold; }
+
+/* Flash animations */
+.value-flash {
+    animation: flash-highlight 0.5s ease-out;
+}
+@keyframes flash-highlight {
+    0% { background-color: #a6e3a1; color: #1e1e2e; }
+    100% { background-color: transparent; color: var(--accent1); }
+}
+
+.status-dot.heartbeat-flash {
+    animation: heartbeat-pulse 0.5s ease-out;
+}
+@keyframes heartbeat-pulse {
+    0%, 49% { opacity: 1; }
+    50%, 99% { opacity: 0; }
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 0.3; transform: scale(0.8); }
+    50% { opacity: 1; transform: scale(1); }
+}
+
+/* ============================================================
+   3. COMPONENTS
+   ============================================================ */
+
+/* --- Log Box --- */
+.log-box {
+    padding: 0.5rem;
+    border: 1px solid #cba6f7;
+    border-radius: 6px;
+    background: var(--background1);
+    height: 180px;
+    overflow-y: auto;
+    font-size: 0.75rem;
+    flex-shrink: 0;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+.log-box::-webkit-scrollbar { display: none; }
+
+.logo-ascii {
+    color: var(--accent1);
+    font-size: 8px;
+    line-height: 1.1;
+    margin-bottom: 0.5rem;
+    white-space: pre;
+}
+
+.log-entry { margin: 0.1rem 0; color: var(--foreground1); line-height: 1.2; }
+.log-timestamp { color: var(--foreground2); margin-right: 0.5rem; }
+.log-level-info { color: var(--accent2); }
+.log-level-success { color: var(--accent3); }
+.log-level-error { color: var(--accent4); }
+.log-level-mqtt { color: var(--accent5); font-style: italic; }
+
+.invite-url-log {
+    color: var(--accent1);
+    cursor: pointer;
+    text-decoration: underline;
+    font-family: monospace;
+    position: relative;
+}
+.invite-url-log:hover {
+    color: transparent;
+    text-decoration: none;
+}
+.invite-url-log:hover::before {
+    content: 'click to copy!';
+    position: absolute;
+    left: 0;
+    top: 0;
+    background: #a6e3a1;
+    color: #1e1e2e;
+    padding: 0.1rem 0.3rem;
+    border-radius: 3px;
+    font-weight: bold;
+    white-space: nowrap;
+}
+
+/* --- Agents Section --- */
 .agents-section {
-    border: 1px solid #a6e3a1; /* Catppuccin green */
+    border: 1px solid #a6e3a1;
     border-radius: 6px;
     padding: 0.25rem;
     flex: 1;
     overflow-y: auto;
-    scrollbar-width: none; /* Firefox */
-    -ms-overflow-style: none; /* IE/Edge */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+.agents-section::-webkit-scrollbar { display: none; }
+
+#agents-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: monospace;
+    border: none !important;
+    --table-border-width: 0 !important;
+    --table-border-color: transparent !important;
+}
+#agents-table:before,
+#agents-table tr th:before,
+#agents-table tr td:before,
+#agents-table tr th:after,
+#agents-table tr td:after { display: none !important; }
+
+#agents-table thead td {
+    padding: 0.25rem 0.35rem;
+    padding-left: 1.2rem;
+    text-transform: uppercase;
+    font-weight: bold;
+    color: var(--foreground2);
+    font-size: 0.7rem;
+}
+#agents-table tbody td {
+    padding: 0.25rem 0.35rem;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+#agents-table tbody td:nth-child(2) { width: 7rem; min-width: 7rem; max-width: 7rem; padding-left: 1rem; }
+#agents-table tbody td:nth-child(3),
+#agents-table tbody td:nth-child(4) { width: 3.5rem; min-width: 3.5rem; max-width: 3.5rem; padding-left: 1rem; }
+
+#agents-table .agent-row {
+    cursor: pointer;
+    transition: background-color 0.1s;
+}
+#agents-table .agent-row.selected { background: var(--background2); }
+#agents-table .agent-row:hover { background: var(--background1); }
+#agents-table .agent-row td:first-child {
+    position: relative;
+    padding-left: 1.2rem;
+}
+#agents-table .agent-row.selected td:first-child::before {
+    content: '>';
+    position: absolute;
+    left: 0.2rem;
+    color: var(--accent1);
+    font-weight: bold;
 }
 
-.agents-section::-webkit-scrollbar {
-    display: none; /* Chrome, Safari, Opera */
+.status-dot {
+    display: inline-block;
+    width: 0.6em;
+    height: 0.6em;
+    border-radius: 50%;
+    margin-right: 0.5rem;
+    vertical-align: middle;
+    transition: all 0.3s ease;
 }
+.status-dot.online { background: #a6e3a1; }
+.status-dot.stale { background: #f9e2af; }
+.status-dot.offline { background: #f38ba8; }
 
 .sparkline {
     display: inline-block;
@@ -153,143 +303,11 @@ body {
     text-align: left;
 }
 
-#agents-table {
-    width: 100%;
-    border-collapse: collapse;
-    border-spacing: 0;
-    font-family: monospace;
-    border: none !important;
-}
+.no-data { text-align: center; padding: 2rem; color: var(--foreground2); }
 
-/* Override WebTUI table border system (uses pseudo-elements) */
-#agents-table {
-    --table-border-width: 0 !important;
-    --table-border-color: transparent !important;
-}
-
-#agents-table:before,
-#agents-table tr th:before,
-#agents-table tr td:before,
-#agents-table tr th:after,
-#agents-table tr td:after {
-    display: none !important;
-}
-
-#agents-table thead td {
-    padding: 0.25rem 0.35rem;
-    text-transform: uppercase;
-    font-weight: bold;
-    color: var(--foreground2);
-    font-size: 0.7rem;
-}
-
-#agents-table thead td:first-child {
-    padding-left: 1.2rem;
-}
-
-#agents-table tbody td {
-    padding: 0.25rem 0.35rem;
-    font-size: 0.75rem;
-}
-
-/* Fixed width for metric columns to prevent layout shift */
-#agents-table tbody td:nth-child(2) {
-    width: 7rem;
-    min-width: 7rem;
-    max-width: 7rem;
-    padding-left: 1rem;
-}
-
-/* MEM and DISK columns (no sparkline) */
-#agents-table tbody td:nth-child(3),
-#agents-table tbody td:nth-child(4) {
-    width: 3.5rem;
-    min-width: 3.5rem;
-    max-width: 3.5rem;
-    padding-left: 1rem;
-}
-
-/* Let hostname column take remaining space */
-#agents-table tbody td:nth-child(1) {
-    width: auto;
-}
-
-/* Prevent line breaks in agent rows */
-#agents-table tbody td {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-#agents-table .agent-row {
-    cursor: pointer;
-    transition: background-color 0.1s;
-}
-
-#agents-table .agent-row.selected {
-    background: var(--background2);
-}
-
-#agents-table .agent-row:hover {
-    background: var(--background1);
-}
-
-/* TUI-style arrow cursor indicator */
-#agents-table .agent-row td:first-child {
-    position: relative;
-    padding-left: 1.2rem;
-}
-
-#agents-table .agent-row.selected td:first-child::before {
-    content: '>';
-    position: absolute;
-    left: 0.2rem;
-    color: var(--accent1);
-    font-weight: bold;
-}
-
-/* Status indicator dot */
-.status-dot {
-    display: inline-block;
-    width: 0.6em;
-    height: 0.6em;
-    border-radius: 50%;
-    margin-right: 0.5rem;
-    vertical-align: middle;
-    transition: all 0.3s ease;
-}
-
-.status-dot.online {
-    background: #a6e3a1; /* Catppuccin green */
-}
-
-.status-dot.stale {
-    background: #f9e2af; /* Catppuccin yellow */
-}
-
-.status-dot.offline {
-    background: #f38ba8; /* Catppuccin red */
-}
-
-.status-dot.heartbeat-flash {
-    animation: heartbeat-pulse 0.5s ease-out;
-}
-
-.no-data {
-    text-align: center;
-    padding: 2rem;
-    color: var(--foreground2);
-}
-
-.agent-symbols {
-    color: #cdd6f4;
-}
-
-/* ============================================================ */
-/* Detail View Panel (Split Screen) */
-/* ============================================================ */
+/* --- Detail Panel --- */
 #detail-panel {
-    border: 1px solid #89b4fa; /* Catppuccin blue */
+    border: 1px solid #89b4fa;
     border-radius: 6px;
     padding: 0.5rem;
     background: var(--background0);
@@ -298,21 +316,9 @@ body {
     scrollbar-width: none;
     -ms-overflow-style: none;
 }
-
-#detail-panel::-webkit-scrollbar {
-    display: none;
-}
-
-.detail-panel-empty {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.detail-placeholder {
-    color: var(--foreground2);
-    font-size: 0.8rem;
-}
+#detail-panel::-webkit-scrollbar { display: none; }
+.detail-panel-empty { display: flex; align-items: center; justify-content: center; }
+.detail-placeholder { color: var(--foreground2); font-size: 0.8rem; }
 
 .detail-header {
     display: flex;
@@ -322,121 +328,69 @@ body {
     padding-bottom: 0.5rem;
     border-bottom: 1px solid var(--foreground2);
 }
+.detail-header h2 { margin: 0; font-size: 1rem; }
+.detail-header-right { display: flex; align-items: center; gap: 0.75rem; }
+.detail-status { font-size: 0.75rem; color: var(--foreground2); }
+.detail-id { opacity: 0.6; font-size: 0.7rem; }
 
-.detail-header h2 {
-    margin: 0;
-    font-size: 1rem;
-}
+.detail-content { display: flex; flex-direction: column; gap: 0.75rem; }
 
-.detail-header-right {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-}
-
-.detail-status {
-    font-size: 0.75rem;
-    color: var(--foreground2);
-}
-
-.status-warnings {
-    font-family: monospace;
-    font-size: 0.7rem;
-    color: #f38ba8;
-    font-weight: bold;
-    margin-left: 0.75rem;
-}
-
-.detail-id {
-    opacity: 0.6;
-    font-size: 0.7rem;
-}
-
-.detail-content {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-}
-
-.charts-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1rem;
-    row-gap: 1.5rem;
-    margin-bottom: 1rem;
-}
-
-.detail-stats {
-    display: flex;
-    gap: 2rem;
-    margin-bottom: 1rem;
-    font-family: monospace;
-}
-
-.stat-column {
-    flex: 1;
-}
-
-.stat-line {
-    display: flex;
-    gap: 1rem;
-    padding: 0.2rem 0;
-    font-size: 0.8rem;
-}
-
-.stat-label {
-    color: var(--foreground2);
-    min-width: 5rem;
-    text-transform: uppercase;
-    font-size: 0.75rem;
-}
-
-.stat-value {
-    color: var(--accent1);
-    font-weight: bold;
-    min-width: 4rem;
-    display: inline-block;
-    text-align: right;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 20rem;
-}
-
-.stat-extra {
-    color: var(--foreground2);
-    font-size: 0.75rem;
-}
-
-.chart-section {
-    border: 1px solid var(--foreground2);
-    border-radius: 4px;
-    padding: 0.5rem;
-    padding-top: 1rem;
+/* --- Metrics Table --- */
+.metrics-section {
+    margin-top: 1rem;
+    padding-top: 0;
+    border-top: 1px solid var(--foreground2);
     position: relative;
 }
-
-.chart-section h3 {
+.metrics-section h3 {
     position: absolute;
     top: -0.6rem;
     left: 0.5rem;
     margin: 0;
     padding: 0 0.5rem;
-    font-size: 0.7rem;
+    font-size: 0.75rem;
     text-transform: uppercase;
     color: var(--foreground2);
     background: var(--background0);
 }
+.metrics-list { padding-top: 0.75rem; font-family: monospace; font-size: 0.75rem; }
 
+#metrics-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: monospace;
+    border: none !important;
+    --table-border-width: 0 !important;
+    --table-border-color: transparent !important;
+}
+#metrics-table:before,
+#metrics-table tr th:before,
+#metrics-table tr td:before,
+#metrics-table tr th:after,
+#metrics-table tr td:after { display: none !important; }
+#metrics-table thead td {
+    padding: 0.25rem 0.35rem;
+    text-transform: uppercase;
+    font-weight: bold;
+    color: var(--foreground2);
+    font-size: 0.7rem;
+}
+#metrics-table tbody td {
+    padding: 0.25rem 0.35rem;
+    font-size: 0.75rem;
+    color: var(--foreground1);
+}
 
-/* ============================================================ */
-/* Footer */
-/* ============================================================ */
+.metric-name { color: var(--accent2); font-weight: bold; }
+.metric-value { color: var(--accent1); font-weight: bold; }
+.stale-row { background-color: rgba(243, 139, 168, 0.1); }
+.stale-text, .overdue-text { color: #f38ba8; font-weight: bold; }
+
+/* --- Footer --- */
 footer {
     padding: 0.35rem 0.5rem;
     font-size: 0.7rem;
-    color: #89b4fa; /* Catppuccin blue */
-    border: none;
+    color: #89b4fa;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -444,26 +398,14 @@ footer {
     flex-wrap: wrap;
     flex-shrink: 0;
 }
-
-.footer-left {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    gap: 0.5ch;
-}
-
-.footer-right {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-}
+.footer-left { flex: 1; display: flex; align-items: center; gap: 0.5ch; }
+.footer-right { display: flex; align-items: center; gap: 1rem; }
 
 .status-compact {
     cursor: help;
     color: var(--foreground2);
     position: relative;
 }
-
 .status-compact:hover::after {
     content: attr(data-tooltip);
     position: absolute;
@@ -478,253 +420,184 @@ footer {
     z-index: 1000;
 }
 
-.kbd-clickable {
-    cursor: pointer;
-    transition: all 0.1s;
+.kbd-clickable { cursor: pointer; transition: all 0.1s; }
+.kbd-clickable:hover { text-decoration: underline; }
+.kbd-clickable kbd { background: transparent; border: none; padding: 0; margin: 0; }
+
+/* ============================================================
+   4. GRID SYSTEM (4-column)
+
+   Usage:
+   - .widget-grid: Container with 4 equal columns
+   - .grid-xs: 1/4 width (span 1)
+   - .grid-sm: 2/4 width (span 2)
+   - .grid-md: 3/4 width (span 3)
+   - .grid-lg: 4/4 width (span 4, full)
+   ============================================================ */
+
+.widget-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    align-items: stretch;
 }
 
-.kbd-clickable:hover {
-    text-decoration: underline;
+.grid-xs { grid-column: span 1; }
+.grid-sm { grid-column: span 2; }
+.grid-md { grid-column: span 3; }
+.grid-lg { grid-column: span 4; }
+
+/* Widget container - fills grid cell */
+.widget {
+    display: flex;
+    width: 100%;
+    min-width: 0;
+}
+.widget > .tui-metric-box,
+.widget > .tui-box {
+    flex: 1 1 100% !important;
+    width: 100% !important;
 }
 
-.kbd-clickable kbd {
-    background: transparent;
-    border: none;
-    padding: 0;
-    margin: 0;
-}
+/* ============================================================
+   5. WIDGETS
+   ============================================================ */
 
-/* ============================================================ */
-/* Responsive Design */
-/* ============================================================ */
-
-/* Hide MEM and DISK on smaller screens */
-@media (max-width: 1200px) {
-    #agents-table thead td:nth-child(3),
-    #agents-table thead td:nth-child(4),
-    #agents-table tbody td:nth-child(3),
-    #agents-table tbody td:nth-child(4) {
-        display: none;
-    }
-}
-
-/* Stack charts on medium screens */
-@media (max-width: 1000px) {
-    .charts-grid {
-        grid-template-columns: 1fr;
-    }
-}
-
-/* Hide CPU on even smaller screens */
-@media (max-width: 900px) {
-    #agents-table thead td:nth-child(2),
-    #agents-table tbody td:nth-child(2) {
-        display: none;
-    }
-}
-
-/* Mobile: Stack vertically */
-@media (max-width: 500px) {
-    body {
-        height: auto;
-        overflow: auto;
-    }
-
-    .main-content {
-        flex-direction: column;
-        overflow: auto;
-    }
-
-    .left-column {
-        flex: 0 0 auto;
-        width: 100%;
-        max-height: none;
-    }
-
-    .detail-column {
-        flex: 0 0 auto;
-        width: 100%;
-        min-height: 400px;
-    }
-
-    .log-box {
-        height: 100px;
-    }
-
-    .agents-section {
-        max-height: 300px;
-    }
-
-    #detail-panel {
-        min-height: 400px;
-    }
-
-    .detail-stats {
-        flex-direction: column;
-        gap: 0.5rem;
-    }
-
-    .charts-grid {
-        grid-template-columns: 1fr;
-    }
-
-    footer {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 0.5rem;
-    }
-
-    .footer-left,
-    .footer-right {
-        width: 100%;
-    }
-}
-
-/* ============================================================ */
-/* Metrics Section */
-/* ============================================================ */
-.metrics-section {
-    margin-top: 1rem;
-    padding-top: 0;
-    border-top: 1px solid var(--foreground2);
+/* --- Metric Box (CPU, MEM, Disk, etc.) --- */
+.tui-metric-box {
+    border: 1px solid var(--foreground2);
+    border-radius: 4px;
+    padding: 0.5rem 0.75rem;
+    font-family: monospace;
     position: relative;
+    background: var(--background0);
+    cursor: pointer;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    outline: none;
+    box-sizing: border-box;
 }
+.tui-metric-box:hover { border-color: var(--accent1); }
+.tui-metric-box:focus {
+    border-color: var(--accent1);
+    box-shadow: 0 0 0 2px rgba(203, 166, 247, 0.3);
+}
+.tui-metric-box.selected { border-color: var(--accent1); border-width: 2px; }
 
-.metrics-section h3 {
+.tui-metric-header {
     position: absolute;
-    top: -0.6rem;
+    top: -0.5rem;
     left: 0.5rem;
-    margin: 0;
-    padding: 0 0.5rem;
-    font-size: 0.75rem;
+    padding: 0 0.4rem;
+    font-size: 0.65rem;
     text-transform: uppercase;
     color: var(--foreground2);
     background: var(--background0);
+    letter-spacing: 0.05em;
 }
-
-.metrics-list {
-    padding-top: 0.75rem;
-    font-family: monospace;
-    font-size: 0.75rem;
-}
-
-#metrics-table {
-    width: 100%;
-    border-collapse: collapse;
-    border-spacing: 0;
-    font-family: monospace;
-    border: none !important;
-}
-
-/* Override WebTUI table border system */
-#metrics-table {
-    --table-border-width: 0 !important;
-    --table-border-color: transparent !important;
-}
-
-#metrics-table:before,
-#metrics-table tr th:before,
-#metrics-table tr td:before,
-#metrics-table tr th:after,
-#metrics-table tr td:after {
-    display: none !important;
-}
-
-#metrics-table thead td {
-    padding: 0.25rem 0.35rem;
-    text-transform: uppercase;
+.tui-metric-value {
+    font-size: 1.1rem;
     font-weight: bold;
-    color: var(--foreground2);
-    font-size: 0.7rem;
-}
-
-#metrics-table tbody td {
-    padding: 0.25rem 0.35rem;
-    font-size: 0.75rem;
-    color: var(--foreground1);
-}
-
-.metric-name {
-    color: var(--accent2);
-    font-weight: bold;
-}
-
-.metric-value {
     color: var(--accent1);
-    font-weight: bold;
+    margin-bottom: 0.25rem;
 }
+.tui-unit { font-size: 0.8rem; font-weight: normal; color: var(--foreground2); }
+.tui-metric-sparkline { font-size: 0.9rem; letter-spacing: -0.05em; margin-bottom: 0.25rem; }
+.tui-metric-extra { font-size: 0.7rem; color: var(--foreground2); }
 
-.value-flash {
-    animation: flash-highlight 0.5s ease-out;
-}
-
-@keyframes flash-highlight {
-    0% {
-        background-color: #a6e3a1;
-        color: #1e1e2e;
-    }
-    100% {
-        background-color: transparent;
-        color: var(--accent1);
-    }
-}
-
-/* Stale data styling - red tint for overdue metrics */
-.stale-row {
-    background-color: rgba(243, 139, 168, 0.1); /* Catppuccin red with 10% opacity */
-}
-
-.stale-text {
-    color: #f38ba8; /* Catppuccin red */
-    font-weight: bold;
-}
-
-.overdue-text {
-    color: #f38ba8; /* Catppuccin red */
-    font-weight: bold;
-}
-
-/* Type badges with color coding */
-.type-text {
-    color: #89b4fa; /* Catppuccin blue */
-    font-weight: bold;
-    text-transform: uppercase;
-}
-
-.type-real {
-    color: #a6e3a1; /* Catppuccin green */
-    font-weight: bold;
-    text-transform: uppercase;
-}
-
-.type-integer {
-    color: #f9e2af; /* Catppuccin yellow */
-    font-weight: bold;
-    text-transform: uppercase;
-}
-
-.db-content-separator {
-    border-left: 1px solid var(--foreground2);
-    padding-left: 0.5rem;
-}
-
-.loading-text,
-.no-data-text,
-.error-text {
-    display: block;
-    text-align: center;
-    padding: 1rem;
+.tui-expand-hint {
+    position: absolute;
+    bottom: 0.25rem;
+    right: 0.5rem;
+    font-size: 0.6rem;
     color: var(--foreground2);
-    font-style: italic;
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+.tui-metric-box:hover .tui-expand-hint,
+.tui-metric-box:focus .tui-expand-hint { opacity: 1; }
+
+/* --- Expanded Widget (Chart View) --- */
+.widget-expanded { grid-column: span 4 !important; min-height: 200px; }
+.widget-expanded .tui-metric-box { display: flex; flex-direction: column; }
+.widget-expanded .widget-chart-container { flex: 1; min-height: 150px; margin-top: 0.5rem; }
+.widget-expanded .widget-chart-container canvas { width: 100% !important; height: 100% !important; }
+
+.tui-collapse-btn {
+    position: absolute;
+    top: 0.25rem;
+    right: 0.5rem;
+    font-size: 0.7rem;
+    color: var(--foreground2);
+    cursor: pointer;
+    padding: 0.1rem 0.3rem;
+    border-radius: 2px;
+}
+.tui-collapse-btn:hover { color: var(--accent1); background: var(--background1); }
+
+.widget-expanded-stats {
+    display: flex;
+    gap: 1.5rem;
+    font-size: 0.75rem;
+    color: var(--foreground2);
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--foreground2);
+}
+.widget-expanded-stats strong { color: var(--accent1); }
+
+/* --- Info/Stat Rows --- */
+.tui-info-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.15rem 0;
+    font-size: 0.75rem;
+}
+.tui-info-label { color: var(--foreground2); text-transform: uppercase; font-size: 0.65rem; }
+.tui-info-value {
+    color: var(--foreground1);
+    text-align: right;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 140px;
 }
 
-.error-text {
-    color: var(--accent4);
-}
+.tui-stat-grid { display: flex; gap: 1rem; justify-content: space-around; }
+.tui-stat { text-align: center; }
+.tui-stat-value { display: block; font-size: 1.2rem; font-weight: bold; color: var(--foreground1); }
+.tui-stat-label { font-size: 0.65rem; color: var(--foreground2); text-transform: uppercase; }
+.tui-muted { color: var(--foreground2) !important; }
 
-/* ============================================================ */
-/* SQLite Viewer Modal */
-/* ============================================================ */
+/* --- Storage & ZFS Widgets --- */
+.tui-storage-list,
+.tui-zfs-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    font-family: monospace;
+    font-size: 0.8rem;
+}
+.tui-storage-row,
+.tui-zfs-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.25rem 0;
+}
+.tui-storage-name,
+.tui-zfs-name { min-width: 5rem; color: var(--accent2); font-weight: bold; }
+.tui-storage-bar,
+.tui-zfs-bar { font-family: monospace; letter-spacing: -0.05em; }
+.tui-storage-info { color: var(--foreground2); font-size: 0.75rem; white-space: nowrap; }
+.tui-zfs-health { min-width: 8rem; font-size: 0.75rem; }
+.tui-zfs-capacity { min-width: 3rem; text-align: right; color: var(--foreground1); }
+
+/* ============================================================
+   6. MODALS
+   ============================================================ */
+
 .modal-overlay {
     position: fixed;
     top: 0;
@@ -737,10 +610,7 @@ footer {
     justify-content: center;
     z-index: 9999;
 }
-
-.modal-overlay.hidden {
-    display: none;
-}
+.modal-overlay.hidden { display: none; }
 
 .modal-content {
     background: var(--background0);
@@ -752,10 +622,7 @@ footer {
     display: flex;
     flex-direction: column;
 }
-
-.sqlite-viewer-modal {
-    border-color: #89b4fa; /* Catppuccin blue */
-}
+.sqlite-viewer-modal { border-color: #89b4fa; }
 
 .modal-header {
     display: flex;
@@ -764,119 +631,33 @@ footer {
     padding: 1rem;
     border-bottom: 1px solid var(--foreground2);
 }
+.modal-header h2 { margin: 0; font-size: 1.1rem; color: var(--accent1); }
+.modal-close { font-size: 1.5rem; color: var(--foreground2); cursor: pointer; line-height: 1; }
+.modal-close:hover { color: var(--accent4); }
 
-.modal-header h2 {
-    margin: 0;
-    font-size: 1.1rem;
-    color: var(--accent1);
-}
-
-.modal-close {
-    font-size: 1.5rem;
-    color: var(--foreground2);
-    cursor: pointer;
-    line-height: 1;
-}
-
-.modal-close:hover {
-    color: var(--accent4);
-}
-
-.modal-body {
-    flex: 1;
-    overflow: hidden;
-    padding: 1rem;
-}
-
-.modal-footer {
-    padding: 0.75rem 1rem;
-    border-top: 1px solid var(--foreground2);
-    text-align: center;
-}
-
-.help-text {
-    font-size: 0.75rem;
-    color: var(--foreground2);
-}
+.modal-body { flex: 1; overflow: hidden; padding: 1rem; }
+.modal-footer { padding: 0.75rem 1rem; border-top: 1px solid var(--foreground2); text-align: center; }
+.help-text { font-size: 0.75rem; color: var(--foreground2); }
 
 .sqlite-view {
     height: 100%;
     overflow-y: auto;
     scrollbar-width: thin;
 }
+.sqlite-view::-webkit-scrollbar { width: 8px; }
+.sqlite-view::-webkit-scrollbar-track { background: var(--background1); }
+.sqlite-view::-webkit-scrollbar-thumb { background: var(--foreground2); border-radius: 4px; }
 
-.sqlite-view::-webkit-scrollbar {
-    width: 8px;
-}
-
-.sqlite-view::-webkit-scrollbar-track {
-    background: var(--background1);
-}
-
-.sqlite-view::-webkit-scrollbar-thumb {
-    background: var(--foreground2);
-    border-radius: 4px;
-}
-
-.sqlite-tables-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-family: monospace;
-    border: none !important;
-}
-
-/* Override WebTUI table border system */
-.sqlite-tables-table {
-    --table-border-width: 0 !important;
-    --table-border-color: transparent !important;
-}
-
-.sqlite-tables-table:before,
-.sqlite-tables-table tr th:before,
-.sqlite-tables-table tr td:before,
-.sqlite-tables-table tr th:after,
-.sqlite-tables-table tr td:after {
-    display: none !important;
-}
-
-.sqlite-tables-table thead td {
-    padding: 0.5rem;
-    text-transform: uppercase;
-    font-weight: bold;
-    color: var(--foreground2);
-    font-size: 0.75rem;
-}
-
-.sqlite-tables-table tbody td {
-    padding: 0.5rem;
-    font-size: 0.8rem;
-    color: var(--foreground1);
-}
-
-.sqlite-table-row {
-    cursor: pointer;
-    transition: background-color 0.1s;
-}
-
-.sqlite-table-row:hover {
-    background: var(--background1);
-}
-
-.sqlite-table-row.selected {
-    background: var(--background2);
-}
-
+.sqlite-table-row { cursor: pointer; transition: background-color 0.1s; }
+.sqlite-table-row:hover { background: var(--background1); }
+.sqlite-table-row.selected { background: var(--background2); }
 .sqlite-table-row.selected td:first-child::before {
     content: '>';
     margin-right: 0.5rem;
     color: var(--accent1);
     font-weight: bold;
 }
-
-.table-name {
-    color: var(--accent2);
-    font-weight: bold;
-}
+.table-name { color: var(--accent2); font-weight: bold; }
 
 .table-data-header {
     display: flex;
@@ -886,7 +667,6 @@ footer {
     padding-bottom: 0.5rem;
     border-bottom: 1px solid var(--foreground2);
 }
-
 .back-button {
     padding: 0.25rem 0.75rem;
     background: var(--background1);
@@ -897,252 +677,15 @@ footer {
     font-size: 0.8rem;
     font-family: monospace;
 }
+.back-button:hover { background: var(--background2); border-color: var(--accent2); }
 
-.back-button:hover {
-    background: var(--background2);
-    border-color: var(--accent2);
-}
+/* ============================================================
+   7. INVITE VIEWS
+   ============================================================ */
 
-.sqlite-data-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-family: monospace;
-    font-size: 0.75rem;
-    border: none !important;
-}
-
-/* Override WebTUI table border system */
-.sqlite-data-table {
-    --table-border-width: 0 !important;
-    --table-border-color: transparent !important;
-}
-
-.sqlite-data-table:before,
-.sqlite-data-table tr th:before,
-.sqlite-data-table tr td:before,
-.sqlite-data-table tr th:after,
-.sqlite-data-table tr td:after {
-    display: none !important;
-}
-
-.sqlite-data-table thead td {
-    padding: 0.5rem;
-    text-transform: uppercase;
-    font-weight: bold;
-    color: var(--foreground2);
-    font-size: 0.7rem;
-    position: sticky;
-    top: 0;
-    background: var(--background0);
-}
-
-.sqlite-data-table tbody td {
-    padding: 0.5rem;
-    color: var(--foreground1);
-}
-
-.sqlite-data-table tbody tr:hover {
-    background: var(--background1);
-}
-
-/* ============================================================ */
-/* System Status Section */
-/* ============================================================ */
-.system-status-section {
-    margin-top: 2rem;
-    padding-top: 0;
-    border-top: 1px solid var(--foreground2);
-    position: relative;
-}
-
-.system-status-section h3 {
-    position: absolute;
-    top: -0.6rem;
-    left: 0.5rem;
-    margin: 0;
-    padding: 0 0.5rem;
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    color: var(--foreground2);
-    background: var(--background0);
-}
-
-.system-status-simple {
-    padding-top: 0.75rem;
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1rem;
-}
-
-/* ============================================================ */
-/* Entity (Agent + Invite) Styling */
-/* ============================================================ */
-.entity-invite {
-    font-style: italic;
-}
-
-.entity-invalid {
-    opacity: 0.6;
-}
-
-.invite-label {
-    color: var(--foreground2);
-    font-size: 0.75rem;
-    text-align: right;
-    font-style: italic;
-}
-
-/* ============================================================ */
-/* Invite Detail View */
-/* ============================================================ */
-.invite-details-section {
-    margin-bottom: 2rem;
-}
-
-.invite-details-section h3 {
-    margin: 0 0 1rem 0;
-    font-size: 0.9rem;
-    color: var(--foreground1);
-    text-transform: lowercase;
-}
-
-.invite-url-box {
-    margin-bottom: 1.5rem;
-    padding: 1rem;
-    border-radius: 6px;
-    background: var(--background1);
-}
-
-.invite-url-label {
-    font-size: 0.75rem;
-    color: var(--foreground2);
-    text-transform: uppercase;
-    margin-bottom: 0.5rem;
-}
-
-.invite-url-value {
-    font-family: monospace;
-    font-size: 0.8rem;
-    color: var(--accent1);
-    word-break: break-all;
-    cursor: pointer;
-    padding: 0.5rem;
-    border-radius: 4px;
-    background: var(--background0);
-}
-
-.invite-url-value:hover {
-    background: var(--background2);
-}
-
-.invite-url-command {
-    color: var(--foreground1);
-}
-
-/* TUI-style invite sections */
-.invite-section {
-    margin-bottom: 2rem;
-    padding: 0;
-}
-
-.invite-method-title {
-    font-size: 0.85rem;
-    font-weight: bold;
-    color: var(--accent1);
-    margin-bottom: 0.5rem;
-    font-family: monospace;
-}
-
-.invite-instruction {
-    font-size: 0.75rem;
-    color: var(--foreground2);
-    margin-bottom: 0.5rem;
-    font-family: monospace;
-}
-
-.invite-command {
-    background: var(--surface0);
-    border-left: 3px solid var(--accent1);
-}
-
-.invite-url {
-    background: var(--surface0);
-    border-left: 3px solid var(--accent2);
-}
-
-.invite-note {
-    font-size: 0.7rem;
-    color: var(--foreground2);
-    font-family: monospace;
-    margin-top: 1.5rem;
-    text-align: center;
-    font-style: italic;
-}
-
-/* Invite status view (detail panel) - simplified TUI style */
-.invite-status-info {
-    padding: 1rem 0;
-}
-
-.invite-status-title {
-    font-size: 0.75rem;
-    color: var(--foreground2);
-    margin-bottom: 0.5rem;
-    font-family: monospace;
-    text-transform: uppercase;
-}
-
-.invite-status-text {
-    font-size: 0.75rem;
-    color: var(--foreground2);
-    line-height: 1.6;
-    font-family: monospace;
-}
-
-/* TUI-style pending agent view */
-.detail-header-tui {
-    font-family: monospace;
-    font-size: 0.85rem;
-    padding: 0.5rem 0;
-    margin-bottom: 1rem;
-    border-bottom: 1px solid var(--foreground2);
-    color: var(--foreground1);
-}
-
-.detail-content-tui {
-    font-family: monospace;
-    font-size: 0.75rem;
-}
-
-.tui-badge {
-    color: var(--foreground2);
-    font-size: 0.7rem;
-}
-
-.tui-box {
-    border: 1px solid var(--foreground2);
-    border-radius: 4px;
-    padding: 0.5rem;
-    padding-top: 1rem;
-    position: relative;
-    margin-bottom: 0;
-    width: 100%;
-    height: 100%;
-    box-sizing: border-box;
-}
-
-.tui-box h3 {
-    position: absolute;
-    top: -0.6rem;
-    left: 0.5rem;
-    margin: 0;
-    padding: 0 0.5rem;
-    font-size: 0.7rem;
-    text-transform: lowercase;
-    color: var(--foreground2);
-    background: var(--background0);
-    font-weight: normal;
-}
+.entity-invite { font-style: italic; }
+.entity-invalid { opacity: 0.6; }
+.invite-label { color: var(--foreground2); font-size: 0.75rem; text-align: right; font-style: italic; }
 
 .tui-box-content {
     color: var(--foreground1);
@@ -1156,11 +699,7 @@ footer {
     margin: -0.25rem;
     border-radius: 3px;
 }
-
-.tui-box-content:hover {
-    color: var(--accent1);
-    background: var(--background1);
-}
+.tui-box-content:hover { color: var(--accent1); background: var(--background1); }
 
 .tui-footer {
     margin-top: 2rem;
@@ -1169,7 +708,6 @@ footer {
     text-align: center;
     font-size: 0.75rem;
 }
-
 .pulse-dot {
     display: inline-block;
     width: 0.5em;
@@ -1179,639 +717,46 @@ footer {
     animation: pulse 2s ease-in-out infinite;
 }
 
-@keyframes pulse {
-    0%, 100% {
-        opacity: 0.3;
-        transform: scale(0.8);
-    }
-    50% {
-        opacity: 1;
-        transform: scale(1);
-    }
+/* ============================================================
+   8. RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 1200px) {
+    #agents-table thead td:nth-child(3),
+    #agents-table thead td:nth-child(4),
+    #agents-table tbody td:nth-child(3),
+    #agents-table tbody td:nth-child(4) { display: none; }
 }
 
-@keyframes heartbeat-pulse {
-    0%, 49% {
-        opacity: 1;
-    }
-    50%, 99% {
-        opacity: 0;
-    }
-}
-
-/* ============================================================ */
-/* Widget System */
-/* ============================================================ */
-
-/* Sparklines row at top */
-.widget-sparklines {
-    display: flex;
-    gap: 2rem;
-    margin-bottom: 1rem;
-    font-family: monospace;
-}
-
-.widget-sparkline {
-    display: flex;
-    gap: 0.75rem;
-    align-items: center;
-    font-size: 0.8rem;
-}
-
-.widget-sparkline .stat-label {
-    color: var(--foreground2);
-    text-transform: uppercase;
-    font-size: 0.75rem;
-    min-width: 3rem;
-}
-
-.widget-sparkline .stat-value {
-    color: var(--accent1);
-    font-weight: bold;
-    min-width: 3.5rem;
-    text-align: right;
-}
-
-.widget-sparkline .sparkline {
-    color: var(--accent1);
-    letter-spacing: 0.05em;
-}
-
-.widget-sparkline .stat-extra {
-    color: var(--foreground2);
-    font-size: 0.75rem;
-}
-
-/* Stats row */
-.widget-stats {
-    display: flex;
-    gap: 1.5rem;
-    flex-wrap: wrap;
-    margin-bottom: 1rem;
-}
-
-.widget-stat {
-    font-family: monospace;
-    font-size: 0.8rem;
-}
-
-.widget-stat h4 {
-    margin: 0 0 0.5rem 0;
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    color: var(--foreground2);
-}
-
-/* Charts grid */
-.widget-charts {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1rem;
-    row-gap: 1.5rem;
-    margin-bottom: 1rem;
-}
-
-.widget-chart {
-    border: 1px solid var(--foreground2);
-    border-radius: 4px;
-    padding: 0.5rem;
-    padding-top: 1rem;
-    position: relative;
-}
-
-.widget-chart h3 {
-    position: absolute;
-    top: -0.6rem;
-    left: 0.5rem;
-    margin: 0;
-    padding: 0 0.5rem;
-    font-size: 0.7rem;
-    text-transform: lowercase;
-    color: var(--foreground2);
-    background: var(--background0);
-}
-
-/* Tables section */
-.widget-tables {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    margin-bottom: 1rem;
-}
-
-.widget-table {
-    font-family: monospace;
-    font-size: 0.75rem;
-}
-
-.widget-table h4 {
-    margin: 0 0 0.5rem 0;
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    color: var(--foreground2);
-}
-
-.widget-table-inner {
-    width: 100%;
-    border-collapse: collapse;
-    border: none !important;
-    --table-border-width: 0 !important;
-    --table-border-color: transparent !important;
-}
-
-.widget-table-inner:before,
-.widget-table-inner tr th:before,
-.widget-table-inner tr td:before,
-.widget-table-inner tr th:after,
-.widget-table-inner tr td:after {
-    display: none !important;
-}
-
-.widget-table-inner thead td {
-    padding: 0.25rem 0.5rem;
-    text-transform: uppercase;
-    font-weight: bold;
-    color: var(--foreground2);
-    font-size: 0.7rem;
-}
-
-.widget-table-inner tbody td {
-    padding: 0.25rem 0.5rem;
-    color: var(--foreground1);
-}
-
-/* Usage bars */
-.bar-cell {
-    width: 100px;
-    position: relative;
-}
-
-.usage-bar {
-    height: 0.5rem;
-    border-radius: 2px;
-    transition: width 0.3s ease;
-}
-
-.usage-bar-inline {
-    display: inline-block;
-    height: 0.4rem;
-    border-radius: 2px;
-    vertical-align: middle;
-    margin-left: 0.5rem;
-    min-width: 50px;
-}
-
-.bar-ok {
-    background: #a6e3a1; /* Catppuccin green */
-}
-
-.bar-warning {
-    background: #f9e2af; /* Catppuccin yellow */
-}
-
-.bar-critical {
-    background: #f38ba8; /* Catppuccin red */
-}
-
-/* Health indicators */
-.health-ok {
-    color: #a6e3a1; /* Catppuccin green */
-}
-
-.health-degraded {
-    color: #f38ba8; /* Catppuccin red */
-    font-weight: bold;
-}
-
-/* Stat value colors for sparkline widgets */
-.stat-ok {
-    color: #a6e3a1; /* Catppuccin green */
-}
-
-.stat-critical {
-    color: #f38ba8; /* Catppuccin red */
-}
-
-.capacity-value {
-    display: inline-block;
-    min-width: 2.5rem;
-    text-align: right;
-}
-
-/* Proxmox stat grid */
-.proxmox-stat-grid {
-    display: flex;
-    gap: 1.5rem;
-}
-
-.proxmox-stat {
-    text-align: center;
-}
-
-.proxmox-stat-value {
-    display: block;
-    font-size: 1.25rem;
-    font-weight: bold;
-    color: var(--foreground1);
-}
-
-.proxmox-stat-value.running {
-    color: #a6e3a1; /* Catppuccin green */
-}
-
-.proxmox-stat-value.stopped {
-    color: var(--foreground2);
-}
-
-.proxmox-stat-label {
-    font-size: 0.7rem;
-    color: var(--foreground2);
-    text-transform: uppercase;
-}
-
-/* Responsive widget layout */
 @media (max-width: 1000px) {
-    .widget-charts {
-        grid-template-columns: 1fr;
-    }
-
-    .widget-sparklines {
-        flex-wrap: wrap;
-    }
-}
-
-@media (max-width: 500px) {
-    .widget-stats {
-        flex-direction: column;
-    }
-
-    .proxmox-stat-grid {
-        justify-content: space-around;
-    }
-}
-
-/* ============================================================ */
-/* TUI Grid System - 4 Sizes (1/4, 2/4, 3/4, 4/4) */
-/* ============================================================ */
-
-/* Grid container for all widgets - 4 column base */
-.widget-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 0.75rem;
-    margin-bottom: 1rem;
-    align-items: stretch;
-    justify-items: stretch;
-}
-
-/* Grid sizes: xs (1/4), sm (2/4), md (3/4), lg (4/4 full width) */
-.grid-xs { grid-column: span 1; }
-.grid-sm { grid-column: span 2; }
-.grid-md { grid-column: span 3; }
-.grid-lg { grid-column: span 4; }
-
-/* Responsive grid */
-@media (max-width: 1000px) {
-    .widget-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
+    .widget-grid { grid-template-columns: repeat(2, 1fr); }
     .grid-xs { grid-column: span 1; }
     .grid-sm { grid-column: span 1; }
     .grid-md { grid-column: span 2; }
     .grid-lg { grid-column: span 2; }
+    .widget-expanded { grid-column: span 2 !important; }
+}
+
+@media (max-width: 900px) {
+    #agents-table thead td:nth-child(2),
+    #agents-table tbody td:nth-child(2) { display: none; }
 }
 
 @media (max-width: 600px) {
-    .widget-grid {
-        grid-template-columns: 1fr;
-    }
+    .widget-grid { grid-template-columns: 1fr; }
     .grid-xs, .grid-sm, .grid-md, .grid-lg { grid-column: span 1; }
+    .widget-expanded { grid-column: span 1 !important; }
 }
 
-/* ============================================================ */
-/* TUI Metric Boxes (Sparklines & Stats) */
-/* ============================================================ */
-
-.tui-metric-box {
-    border: 1px solid var(--foreground2);
-    border-radius: 4px;
-    padding: 0.5rem 0.75rem;
-    font-family: monospace;
-    position: relative;
-    background: var(--background0);
-    cursor: pointer;
-    transition: border-color 0.15s, box-shadow 0.15s;
-    outline: none;
-    box-sizing: border-box;
-}
-
-/* Make metric boxes fill their grid cells */
-.widget-grid .tui-metric-box,
-.widget-grid .tui-box {
-    width: 100% !important;
-    flex: 1 !important;
-}
-
-.tui-metric-box:hover {
-    border-color: var(--accent1);
-}
-
-.tui-metric-box:focus {
-    border-color: var(--accent1);
-    box-shadow: 0 0 0 2px rgba(203, 166, 247, 0.3);
-}
-
-.tui-metric-box.selected {
-    border-color: var(--accent1);
-    border-width: 2px;
-}
-
-.tui-metric-header {
-    position: absolute;
-    top: -0.5rem;
-    left: 0.5rem;
-    padding: 0 0.4rem;
-    font-size: 0.65rem;
-    text-transform: uppercase;
-    color: var(--foreground2);
-    background: var(--background0);
-    letter-spacing: 0.05em;
-}
-
-.tui-metric-value {
-    font-size: 1.1rem;
-    font-weight: bold;
-    color: var(--accent1);
-    margin-bottom: 0.25rem;
-}
-
-.tui-unit {
-    font-size: 0.8rem;
-    font-weight: normal;
-    color: var(--foreground2);
-}
-
-.tui-metric-sparkline {
-    font-size: 0.9rem;
-    letter-spacing: -0.05em;
-    margin-bottom: 0.25rem;
-}
-
-.tui-metric-extra {
-    font-size: 0.7rem;
-    color: var(--foreground2);
-}
-
-/* Expand hint */
-.tui-expand-hint {
-    position: absolute;
-    bottom: 0.25rem;
-    right: 0.5rem;
-    font-size: 0.6rem;
-    color: var(--foreground2);
-    opacity: 0;
-    transition: opacity 0.15s;
-}
-
-.tui-metric-box:hover .tui-expand-hint,
-.tui-metric-box:focus .tui-expand-hint {
-    opacity: 1;
-}
-
-/* Info rows (for system widget) */
-.tui-info-row {
-    display: flex;
-    justify-content: space-between;
-    gap: 1rem;
-    padding: 0.15rem 0;
-    font-size: 0.75rem;
-}
-
-.tui-info-label {
-    color: var(--foreground2);
-    text-transform: uppercase;
-    font-size: 0.65rem;
-}
-
-.tui-info-value {
-    color: var(--foreground1);
-    text-align: right;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    max-width: 140px;
-}
-
-/* Stat grid (for VMs widget) */
-.tui-stat-grid {
-    display: flex;
-    gap: 1rem;
-    justify-content: space-around;
-}
-
-.tui-stat {
-    text-align: center;
-}
-
-.tui-stat-value {
-    display: block;
-    font-size: 1.2rem;
-    font-weight: bold;
-    color: var(--foreground1);
-}
-
-.tui-stat-label {
-    font-size: 0.65rem;
-    color: var(--foreground2);
-    text-transform: uppercase;
-}
-
-.tui-muted {
-    color: var(--foreground2) !important;
-}
-
-/* ============================================================ */
-/* Widget Container - fill grid cell */
-/* ============================================================ */
-
-.widget {
-    display: flex;
-    width: 100%;
-    min-width: 0;  /* Allow shrinking in grid */
-}
-
-.widget > .tui-metric-box,
-.widget > .tui-box {
-    flex: 1 1 100% !important;
-    width: 100% !important;
-}
-
-/* ============================================================ */
-/* Widget Focus States */
-/* ============================================================ */
-
-.widget:focus {
-    outline: none;
-    box-shadow: 0 0 0 2px var(--accent1);
-}
-
-.widget:focus .tui-metric-box,
-.widget:focus .tui-box {
-    border-color: var(--accent1);
-}
-
-/* ============================================================ */
-/* Expanded Widget (Chart View) */
-/* ============================================================ */
-
-.widget-expanded {
-    grid-column: span 4 !important;
-    min-height: 200px;
-}
-
-@media (max-width: 1000px) {
-    .widget-expanded {
-        grid-column: span 2 !important;
-    }
-}
-
-@media (max-width: 600px) {
-    .widget-expanded {
-        grid-column: span 1 !important;
-    }
-}
-
-.widget-expanded .tui-metric-box {
-    display: flex;
-    flex-direction: column;
-}
-
-.widget-expanded .widget-chart-container {
-    flex: 1;
-    min-height: 150px;
-    margin-top: 0.5rem;
-}
-
-.widget-expanded .widget-chart-container canvas {
-    width: 100% !important;
-    height: 100% !important;
-}
-
-/* Collapse button in expanded view */
-.tui-collapse-btn {
-    position: absolute;
-    top: 0.25rem;
-    right: 0.5rem;
-    font-size: 0.7rem;
-    color: var(--foreground2);
-    cursor: pointer;
-    padding: 0.1rem 0.3rem;
-    border-radius: 2px;
-}
-
-.tui-collapse-btn:hover {
-    color: var(--accent1);
-    background: var(--background1);
-}
-
-/* Expanded widget stats row */
-.widget-expanded-stats {
-    display: flex;
-    gap: 1.5rem;
-    font-size: 0.75rem;
-    color: var(--foreground2);
-    margin-bottom: 0.5rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 1px solid var(--foreground2);
-}
-
-.widget-expanded-stats strong {
-    color: var(--accent1);
-}
-
-/* Legacy widget layouts - keep for backward compatibility */
-.widget-sparklines {
-    display: none; /* Replaced by grid */
-}
-
-.widget-stats {
-    display: none; /* Replaced by grid */
-}
-
-.widget-charts {
-    display: none; /* Replaced by grid */
-}
-
-/* ============================================================ */
-/* TUI Storage & ZFS Widgets */
-/* ============================================================ */
-
-.tui-storage-list,
-.tui-zfs-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    font-family: monospace;
-    font-size: 0.8rem;
-}
-
-.tui-storage-row,
-.tui-zfs-row {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 0.25rem 0;
-}
-
-.tui-storage-name,
-.tui-zfs-name {
-    min-width: 5rem;
-    color: var(--accent2);
-    font-weight: bold;
-}
-
-.tui-storage-bar,
-.tui-zfs-bar {
-    font-family: monospace;
-    letter-spacing: -0.05em;
-}
-
-.tui-storage-info {
-    color: var(--foreground2);
-    font-size: 0.75rem;
-    white-space: nowrap;
-}
-
-.tui-zfs-health {
-    min-width: 8rem;
-    font-size: 0.75rem;
-}
-
-.tui-zfs-capacity {
-    min-width: 3rem;
-    text-align: right;
-    color: var(--foreground1);
-}
-
-/* TUI bar colors */
-.tui-bar-ok {
-    color: #a6e3a1; /* Catppuccin green */
-}
-
-.tui-bar-warning {
-    color: #f9e2af; /* Catppuccin yellow */
-}
-
-.tui-bar-critical {
-    color: #f38ba8; /* Catppuccin red */
-}
-
-/* TUI health indicators */
-.tui-health-ok {
-    color: #a6e3a1; /* Catppuccin green */
-}
-
-.tui-health-degraded {
-    color: #f38ba8; /* Catppuccin red */
-    font-weight: bold;
+@media (max-width: 500px) {
+    body { height: auto; overflow: auto; }
+    .main-content { flex-direction: column; overflow: auto; }
+    .left-column { flex: 0 0 auto; width: 100%; }
+    .detail-column { flex: 0 0 auto; width: 100%; min-height: 400px; }
+    .log-box { height: 100px; }
+    .agents-section { max-height: 300px; }
+    #detail-panel { min-height: 400px; }
+    footer { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
+    .footer-left, .footer-right { width: 100%; }
+    .tui-stat-grid { justify-content: space-around; }
 }

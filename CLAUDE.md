@@ -182,6 +182,62 @@ Shell scripts start with 2-line comment after shebang:
 # Key details (inputs/outputs, how invoked).
 ```
 
+## Frontend CSS Architecture
+
+CSS lives in `console/web/public/css/styles.css` with clear sections:
+1. **Base & Layout** - Body, main content, columns
+2. **Utility Classes** - Reusable DRY patterns
+3. **Components** - Log box, agents table, detail panel, footer
+4. **Grid System** - 4-column widget layout
+5. **Widgets** - Metric boxes, storage, ZFS displays
+6. **Modals** - SQLite viewer, dialogs
+7. **Responsive** - Breakpoints for mobile
+
+### TUI Grid System (4-column)
+
+```html
+<div class="widget-grid">
+    <div class="widget grid-sm">...</div>  <!-- 2/4 width -->
+    <div class="widget grid-sm">...</div>  <!-- 2/4 width -->
+</div>
+```
+
+| Class | Columns | Width |
+|-------|---------|-------|
+| `.grid-xs` | span 1 | 25% |
+| `.grid-sm` | span 2 | 50% |
+| `.grid-md` | span 3 | 75% |
+| `.grid-lg` | span 4 | 100% |
+
+**Responsive behavior:**
+- `<1000px`: 2-column grid
+- `<600px`: 1-column grid
+
+### Utility Classes
+
+| Class | Purpose |
+|-------|---------|
+| `.tui-table` | Borderless WebTUI table reset |
+| `.tui-box` | Bordered box with floating header |
+| `.tui-metric-box` | Clickable metric card |
+| `.no-scrollbar` | Hide scrollbars |
+| `.status-online/warning/error` | Status colors |
+| `.bar-ok/warning/critical` | Progress bar colors |
+
+### Widget Structure
+
+```html
+<div class="widget grid-sm">
+    <div class="tui-metric-box">
+        <div class="tui-metric-header">CPU</div>
+        <div class="tui-metric-value">42.0<span class="tui-unit">%</span></div>
+        <div class="tui-metric-sparkline">▁▂▃▄▅▆▇█</div>
+        <div class="tui-metric-extra">avg 45.2%</div>
+        <div class="tui-expand-hint">enter</div>
+    </div>
+</div>
+```
+
 ## Important: Dev Server Restart
 
 **Always restart the dev server before reporting completed changes to the user.**
