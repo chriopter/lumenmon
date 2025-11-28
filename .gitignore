@@ -77,3 +77,6 @@ docker-compose.override.yml
 __pycache__/
 
 dev/data/
+
+# Dev reset trigger file
+.reset

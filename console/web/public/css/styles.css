@@ -1446,3 +1446,77 @@ footer {
         justify-content: space-around;
     }
 }
+
+/* ============================================================ */
+/* TUI Storage & ZFS Widgets */
+/* ============================================================ */
+
+.tui-storage-list,
+.tui-zfs-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    font-family: monospace;
+    font-size: 0.8rem;
+}
+
+.tui-storage-row,
+.tui-zfs-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.25rem 0;
+}
+
+.tui-storage-name,
+.tui-zfs-name {
+    min-width: 5rem;
+    color: var(--accent2);
+    font-weight: bold;
+}
+
+.tui-storage-bar,
+.tui-zfs-bar {
+    font-family: monospace;
+    letter-spacing: -0.05em;
+}
+
+.tui-storage-info {
+    color: var(--foreground2);
+    font-size: 0.75rem;
+    white-space: nowrap;
+}
+
+.tui-zfs-health {
+    min-width: 8rem;
+    font-size: 0.75rem;
+}
+
+.tui-zfs-capacity {
+    min-width: 3rem;
+    text-align: right;
+    color: var(--foreground1);
+}
+
+/* TUI bar colors */
+.tui-bar-ok {
+    color: #a6e3a1; /* Catppuccin green */
+}
+
+.tui-bar-warning {
+    color: #f9e2af; /* Catppuccin yellow */
+}
+
+.tui-bar-critical {
+    color: #f38ba8; /* Catppuccin red */
+}
+
+/* TUI health indicators */
+.tui-health-ok {
+    color: #a6e3a1; /* Catppuccin green */
+}
+
+.tui-health-degraded {
+    color: #f38ba8; /* Catppuccin red */
+    font-weight: bold;
+}

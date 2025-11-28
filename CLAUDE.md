@@ -31,12 +31,26 @@ lumenmon-agent uninstall    # Remove agent
 
 ### Development Commands
 ```bash
-./dev/auto         # Full reset and setup
+./dev/auto         # Full reset, setup, virtual agent, and watch for .reset
 ./dev/add3         # Spawn 3 test agents
 ./dev/add-virtual  # Virtual agent with ALL metrics (Proxmox/ZFS data without real infra)
 ./dev/release      # Create new release
 ./dev/updatedeps   # Update vendored CSS/JS
 ```
+
+### Remote Development (.reset file)
+When developing in a remote environment (e.g., CodeCage), the dev server runs on the host machine. To trigger a full restart of the dev environment:
+
+```bash
+touch .reset       # Creates .reset file, ./dev/auto watches and restarts
+```
+
+The `./dev/auto` script watches for a `.reset` file in the project root. When detected:
+1. Kills the virtual agent process
+2. Re-executes itself (full restart)
+3. Removes the `.reset` file
+
+This allows remote tools to trigger rebuilds without direct terminal access.
 
 ## Installation
 

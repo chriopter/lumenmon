@@ -53,7 +53,7 @@ LumenmonWidget({
     }
 });
 
-// Detailed table widget
+// Detailed TUI-style widget
 LumenmonWidget({
     name: 'proxmox_zfs',
     title: 'ZFS Pools',
@@ -76,10 +76,17 @@ LumenmonWidget({
 
         const poolList = Object.entries(pools);
         if (poolList.length === 0) {
-            return '<h4>ZFS Pools</h4><span class="no-data">No ZFS data</span>';
+            return '<div class="tui-box"><h3>zfs pools</h3><span class="no-data">No ZFS data</span></div>';
         }
 
-        let html = '<h4>ZFS Pools</h4><table class="widget-table-inner"><thead><tr><td>POOL</td><td>HEALTH</td><td>CAPACITY</td></tr></thead><tbody>';
+        // ASCII bar helper
+        const asciiBar = (percent, width = 10) => {
+            const filled = Math.round((percent / 100) * width);
+            const empty = width - filled;
+            return '█'.repeat(filled) + '░'.repeat(empty);
+        };
+
+        let html = '<div class="tui-box"><h3>zfs pools</h3><div class="tui-zfs-list">';
         poolList.forEach(([name, p]) => {
             const drives = p.drives || 0;
             const online = p.online || 0;
@@ -87,20 +94,21 @@ LumenmonWidget({
 
             // Health status
             const healthy = drives === online;
-            const healthClass = healthy ? 'health-ok' : 'health-degraded';
-            const healthText = healthy ? `${online}/${drives} online` : `${online}/${drives} DEGRADED`;
+            const healthIcon = healthy ? '●' : '⚠';
+            const healthClass = healthy ? 'tui-health-ok' : 'tui-health-degraded';
+            const healthText = healthy ? 'online' : 'DEGRADED';
 
-            // Capacity bar
-            const barWidth = Math.min(capacity, 100);
-            const barClass = capacity > 90 ? 'bar-critical' : capacity > 70 ? 'bar-warning' : 'bar-ok';
+            // Capacity bar color
+            const barClass = capacity > 90 ? 'tui-bar-critical' : capacity > 70 ? 'tui-bar-warning' : 'tui-bar-ok';
 
-            html += `<tr>
-                <td>${name.replace(/_/g, '-')}</td>
-                <td class="${healthClass}">${healthText}</td>
-                <td><span class="capacity-value">${capacity.toFixed(0)}%</span> <div class="usage-bar-inline ${barClass}" style="width: ${barWidth}%"></div></td>
-            </tr>`;
+            html += `<div class="tui-zfs-row">
+                <span class="tui-zfs-name">${name.replace(/_/g, '-')}</span>
+                <span class="tui-zfs-health ${healthClass}">${healthIcon} ${online}/${drives} ${healthText}</span>
+                <span class="tui-zfs-bar ${barClass}">${asciiBar(capacity)}</span>
+                <span class="tui-zfs-capacity">${capacity}%</span>
+            </div>`;
         });
-        html += '</tbody></table>';
+        html += '</div></div>';
         return html;
     }
 });

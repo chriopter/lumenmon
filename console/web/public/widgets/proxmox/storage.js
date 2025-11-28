@@ -1,5 +1,5 @@
 /**
- * Proxmox Storage Widget - Shows storage pool usage
+ * Proxmox Storage Widget - Shows storage pool usage in TUI style
  */
 
 LumenmonWidget({
@@ -9,28 +9,44 @@ LumenmonWidget({
     metrics: ['proxmox_storage_*'],
     size: 'table',
     render: function(data, agent) {
-        const pools = Object.entries(data)
-            .filter(([name]) => name.startsWith('proxmox_storage_'))
-            .map(([name, table]) => ({
-                name: name.replace('proxmox_storage_', '').replace(/_/g, '-'),
-                used: table.columns?.value || 0
-            }));
+        // Group storage metrics by pool name (e.g., local, nas)
+        const poolData = {};
+        Object.entries(data).forEach(([name, table]) => {
+            const match = name.match(/^proxmox_storage_(.+)_(total|used)$/);
+            if (match) {
+                const poolName = match[1];
+                const metric = match[2];
+                if (!poolData[poolName]) poolData[poolName] = {};
+                poolData[poolName][metric] = table.columns?.value || 0;
+            }
+        });
 
+        const pools = Object.entries(poolData);
         if (pools.length === 0) {
-            return '<h4>Storage Pools</h4><span class="no-data">No storage data</span>';
+            return '<div class="tui-box"><h3>storage pools</h3><span class="no-data">No storage data</span></div>';
         }
 
-        let html = '<h4>Storage Pools</h4><table class="widget-table-inner"><thead><tr><td>POOL</td><td>USED</td><td></td></tr></thead><tbody>';
-        pools.forEach(pool => {
-            const barWidth = Math.min(pool.used, 100);
-            const barClass = pool.used > 90 ? 'bar-critical' : pool.used > 70 ? 'bar-warning' : 'bar-ok';
-            html += `<tr>
-                <td>${pool.name}</td>
-                <td>${pool.used.toFixed(1)}%</td>
-                <td class="bar-cell"><div class="usage-bar ${barClass}" style="width: ${barWidth}%"></div></td>
-            </tr>`;
+        // ASCII bar helper
+        const asciiBar = (percent, width = 12) => {
+            const filled = Math.round((percent / 100) * width);
+            const empty = width - filled;
+            return '█'.repeat(filled) + '░'.repeat(empty);
+        };
+
+        let html = '<div class="tui-box"><h3>storage pools</h3><div class="tui-storage-list">';
+        pools.forEach(([name, p]) => {
+            const total = p.total || 0;
+            const used = p.used || 0;
+            const percent = total > 0 ? (used / total) * 100 : 0;
+            const colorClass = percent > 90 ? 'tui-bar-critical' : percent > 70 ? 'tui-bar-warning' : 'tui-bar-ok';
+
+            html += `<div class="tui-storage-row">
+                <span class="tui-storage-name">${name.replace(/_/g, '-')}</span>
+                <span class="tui-storage-bar ${colorClass}">${asciiBar(percent)}</span>
+                <span class="tui-storage-info">${used} / ${total} GB</span>
+            </div>`;
         });
-        html += '</tbody></table>';
+        html += '</div></div>';
         return html;
     }
 });

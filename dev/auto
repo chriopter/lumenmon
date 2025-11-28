@@ -1,13 +1,16 @@
 #!/bin/bash
-# Development auto-setup: resets console, starts one dev agent in Docker.
+# Development auto-setup: resets console, starts dev agent + virtual agent, watches for .reset file.
 # For development only.
 
 set -e
 cd "$(dirname "$0")/.."
 
+# Clean up .reset file if it exists
+rm -f .reset
+
 echo "Stopping containers..."
-docker stop lumenmon-console lumenmon-dev-agent 2>/dev/null || true
-docker rm lumenmon-console lumenmon-dev-agent 2>/dev/null || true
+docker stop lumenmon-console lumenmon-dev-agent lumenmon-virtual-test 2>/dev/null || true
+docker rm lumenmon-console lumenmon-dev-agent lumenmon-virtual-test 2>/dev/null || true
 
 echo "Cleaning data..."
 rm -rf dev/data 2>/dev/null || true
@@ -49,7 +52,26 @@ docker run -d \
     lumenmon-dev-agent
 
 echo ""
+echo "Starting virtual test agent..."
+./dev/add-virtual &
+VIRTUAL_PID=$!
+
+echo ""
 echo "Done! Dashboard: http://localhost:8080"
 echo ""
 echo "Logs:  docker logs -f lumenmon-dev-agent"
 echo "Stop:  docker stop lumenmon-dev-agent lumenmon-console"
+echo ""
+echo "Watching for .reset file (touch .reset to restart)..."
+
+# Watch for .reset file to trigger restart
+while true; do
+    if [ -f .reset ]; then
+        echo ""
+        echo "[reset] .reset file detected, restarting..."
+        rm -f .reset
+        kill $VIRTUAL_PID 2>/dev/null || true
+        exec "$0"
+    fi
+    sleep 1
+done
