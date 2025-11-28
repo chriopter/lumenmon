@@ -13,7 +13,7 @@ Console runs in Docker, agents are bare metal bash scripts.as
 Next up: 
 - Smart Collector Fail Detection (zfs.sh)
 - Proxmox Suppor
-- Failed Value State detection, deliver threshold values
+- Failed Value State detection, deliver threshold values low and high (in DB yes or no?)
 - Socket Status Collector Script
 - github script test check
 - docker update avilable check
