@@ -1,15 +1,102 @@
 <!--
 Keyboard navigation event handler for TUI-style shortcuts.
 Binds ↑/↓/j/k (navigation), Enter (detail), Esc (close), i (invite), r (refresh), d (delete).
+Tab switches focus between agent list and detail pane.
 -->
 <script>
+    // Track which pane has focus: 'list' or 'detail'
+    window.app = window.app || {};
+    window.app.focusPane = 'list';
+
+    // Focus the first widget in detail pane
+    function focusFirstWidget() {
+        const widget = document.querySelector('.widget[tabindex="0"]');
+        if (widget) {
+            widget.focus();
+            window.app.focusPane = 'detail';
+        }
+    }
+
+    // Focus the agent list
+    function focusAgentList() {
+        window.app.focusPane = 'list';
+        // Remove focus from widgets
+        const focused = document.querySelector('.widget:focus');
+        if (focused) focused.blur();
+    }
+
+    // Check if focus is currently in the detail pane
+    function isDetailFocused() {
+        const active = document.activeElement;
+        return active && (active.classList.contains('widget') ||
+               active.closest('#detail-panel'));
+    }
+
     document.addEventListener('keydown', (e) => {
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
             return;
         }
 
         const key = e.key.toLowerCase();
+        const inDetailPane = isDetailFocused();
 
+        // Tab key: switch between agent list and detail pane
+        if (e.key === 'Tab' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+            e.preventDefault();
+            if (window.app.ui.detailViewOpen) {
+                if (inDetailPane || window.app.focusPane === 'detail') {
+                    focusAgentList();
+                } else {
+                    focusFirstWidget();
+                }
+            }
+            return;
+        }
+
+        // If in detail pane, handle widget navigation
+        if (inDetailPane) {
+            const widgets = Array.from(document.querySelectorAll('.widget[tabindex="0"]'));
+            const currentIndex = widgets.indexOf(document.activeElement);
+
+            if (key === 'arrowdown' || key === 'j') {
+                e.preventDefault();
+                // Move down in grid (roughly 3 widgets per row)
+                const next = widgets[currentIndex + 3] || widgets[widgets.length - 1];
+                if (next) next.focus();
+            } else if (key === 'arrowup' || key === 'k') {
+                e.preventDefault();
+                // Move up in grid
+                const prev = widgets[currentIndex - 3] || widgets[0];
+                if (prev) prev.focus();
+            } else if (key === 'arrowright' || key === 'l') {
+                e.preventDefault();
+                const next = widgets[currentIndex + 1];
+                if (next) next.focus();
+            } else if (key === 'arrowleft' || key === 'h') {
+                e.preventDefault();
+                const prev = widgets[currentIndex - 1];
+                if (prev) prev.focus();
+            } else if (key === 'escape') {
+                e.preventDefault();
+                // If widget is expanded, collapse it; otherwise go back to list
+                if (window.LumenmonWidgets.expandedWidget) {
+                    const container = document.getElementById('widgets-container');
+                    const agent = getSelectedAgent();
+                    if (container && agent) {
+                        fetch(`/api/agents/${agent.id}/tables`)
+                            .then(r => r.json())
+                            .then(data => {
+                                window.LumenmonWidgets.collapseWidget(container, agent, data.tables || []);
+                            });
+                    }
+                } else {
+                    focusAgentList();
+                }
+            }
+            return;
+        }
+
+        // Agent list navigation
         if (key === 'arrowdown' || key === 'j') {
             e.preventDefault();
             moveSelection(1);
@@ -23,6 +110,8 @@ Binds ↑/↓/j/k (navigation), Enter (detail), Esc (close), i (invite), r (refr
                 copyInviteUrl(selected.id);
             } else {
                 openDetailView();
+                // Focus first widget after detail view loads
+                setTimeout(focusFirstWidget, 150);
             }
         } else if (key === 'escape') {
             e.preventDefault();

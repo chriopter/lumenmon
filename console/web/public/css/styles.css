@@ -1621,12 +1621,38 @@ footer {
 }
 
 /* ============================================================ */
+/* Widget Focus States */
+/* ============================================================ */
+
+.widget:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--accent1);
+}
+
+.widget:focus .tui-metric-box,
+.widget:focus .tui-box {
+    border-color: var(--accent1);
+}
+
+/* ============================================================ */
 /* Expanded Widget (Chart View) */
 /* ============================================================ */
 
 .widget-expanded {
-    grid-column: span 6 !important;
+    grid-column: span 4 !important;
     min-height: 200px;
+}
+
+@media (max-width: 1200px) {
+    .widget-expanded {
+        grid-column: span 4 !important;
+    }
+}
+
+@media (max-width: 800px) {
+    .widget-expanded {
+        grid-column: span 2 !important;
+    }
 }
 
 .widget-expanded .tui-metric-box {

@@ -8,7 +8,8 @@ LumenmonWidget({
     title: 'ZFS',
     category: 'proxmox',
     metrics: ['proxmox_zfs_*'],
-    size: 'sparkline',
+    size: 'stat',
+    gridSize: 'sm',
     expandable: false,
     render: function(data, agent) {
         // Group metrics by pool name
@@ -67,7 +68,8 @@ LumenmonWidget({
     title: 'ZFS Pools',
     category: 'proxmox',
     metrics: ['proxmox_zfs_*'],
-    size: 'table',
+    size: 'stat',
+    gridSize: 'md',
     render: function(data, agent) {
         // Group metrics by pool name
         const pools = {};

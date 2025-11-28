@@ -181,3 +181,14 @@ Shell scripts start with 2-line comment after shebang:
 # What the script does (purpose).
 # Key details (inputs/outputs, how invoked).
 ```
+
+## Important: Dev Server Restart
+
+**Always restart the dev server before reporting completed changes to the user.**
+
+After making changes to frontend files (HTML, CSS, JS), run:
+```bash
+touch .reset
+```
+
+This triggers the `./dev/auto` script to restart the container and serve updated files. Without this, the browser may serve cached/stale files and changes won't be visible.

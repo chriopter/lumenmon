@@ -152,6 +152,17 @@ window.LumenmonWidgets = {
                 if (el) m.widget.init(el, widgetData, agent);
             }
         });
+
+        // Restore expanded widget from localStorage
+        try {
+            const savedExpanded = localStorage.getItem('lumenmon_expanded_widget');
+            if (savedExpanded && this.instances[savedExpanded]) {
+                const el = container.querySelector(`[data-widget="${savedExpanded}"]`);
+                if (el) {
+                    this.expandWidget(el, this.instances[savedExpanded], container, agent, tables);
+                }
+            }
+        } catch (e) { /* localStorage not available */ }
     },
 
     /**
@@ -237,6 +248,11 @@ window.LumenmonWidgets = {
         this.expandedWidget = widget.name;
         el.classList.add('widget-expanded');
 
+        // Save expanded state to localStorage
+        try {
+            localStorage.setItem('lumenmon_expanded_widget', widget.name);
+        } catch (e) { /* localStorage not available */ }
+
         // Render expanded view
         if (widget.renderExpanded) {
             el.innerHTML = widget.renderExpanded(widgetData, agent);
@@ -282,6 +298,11 @@ window.LumenmonWidgets = {
         }
 
         this.expandedWidget = null;
+
+        // Clear expanded state from localStorage
+        try {
+            localStorage.removeItem('lumenmon_expanded_widget');
+        } catch (e) { /* localStorage not available */ }
     },
 
     /**
