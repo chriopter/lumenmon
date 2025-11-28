@@ -124,7 +124,7 @@ echo "Installation complete!"
 if [ -n "$INVITE_URL" ]; then
     echo ""
     echo "Registering agent..."
-    LUMENMON_AUTO_ACCEPT=1 "$AGENT_DIR/core/setup/register.sh" "$INVITE_URL"
+    $SUDO env LUMENMON_AUTO_ACCEPT=1 "$AGENT_DIR/core/setup/register.sh" "$INVITE_URL"
 
     echo ""
     echo "Starting agent..."
