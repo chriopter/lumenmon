@@ -503,7 +503,35 @@ footer {
 }
 .tui-unit { font-size: 0.8rem; font-weight: normal; color: var(--foreground2); }
 .tui-metric-sparkline { font-size: 0.9rem; letter-spacing: -0.05em; margin-bottom: 0.25rem; }
+.tui-metric-bar { font-size: 0.9rem; letter-spacing: -0.05em; margin-bottom: 0.25rem; }
 .tui-metric-extra { font-size: 0.7rem; color: var(--foreground2); }
+
+/* Bar row layout (full-width widgets) */
+.tui-bar-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    font-family: monospace;
+}
+.tui-bar-row .tui-metric-value {
+    min-width: 4rem;
+    margin-bottom: 0;
+}
+.tui-bar {
+    font-family: monospace;
+    letter-spacing: -0.05em;
+    flex: 1;
+}
+.tui-sparkline-wide {
+    font-family: monospace;
+    letter-spacing: 0.1em;
+    flex: 1;
+}
+.tui-bar-info {
+    color: var(--foreground2);
+    font-size: 0.75rem;
+    white-space: nowrap;
+}
 
 .tui-expand-hint {
     position: absolute;
@@ -518,7 +546,7 @@ footer {
 .tui-metric-box:focus .tui-expand-hint { opacity: 1; }
 
 /* --- Expanded Widget (Chart View) --- */
-.widget-expanded { grid-column: span 4 !important; min-height: 200px; }
+.widget-expanded { grid-column: span 2 !important; min-height: 200px; }
 .widget-expanded .tui-metric-box { display: flex; flex-direction: column; }
 .widget-expanded .widget-chart-container { flex: 1; min-height: 150px; margin-top: 0.5rem; }
 .widget-expanded .widget-chart-container canvas { width: 100% !important; height: 100% !important; }

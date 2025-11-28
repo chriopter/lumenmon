@@ -15,15 +15,15 @@ LumenmonWidget({
         const current = cpuData.length > 0 ? cpuData[cpuData.length - 1].value : 0;
         const values = cpuData.map(h => h.value);
         const avg = values.length > 0 ? values.reduce((a, b) => a + b, 0) / values.length : 0;
-        const sparkline = LumenmonWidgets.sparkline(values.slice(-8));
+        const sparkline = LumenmonWidgets.sparkline(values.slice(-12));
         const barClass = current > 90 ? 'tui-bar-critical' : current > 70 ? 'tui-bar-warning' : 'tui-bar-ok';
 
         return `
             <div class="tui-metric-box">
                 <div class="tui-metric-header">cpu</div>
-                <div class="tui-metric-value">${current.toFixed(1)}%</div>
-                <div class="tui-metric-sparkline ${barClass}">${sparkline || '────────'}</div>
-                <div class="tui-metric-extra">avg ${avg.toFixed(1)}%</div>
+                <div class="tui-metric-value">${current.toFixed(0)}<span class="tui-unit">%</span></div>
+                <div class="tui-metric-sparkline ${barClass}">${sparkline || '────────────'}</div>
+                <div class="tui-metric-extra">avg ${avg.toFixed(0)}%</div>
                 <span class="tui-expand-hint">enter</span>
             </div>
         `;

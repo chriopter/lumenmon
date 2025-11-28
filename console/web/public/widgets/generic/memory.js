@@ -1,29 +1,35 @@
 /**
- * Memory Widget - Shows current memory usage with sparkline, expandable to full chart
+ * Memory Widget - Shows current memory usage with bar, expandable to full chart
  */
 
 LumenmonWidget({
-    name: 'memory_sparkline',
+    name: 'memory_bar',
     title: 'Memory',
     category: 'generic',
     metrics: ['generic_memory'],
     size: 'sparkline',
-    priority: 11,  // Show second (after CPU)
+    priority: 11,
     expandable: true,
     render: function(data, agent) {
         const memData = agent.memHistory || [];
         const current = memData.length > 0 ? memData[memData.length - 1].value : 0;
         const values = memData.map(h => h.value);
         const avg = values.length > 0 ? values.reduce((a, b) => a + b, 0) / values.length : 0;
-        const sparkline = LumenmonWidgets.sparkline(values.slice(-8));
+        const free = 100 - current;
+
+        // ASCII bar (fills widget width)
+        const barWidth = 12;
+        const filled = Math.round((current / 100) * barWidth);
+        const empty = barWidth - filled;
+        const bar = '█'.repeat(filled) + '░'.repeat(empty);
         const barClass = current > 90 ? 'tui-bar-critical' : current > 70 ? 'tui-bar-warning' : 'tui-bar-ok';
 
         return `
             <div class="tui-metric-box">
                 <div class="tui-metric-header">mem</div>
-                <div class="tui-metric-value">${current.toFixed(1)}%</div>
-                <div class="tui-metric-sparkline ${barClass}">${sparkline || '────────'}</div>
-                <div class="tui-metric-extra">avg ${avg.toFixed(1)}%</div>
+                <div class="tui-metric-value">${current.toFixed(0)}<span class="tui-unit">%</span></div>
+                <div class="tui-metric-bar ${barClass}">${bar}</div>
+                <div class="tui-metric-extra">free ${free.toFixed(0)}%</div>
                 <span class="tui-expand-hint">enter</span>
             </div>
         `;
