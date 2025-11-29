@@ -18,6 +18,7 @@ Next up:
 - github script test check
 - docker update avilable check
 - sysos update check 
+- nextcloud backup check
 
 ## Quick Start
 
