@@ -6,9 +6,12 @@ from flask import Flask, jsonify, render_template
 from agents import agents_bp
 from invites import invites_bp
 from management import management_bp
+from db import cleanup_old_metrics
 import os
 import random
 import string
+import threading
+import time
 
 # Configure template and static directories
 template_dir = os.path.join(os.path.dirname(__file__), '..', 'public', 'html')
@@ -23,7 +26,17 @@ app.register_blueprint(agents_bp)
 app.register_blueprint(invites_bp)
 app.register_blueprint(management_bp)
 
-# No background cleanup needed - credentials are permanent
+# Background cleanup thread for old metrics
+def _cleanup_loop():
+    """Run cleanup every 5 minutes to keep database size bounded."""
+    while True:
+        time.sleep(300)  # 5 minutes
+        deleted = cleanup_old_metrics()
+        if deleted > 0:
+            print(f"[cleanup] Deleted {deleted} old metric rows")
+
+_cleanup_thread = threading.Thread(target=_cleanup_loop, daemon=True)
+_cleanup_thread.start()
 
 @app.route('/', methods=['GET'])
 def index():

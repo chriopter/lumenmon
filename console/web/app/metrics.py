@@ -62,8 +62,8 @@ def calculate_staleness(timestamp, interval):
         'next_update_in': next_update_in
     }
 
-def get_history_from_db(agent_id, metric_name):
-    """Read all history for a metric from SQLite."""
+def get_history_from_db(agent_id, metric_name, max_points=100):
+    """Read recent history for a metric from SQLite (limited to max_points)."""
     history = []
     table_name = f"{agent_id}_{metric_name}"
 
@@ -76,8 +76,10 @@ def get_history_from_db(agent_id, metric_name):
             return history
 
         cursor = conn.cursor()
+        # Only fetch the most recent max_points rows (avoid loading entire table)
         cursor.execute(
-            f'SELECT timestamp, value FROM "{table_name}" ORDER BY timestamp'
+            f'SELECT timestamp, value FROM "{table_name}" ORDER BY timestamp DESC LIMIT ?',
+            (max_points,)
         )
 
         for row in cursor.fetchall():
@@ -94,10 +96,8 @@ def get_history_from_db(agent_id, metric_name):
 
         conn.close()
 
-        # Downsample if needed
-        if len(history) > 100:
-            step = max(1, len(history) // 100)
-            history = history[::step]
+        # Reverse to get chronological order (we fetched DESC)
+        history.reverse()
 
     except Exception:
         pass
@@ -244,19 +244,19 @@ def get_agent_metrics(agent_id):
         # Check if heartbeat is stale (agent disconnected)
         heartbeat_staleness = calculate_staleness(metrics.get('heartbeat', 0), 1)  # Heartbeat is 1s
 
-        # Get all agent tables to check for any stale metrics
-        agent_tables = get_agent_tables(agent_id)
-        any_stale = any(table.get('staleness', {}).get('is_stale', False) for table in agent_tables)
+        # Check staleness of core metrics (CPU, Memory, Disk) without expensive get_agent_tables call
+        # Use minInterval which tracks the fastest metric interval
+        core_staleness = calculate_staleness(metrics['lastUpdate'], metrics['minInterval'])
 
         # Determine status using centralized staleness logic
-        # Green (online): Heartbeat fresh AND no stale metrics
-        # Yellow (stale): Heartbeat fresh BUT some metrics stale
+        # Green (online): Heartbeat fresh AND core metrics fresh
+        # Yellow (stale): Heartbeat fresh BUT core metrics stale
         # Red (offline): Heartbeat stale (agent disconnected)
         if heartbeat_staleness['is_stale']:
             # No heartbeat = agent disconnected
             metrics['status'] = 'offline'
-        elif any_stale:
-            # Heartbeat OK but some metrics overdue = degraded
+        elif core_staleness['is_stale']:
+            # Heartbeat OK but core metrics overdue = degraded
             metrics['status'] = 'stale'
         else:
             # All metrics fresh = healthy

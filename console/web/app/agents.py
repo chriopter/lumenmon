@@ -11,6 +11,10 @@ from pending_invites import get_invite
 
 agents_bp = Blueprint('agents', __name__)
 
+# Simple cache for entities endpoint (reduces DB queries when multiple clients poll)
+_entities_cache = {'data': None, 'timestamp': 0}
+_CACHE_TTL = 1  # 1 second cache
+
 @agents_bp.route('/api/agents/<agent_id>/tables', methods=['GET'])
 def get_agent_tables_endpoint(agent_id):
     """Get all metric tables and their latest data for a specific agent."""
@@ -141,10 +145,21 @@ def get_all_entities():
 @agents_bp.route('/api/entities', methods=['GET'])
 def get_entities():
     """Get all entities (agents + invites) with comprehensive validation."""
-    entities = get_all_entities()
+    global _entities_cache
 
-    return jsonify({
+    now = time.time()
+    # Return cached data if fresh (within TTL)
+    if _entities_cache['data'] is not None and (now - _entities_cache['timestamp']) < _CACHE_TTL:
+        return jsonify(_entities_cache['data'])
+
+    entities = get_all_entities()
+    result = {
         'entities': entities,
         'count': len(entities),
-        'timestamp': int(time.time())
-    })
+        'timestamp': int(now)
+    }
+
+    # Update cache
+    _entities_cache = {'data': result, 'timestamp': now}
+
+    return jsonify(result)
