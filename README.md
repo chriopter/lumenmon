@@ -6,9 +6,9 @@
   ███████╗╚██████╔╝██║ ╚═╝ ██║███████╗██║ ╚████║██║ ╚═╝ ██║╚██████╔╝██║ ╚████║
   ╚══════╝ ╚═════╝ ╚═╝     ╚═╝╚══════╝╚═╝  ╚═══╝╚═╝     ╚═╝ ╚═════╝ ╚═╝  ╚═══╝
 ```
-Lightweight system monitoring with MQTT transport. Sets up in 60 Seconds.
+Lightweight system monitoring with MQTT transport. Sets up in 60 Seconds. Console runs in Docker, agents are bare metal bash scripts.
 
-Console runs in Docker, agents are bare metal bash scripts.as
+<img width="700" alt="image" src="https://github.com/user-attachments/assets/6e9a1e4c-59ca-4b34-bfa5-269ab3f99b37" />
 
 ## Quick Start
 
@@ -22,7 +22,6 @@ curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/console/inst
 curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/agent/install.sh | bash -s '<invite-url>'
 ```
 
-<img width="700" alt="image" src="https://github.com/user-attachments/assets/6e9a1e4c-59ca-4b34-bfa5-269ab3f99b37" />
 
 ## Supported Agent Systems
 
