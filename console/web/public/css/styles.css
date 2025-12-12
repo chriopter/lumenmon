@@ -289,6 +289,7 @@ body {
     transition: all 0.3s ease;
 }
 .status-dot.online { background: #a6e3a1; }
+.status-dot.degraded { background: #f9e2af; }
 .status-dot.stale { background: #f9e2af; }
 .status-dot.offline { background: #f38ba8; }
 

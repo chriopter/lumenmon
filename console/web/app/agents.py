@@ -5,7 +5,7 @@
 from flask import Blueprint, jsonify
 import time
 import os
-from metrics import get_agent_tables, get_agent_metrics
+from metrics import get_agent_tables, get_agent_metrics, count_failed_collectors, calculate_host_status, calculate_staleness
 from db import get_db_connection
 from pending_invites import get_invite
 
@@ -114,22 +114,33 @@ def get_all_entities():
                 continue
             try:
                 metrics = get_agent_metrics(entity_id)
+
+                # Calculate host status from collector health (hierarchical status system)
+                heartbeat = metrics.get('heartbeat', 0)
+                heartbeat_staleness = calculate_staleness(heartbeat, 10)  # Heartbeat interval ~10s
+                failed_collectors, total_collectors = count_failed_collectors(entity_id)
+                host_status = calculate_host_status(
+                    heartbeat_staleness['is_stale'],
+                    failed_collectors,
+                    total_collectors
+                )
+
                 entity_data.update({
                     'cpu': metrics.get('cpu', 0),
                     'memory': metrics.get('memory', 0),
                     'disk': metrics.get('disk', 0),
                     'hostname': metrics.get('hostname', ''),
-                    'status': metrics.get('status', 'offline'),
+                    'status': host_status,
+                    'failed_collectors': failed_collectors,
+                    'total_collectors': total_collectors,
                     'age': metrics.get('age', 0),
                     'age_formatted': metrics.get('age_formatted', ''),
                     'lastUpdate': metrics.get('lastUpdate', 0),
                     'uptime': metrics.get('uptime', ''),
-                    'heartbeat': metrics.get('heartbeat', 0),
+                    'heartbeat': heartbeat,
                     'cpuSparkline': metrics.get('cpuSparkline', ''),
                     'memSparkline': metrics.get('memSparkline', ''),
                     'diskSparkline': metrics.get('diskSparkline', '')
-                    # Note: History arrays removed to reduce response size
-                    # Fetch via /api/agents/<id>/tables for detailed view
                 })
             except Exception as e:
                 print(f"Error getting metrics for {entity_id}: {e}")
@@ -141,7 +152,7 @@ def get_all_entities():
         if entity['type'] == 'invite':
             return (0, entity['id'])
         else:
-            status_order = {'online': 1, 'stale': 2, 'offline': 3}
+            status_order = {'online': 1, 'degraded': 2, 'offline': 3}
             status = entity.get('status', 'offline')
             return (status_order.get(status, 4), entity['id'])
 

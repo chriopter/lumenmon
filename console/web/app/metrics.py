@@ -23,6 +23,26 @@ def _format_timestamp_age(timestamp):
     age = int(time.time()) - timestamp
     return _format_duration(age) + " ago"
 
+def calculate_host_status(heartbeat_stale, failed_collectors, total_collectors):
+    """
+    Hierarchical status system - host status derived from collector health.
+
+    Status tree:
+        HOST
+        ├── online (green)   = heartbeat OK + all collectors healthy
+        ├── degraded (yellow) = heartbeat OK + some collectors failed
+        └── offline (red)    = heartbeat stale (agent disconnected)
+
+    Collector is "failed" if: stale OR out_of_bounds
+    """
+    if heartbeat_stale:
+        return 'offline'
+    elif failed_collectors > 0:
+        return 'degraded'
+    else:
+        return 'online'
+
+
 def calculate_staleness(timestamp, interval):
     """
     Single source of truth for staleness calculation (DRY principle).
@@ -268,6 +288,68 @@ def get_agent_metrics(agent_id):
     metrics['diskSparkline'] = generate_tui_sparkline(disk_values)
 
     return metrics
+
+
+def count_failed_collectors(agent_id):
+    """
+    Efficiently count failed collectors for host status calculation.
+    A collector is failed if: stale OR out_of_bounds.
+    Returns (failed_count, total_count).
+    """
+    failed = 0
+    total = 0
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Find all tables for this agent
+        cursor.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name LIKE ?",
+            (f"{agent_id}_%",)
+        )
+
+        for row in cursor.fetchall():
+            table_name = row[0]
+            # Skip non-metric tables
+            if '_registration_test' in table_name:
+                continue
+
+            total += 1
+
+            # Get latest row
+            cursor.execute(
+                f'''SELECT timestamp, value_real, value_int, interval, min_value, max_value
+                    FROM "{table_name}" ORDER BY timestamp DESC LIMIT 1'''
+            )
+            latest = cursor.fetchone()
+
+            if latest:
+                timestamp, value_real, value_int, interval, min_value, max_value = latest
+                interval = interval if interval is not None else 60
+
+                # Check staleness
+                staleness = calculate_staleness(timestamp, interval)
+                is_stale = staleness['is_stale']
+
+                # Check bounds
+                current_value = value_real if value_real is not None else value_int
+                is_out_of_bounds = False
+                if current_value is not None:
+                    if min_value is not None and current_value < min_value:
+                        is_out_of_bounds = True
+                    elif max_value is not None and current_value > max_value:
+                        is_out_of_bounds = True
+
+                if is_stale or is_out_of_bounds:
+                    failed += 1
+
+        conn.close()
+    except Exception:
+        pass
+
+    return failed, total
+
 
 def get_agent_tables(agent_id):
     """Get all metric tables for an agent with their latest data and schema info."""
