@@ -339,24 +339,15 @@ Widgets auto-load based on available metrics. Functions: openDetailView(), close
 
                 const rowClass = isStale ? 'stale-row' : '';
 
-                // Format display values (6 char limit for value columns)
-                const fmtVal = (v) => {
-                    if (v === null || v === undefined) return '-';
-                    const s = String(v);
-                    return s.length > 6 ? s.substring(0, 6) : s;
-                };
-                const fmtText = (v) => {
-                    if (v === null || v === undefined) return '-';
-                    const s = String(v);
-                    return s.length > 6 ? s.substring(0, 6) : s;
-                };
+                // Format display values (CSS handles truncation/expand on hover)
+                const fmtVal = (v) => v !== null && v !== undefined ? v : '-';
 
                 html += `<tr class="${rowClass}">`;
                 html += `<td class="metric-name">${metricName}</td>`;
                 html += `<td>${columns.timestamp || '-'}</td>`;
-                html += `<td class="type-real ${columns.value_real !== null ? flashClass : ''}" data-tip="${columns.value_real ?? ''}">${fmtVal(columns.value_real)}</td>`;
-                html += `<td class="type-integer ${columns.value_int !== null ? flashClass : ''}" data-tip="${columns.value_int ?? ''}">${fmtVal(columns.value_int)}</td>`;
-                html += `<td class="type-text" data-tip="${columns.value_text || ''}">${fmtText(columns.value_text)}</td>`;
+                html += `<td class="type-real ${columns.value_real !== null ? flashClass : ''}" data-full="${fmtVal(columns.value_real)}">${fmtVal(columns.value_real)}</td>`;
+                html += `<td class="type-integer ${columns.value_int !== null ? flashClass : ''}" data-full="${fmtVal(columns.value_int)}">${fmtVal(columns.value_int)}</td>`;
+                html += `<td class="type-text" data-full="${fmtVal(columns.value_text)}">${fmtVal(columns.value_text)}</td>`;
                 html += `<td>${fmtVal(columns.min_value)}</td>`;
                 html += `<td>${fmtVal(columns.max_value)}</td>`;
                 html += `<td>${columns.interval}s</td>`;

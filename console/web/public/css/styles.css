@@ -387,22 +387,29 @@ body {
 .stale-text, .overdue-text { color: #f38ba8; font-weight: bold; }
 .db-content-separator { border-left: 1px solid var(--foreground2); padding-left: 0.5rem !important; }
 
-/* Instant tooltip for value cells */
-[data-tip] { position: relative; cursor: default; }
-[data-tip]:hover::after {
-    content: attr(data-tip);
+/* Value cells - truncate with overlay on hover */
+.type-real, .type-integer, .type-text {
+    max-width: 5rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    position: relative;
+}
+.type-real:hover, .type-integer:hover, .type-text:hover {
+    overflow: visible;
+}
+.type-real:hover::after, .type-integer:hover::after, .type-text:hover::after {
+    content: attr(data-full);
     position: absolute;
-    bottom: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    background: var(--background);
-    color: var(--foreground);
-    border: 1px solid var(--foreground2);
-    padding: 0.2rem 0.4rem;
-    font-size: 0.75rem;
+    left: -0.25rem;
+    top: -0.1rem;
+    background: #1e1e2e;
+    color: #cdd6f4;
+    padding: 0.1rem 0.4rem;
     white-space: nowrap;
     z-index: 100;
-    pointer-events: none;
+    border: 1px solid #45475a;
+    box-shadow: 2px 2px 4px rgba(0,0,0,0.5);
 }
 
 /* --- Footer --- */
