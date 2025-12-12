@@ -354,9 +354,9 @@ Widgets auto-load based on available metrics. Functions: openDetailView(), close
                 html += `<tr class="${rowClass}">`;
                 html += `<td class="metric-name">${metricName}</td>`;
                 html += `<td>${columns.timestamp || '-'}</td>`;
-                html += `<td class="type-real ${columns.value_real !== null ? flashClass : ''}" title="${columns.value_real ?? ''}">${fmtVal(columns.value_real)}</td>`;
-                html += `<td class="type-integer ${columns.value_int !== null ? flashClass : ''}" title="${columns.value_int ?? ''}">${fmtVal(columns.value_int)}</td>`;
-                html += `<td class="type-text" title="${columns.value_text || ''}">${fmtText(columns.value_text)}</td>`;
+                html += `<td class="type-real ${columns.value_real !== null ? flashClass : ''}" data-tip="${columns.value_real ?? ''}">${fmtVal(columns.value_real)}</td>`;
+                html += `<td class="type-integer ${columns.value_int !== null ? flashClass : ''}" data-tip="${columns.value_int ?? ''}">${fmtVal(columns.value_int)}</td>`;
+                html += `<td class="type-text" data-tip="${columns.value_text || ''}">${fmtText(columns.value_text)}</td>`;
                 html += `<td>${fmtVal(columns.min_value)}</td>`;
                 html += `<td>${fmtVal(columns.max_value)}</td>`;
                 html += `<td>${columns.interval}s</td>`;

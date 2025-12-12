@@ -387,6 +387,24 @@ body {
 .stale-text, .overdue-text { color: #f38ba8; font-weight: bold; }
 .db-content-separator { border-left: 1px solid var(--foreground2); padding-left: 0.5rem !important; }
 
+/* Instant tooltip for value cells */
+[data-tip] { position: relative; cursor: default; }
+[data-tip]:hover::after {
+    content: attr(data-tip);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--background);
+    color: var(--foreground);
+    border: 1px solid var(--foreground2);
+    padding: 0.2rem 0.4rem;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    z-index: 100;
+    pointer-events: none;
+}
+
 /* --- Footer --- */
 footer {
     padding: 0.35rem 0.5rem;
