@@ -50,11 +50,13 @@ install_console() {
     curl -fsSL "$GITHUB_RAW/console/docker-compose.yml" -o "$INSTALL_DIR/console/docker-compose.yml"
     echo "CONSOLE_HOST=$hostname" > "$INSTALL_DIR/console/.env"
 
-    # Pull and start
+    # Pull and start (--pull always ensures fresh image)
     cd "$INSTALL_DIR/console"
-    docker compose pull -q 2>/dev/null || true
-    docker compose up -d 2>&1 | grep -v "Pulling" || true
-    ok "Console started"
+    docker compose up -d --pull always 2>&1 | grep -v "Pulling" || true
+
+    # Show image version
+    local image_id=$(docker inspect --format='{{.Id}}' ghcr.io/chriopter/lumenmon-console:latest 2>/dev/null | cut -c8-19)
+    ok "Console started (image: ${image_id:-unknown})"
 }
 
 install_cli() {
