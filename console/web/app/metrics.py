@@ -76,9 +76,9 @@ def get_history_from_db(agent_id, metric_name, max_points=100):
             return history
 
         cursor = conn.cursor()
-        # Only fetch the most recent max_points rows (avoid loading entire table)
+        # Use COALESCE to get value from whichever column is populated
         cursor.execute(
-            f'SELECT timestamp, value FROM "{table_name}" ORDER BY timestamp DESC LIMIT ?',
+            f'SELECT timestamp, COALESCE(value_real, value_int, value_text) FROM "{table_name}" ORDER BY timestamp DESC LIMIT ?',
             (max_points,)
         )
 
@@ -117,19 +117,10 @@ def get_latest_value(agent_id, metric_name):
             return None, None, None
 
         cursor = conn.cursor()
-        # Check if interval column exists
-        cursor.execute(f'PRAGMA table_info("{table_name}")')
-        columns = [col[1] for col in cursor.fetchall()]
-        has_interval = 'interval' in columns
-
-        if has_interval:
-            cursor.execute(
-                f'SELECT timestamp, value, interval FROM "{table_name}" ORDER BY timestamp DESC LIMIT 1'
-            )
-        else:
-            cursor.execute(
-                f'SELECT timestamp, value FROM "{table_name}" ORDER BY timestamp DESC LIMIT 1'
-            )
+        # Unified schema - use COALESCE to get value from whichever column is populated
+        cursor.execute(
+            f'SELECT timestamp, COALESCE(value_real, value_int, value_text), interval FROM "{table_name}" ORDER BY timestamp DESC LIMIT 1'
+        )
 
         row = cursor.fetchone()
         conn.close()
@@ -141,7 +132,7 @@ def get_latest_value(agent_id, metric_name):
             except (ValueError, TypeError):
                 value = row[1]
 
-            interval = row[2] if has_interval and len(row) > 2 else 60  # Default 60s
+            interval = row[2] if row[2] else 60  # Default 60s
             return row[0], value, interval
     except Exception:
         pass
@@ -161,15 +152,15 @@ def get_latest_hostname(agent_id):
             return ''
 
         cursor = conn.cursor()
+        # Hostname is stored in value_text column
         cursor.execute(
-            f'SELECT value FROM "{table_name}" ORDER BY timestamp DESC LIMIT 1'
+            f'SELECT value_text FROM "{table_name}" ORDER BY timestamp DESC LIMIT 1'
         )
 
         row = cursor.fetchone()
         conn.close()
 
-        if row:
-            # Value is stored as string for hostname
+        if row and row[0]:
             return str(row[0])
     except Exception:
         pass
@@ -286,34 +277,23 @@ def get_agent_tables(agent_id):
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        # Find all tables for this agent with their schema
+        # Find all tables for this agent
         cursor.execute(
-            "SELECT name, sql FROM sqlite_master WHERE type='table' AND name LIKE ?",
+            "SELECT name FROM sqlite_master WHERE type='table' AND name LIKE ?",
             (f"{agent_id}_%",)
         )
 
         for row in cursor.fetchall():
             table_name = row[0]
-            table_sql = row[1]
 
             # Extract metric name (remove agent_id_ prefix)
             metric_name = table_name[len(agent_id)+1:]
 
-            # Extract type from schema: "value TYPE" in CREATE TABLE statement
-            value_type = "TEXT"  # Default
-            if table_sql:
-                type_match = re.search(r'value\s+(TEXT|REAL|INTEGER)', table_sql, re.IGNORECASE)
-                if type_match:
-                    value_type = type_match.group(1).upper()
-
-            # Get schema columns dynamically
-            cursor.execute(f'PRAGMA table_info("{table_name}")')
-            schema_columns = cursor.fetchall()
-            column_names = [col[1] for col in schema_columns]  # col[1] is column name
-
-            # Get latest row with all columns
-            columns_str = ', '.join(column_names)
-            cursor.execute(f'SELECT {columns_str} FROM "{table_name}" ORDER BY timestamp DESC LIMIT 1')
+            # Get latest row with unified schema
+            cursor.execute(
+                f'''SELECT timestamp, value_real, value_int, value_text, interval, min_value, max_value
+                    FROM "{table_name}" ORDER BY timestamp DESC LIMIT 1'''
+            )
             latest = cursor.fetchone()
 
             cursor.execute(f'SELECT COUNT(*) FROM "{table_name}"')
@@ -324,30 +304,41 @@ def get_agent_tables(agent_id):
             oldest = cursor.fetchone()
 
             if latest:
-                # Build columns dict dynamically from schema
-                columns = {}
-                for idx, col_name in enumerate(column_names):
-                    raw_value = latest[idx]
-                    # Format based on column type
-                    if isinstance(raw_value, float):
-                        columns[col_name] = round(raw_value, 1)
-                    else:
-                        columns[col_name] = raw_value
+                timestamp, value_real, value_int, value_text, interval, min_value, max_value = latest
+
+                # Determine type based on which column is populated
+                if value_real is not None:
+                    value_type = "REAL"
+                elif value_int is not None:
+                    value_type = "INTEGER"
+                else:
+                    value_type = "TEXT"
+
+                # Build columns dict with all three value columns
+                columns = {
+                    'timestamp': timestamp,
+                    'value_real': round(value_real, 1) if value_real is not None else None,
+                    'value_int': value_int,
+                    'value_text': value_text,
+                    'min_value': min_value,
+                    'max_value': max_value,
+                    'interval': interval or 60,
+                    # Also provide coalesced value for widgets
+                    'value': round(value_real, 1) if value_real is not None else (value_int if value_int is not None else value_text)
+                }
 
                 # Calculate staleness using centralized function
-                timestamp = columns.get('timestamp', 0)
-                interval = columns.get('interval', 60)
-                staleness = calculate_staleness(timestamp, interval)
+                staleness = calculate_staleness(timestamp, interval or 60)
 
                 # Calculate metadata
-                timestamp_age = _format_timestamp_age(latest[0])
-                data_span = _format_duration(latest[0] - oldest[0]) if oldest else "N/A"
+                timestamp_age = _format_timestamp_age(timestamp)
+                data_span = _format_duration(timestamp - oldest[0]) if oldest else "N/A"
 
                 tables.append({
                     'metric_name': metric_name,
                     'table_name': table_name,
-                    'columns': columns,  # All raw DB columns dynamically
-                    'staleness': staleness,  # Centralized staleness calculation
+                    'columns': columns,
+                    'staleness': staleness,
                     'metadata': {
                         'type': value_type,
                         'timestamp_age': timestamp_age,

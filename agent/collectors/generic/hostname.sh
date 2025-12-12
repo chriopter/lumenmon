@@ -20,8 +20,8 @@ while true; do
         hostname="unknown"
     fi
 
-    # Publish with interval (value is quoted for TEXT type)
-    publish_metric "$METRIC" "\"$hostname\"" "$TYPE" "$REPORT"
+    # Publish with interval (TEXT type is auto-quoted by publish.sh)
+    publish_metric "$METRIC" "$hostname" "$TYPE" "$REPORT"
 
     sleep $REPORT
 done

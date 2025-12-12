@@ -6,6 +6,8 @@
 RHYTHM="PULSE"         # Uses PULSE timing from agent.sh (1s)
 METRIC="generic_cpu"   # Metric name: generic_cpu
 TYPE="REAL"            # SQLite column type for decimal values
+MIN=0                  # Minimum value (percentage)
+MAX=100                # Maximum value (percentage)
 
 set -euo pipefail
 source "$LUMENMON_HOME/core/mqtt/publish.sh"
@@ -38,8 +40,8 @@ while true; do
         usage="0.0"
     fi
 
-    # Publish with interval
-    publish_metric "$METRIC" "$usage" "$TYPE" "$PULSE"
+    # Publish with interval and bounds
+    publish_metric "$METRIC" "$usage" "$TYPE" "$PULSE" "$MIN" "$MAX"
 
     # Save for next iteration
     prev_cpu=("${curr_cpu[@]}")

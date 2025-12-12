@@ -6,6 +6,8 @@
 RHYTHM="CYCLE"         # Uses CYCLE timing from agent.sh (60s)
 METRIC="generic_disk"  # Metric name: generic_disk
 TYPE="REAL"            # SQLite column type for decimal values
+MIN=0                  # Minimum value (percentage)
+MAX=100                # Maximum value (percentage)
 
 set -euo pipefail
 source "$LUMENMON_HOME/core/mqtt/publish.sh"
@@ -14,8 +16,8 @@ while true; do
     # Get disk usage for root filesystem (remove % sign)
     usage=$(df -P / | tail -1 | awk '{print $5}' | tr -d '%')
 
-    # Publish with interval
-    publish_metric "$METRIC" "$usage" "$TYPE" "$CYCLE"
+    # Publish with interval and bounds
+    publish_metric "$METRIC" "$usage" "$TYPE" "$CYCLE" "$MIN" "$MAX"
 
     sleep $CYCLE
 done

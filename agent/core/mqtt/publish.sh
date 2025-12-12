@@ -22,11 +22,26 @@ publish_metric() {
     local value="$2"
     local type="$3"
     local interval="${4:-60}"  # Default 60s if not specified
+    local min_value="$5"       # Optional min bound
+    local max_value="$6"       # Optional max bound
 
     _mqtt_load_creds
 
-    # Build JSON payload
-    local payload="{\"value\":$value,\"type\":\"$type\",\"interval\":$interval}"
+    # Build JSON payload - handle TEXT type needing quoted value
+    local json_value="$value"
+    if [ "$type" = "TEXT" ]; then
+        json_value="\"$value\""
+    fi
+
+    # Start with required fields
+    local payload="{\"value\":$json_value,\"type\":\"$type\",\"interval\":$interval"
+
+    # Add optional min/max if provided
+    [ -n "$min_value" ] && payload="$payload,\"min\":$min_value"
+    [ -n "$max_value" ] && payload="$payload,\"max\":$max_value"
+
+    payload="$payload}"
+
     local topic="metrics/$_MQTT_USER/$metric_name"
 
     # Publish via mosquitto_pub with TLS

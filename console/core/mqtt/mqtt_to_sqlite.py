@@ -89,14 +89,16 @@ class MQTTBridge:
                 log(agent_id, f'Invalid JSON payload: {e}')
                 return
 
-            # Extract value, type, and interval from JSON
+            # Extract fields from JSON
             if 'value' not in data:
                 log(agent_id, f'Missing "value" field in payload')
                 return
 
             value = data['value']
-            data_type = data.get('type', 'REAL')  # Default to REAL if not specified
-            interval = data.get('interval', 60)  # Default to 60s if not specified
+            data_type = data.get('type', 'REAL')  # Default to REAL
+            interval = data.get('interval', 60)   # Default to 60s
+            min_value = data.get('min')           # Optional
+            max_value = data.get('max')           # Optional
 
             # Validate type
             if data_type not in ['REAL', 'INTEGER', 'TEXT']:
@@ -108,37 +110,58 @@ class MQTTBridge:
 
             # Write to SQLite using persistent connection
             table_name = f"{agent_id}_{metric_name}"
-
             cursor = self.db_conn.cursor()
 
-            # Check if table exists with correct schema
-            cursor.execute(
-                "SELECT sql FROM sqlite_master WHERE type='table' AND name=?",
-                (table_name,)
-            )
-            existing = cursor.fetchone()
-
-            if existing:
-                existing_sql = existing[0]
-                # Check if value column type matches or interval column is missing
-                if f'value {data_type}' not in existing_sql or 'interval' not in existing_sql:
-                    log(agent_id, f'Schema mismatch for {table_name}, dropping and recreating')
-                    cursor.execute(f'DROP TABLE "{table_name}"')
-
-            # Create table with appropriate type and interval column
+            # Unified schema - create table or migrate old tables
             cursor.execute(f'''
                 CREATE TABLE IF NOT EXISTS "{table_name}" (
                     timestamp INTEGER PRIMARY KEY,
-                    value {data_type},
-                    interval INTEGER
+                    value_real REAL,
+                    value_int INTEGER,
+                    value_text TEXT,
+                    interval INTEGER,
+                    min_value REAL,
+                    max_value REAL
                 )
             ''')
 
-            # Insert data
-            cursor.execute(
-                f'INSERT OR REPLACE INTO "{table_name}" (timestamp, value, interval) VALUES (?, ?, ?)',
-                (timestamp, value, interval)
-            )
+            # Migrate old tables: add missing columns if they don't exist
+            cursor.execute(f'PRAGMA table_info("{table_name}")')
+            existing_cols = {row[1] for row in cursor.fetchall()}
+
+            # Check for old schema (has 'value' instead of typed columns)
+            if 'value' in existing_cols and 'value_real' not in existing_cols:
+                # Old schema detected - migrate to new schema
+                log(agent_id, f'Migrating {metric_name} to new schema')
+                cursor.execute(f'ALTER TABLE "{table_name}" ADD COLUMN value_real REAL')
+                cursor.execute(f'ALTER TABLE "{table_name}" ADD COLUMN value_int INTEGER')
+                cursor.execute(f'ALTER TABLE "{table_name}" ADD COLUMN value_text TEXT')
+                # Copy existing values to value_real (most metrics are REAL)
+                cursor.execute(f'UPDATE "{table_name}" SET value_real = value WHERE value_real IS NULL')
+                existing_cols.update(['value_real', 'value_int', 'value_text'])
+
+            # Add min/max columns if missing (for any schema)
+            if 'min_value' not in existing_cols:
+                cursor.execute(f'ALTER TABLE "{table_name}" ADD COLUMN min_value REAL')
+            if 'max_value' not in existing_cols:
+                cursor.execute(f'ALTER TABLE "{table_name}" ADD COLUMN max_value REAL')
+
+            # Insert into correct column based on type
+            if data_type == 'REAL':
+                cursor.execute(
+                    f'INSERT OR REPLACE INTO "{table_name}" (timestamp, value_real, interval, min_value, max_value) VALUES (?, ?, ?, ?, ?)',
+                    (timestamp, value, interval, min_value, max_value)
+                )
+            elif data_type == 'INTEGER':
+                cursor.execute(
+                    f'INSERT OR REPLACE INTO "{table_name}" (timestamp, value_int, interval, min_value, max_value) VALUES (?, ?, ?, ?, ?)',
+                    (timestamp, value, interval, min_value, max_value)
+                )
+            else:  # TEXT
+                cursor.execute(
+                    f'INSERT OR REPLACE INTO "{table_name}" (timestamp, value_text, interval, min_value, max_value) VALUES (?, ?, ?, ?, ?)',
+                    (timestamp, value, interval, min_value, max_value)
+                )
 
             # Immediate commit for real-time data availability
             self.db_conn.commit()

@@ -385,6 +385,7 @@ body {
 .metric-value { color: var(--accent1); font-weight: bold; }
 .stale-row { background-color: rgba(243, 139, 168, 0.1); }
 .stale-text, .overdue-text { color: #f38ba8; font-weight: bold; }
+.db-content-separator { border-left: 1px solid var(--foreground2); padding-left: 0.5rem !important; }
 
 /* --- Footer --- */
 footer {

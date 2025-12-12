@@ -69,14 +69,19 @@ MQTT_USER=$(cat "$VIRTUAL_DATA/mqtt/username")
 MQTT_PASS=$(cat "$VIRTUAL_DATA/mqtt/password")
 MQTT_CERT="$PWD/$VIRTUAL_DATA/mqtt/server.crt"
 
-# Function to publish metric
+# Function to publish metric (with optional min/max bounds)
 publish() {
+    local metric="$1" value="$2" type="$3" interval="${4:-60}" min="$5" max="$6"
+    local payload="{\"value\":$value,\"type\":\"$type\",\"interval\":$interval"
+    [ -n "$min" ] && payload="$payload,\"min\":$min"
+    [ -n "$max" ] && payload="$payload,\"max\":$max"
+    payload="$payload}"
     mosquitto_pub \
         -h "$MQTT_HOST" -p 8884 \
         -u "$MQTT_USER" -P "$MQTT_PASS" \
         --cafile "$MQTT_CERT" \
-        -t "metrics/$MQTT_USER/$1" \
-        -m "{\"value\":$2,\"type\":\"$3\",\"interval\":${4:-60}}" 2>/dev/null
+        -t "metrics/$MQTT_USER/$metric" \
+        -m "$payload" 2>/dev/null
 }
 
 # Publish initial system info
@@ -101,10 +106,10 @@ while true; do
         exec "$0"
     fi
 
-    # Publish virtual metrics
-    publish "generic_cpu" "$(awk 'BEGIN {printf "%.1f", 5 + rand() * 40}')" "REAL" 1
-    publish "generic_memory" "$(awk 'BEGIN {printf "%.1f", 30 + rand() * 40}')" "REAL" 10
-    publish "generic_disk" "$(awk 'BEGIN {printf "%.1f", 45 + rand() * 10}')" "REAL" 60
+    # Publish virtual metrics (with min/max bounds for percentages)
+    publish "generic_cpu" "$(awk 'BEGIN {printf "%.1f", 5 + rand() * 40}')" "REAL" 1 0 100
+    publish "generic_memory" "$(awk 'BEGIN {printf "%.1f", 30 + rand() * 40}')" "REAL" 10 0 100
+    publish "generic_disk" "$(awk 'BEGIN {printf "%.1f", 45 + rand() * 10}')" "REAL" 60 0 100
     publish "generic_heartbeat" "$(date +%s)" "INTEGER" 10
 
     # Proxmox metrics
@@ -117,13 +122,13 @@ while true; do
     publish "proxmox_storage_nas_used" "$((1200 + RANDOM % 400))" "REAL" 60
     publish "proxmox_storage_nas_total" "4000" "REAL" 60
 
-    # ZFS metrics
+    # ZFS metrics (capacity is a percentage)
     publish "proxmox_zfs_rpool_drives" "2" "INTEGER" 60
     publish "proxmox_zfs_rpool_online" "2" "INTEGER" 60
-    publish "proxmox_zfs_rpool_capacity" "$((35 + RANDOM % 10))" "REAL" 60
+    publish "proxmox_zfs_rpool_capacity" "$((35 + RANDOM % 10))" "REAL" 60 0 100
     publish "proxmox_zfs_tank_drives" "4" "INTEGER" 60
     publish "proxmox_zfs_tank_online" "$((3 + RANDOM % 2))" "INTEGER" 60
-    publish "proxmox_zfs_tank_capacity" "$((60 + RANDOM % 15))" "REAL" 60
+    publish "proxmox_zfs_tank_capacity" "$((60 + RANDOM % 15))" "REAL" 60 0 100
 
     sleep 1
 done
