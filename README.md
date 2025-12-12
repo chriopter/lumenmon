@@ -107,23 +107,14 @@ Pure bash scripts that collect metrics and publish via `mosquitto_pub` over TLS.
 | Platform | Install Path | Service |
 |----------|--------------|---------|
 | Debian/Ubuntu | `/opt/lumenmon/` | systemd |
-| TrueNAS SCALE | `/mnt/yourpool/lumenmon/` | Init Script (WebUI) |
 | Proxmox VE | `/opt/lumenmon/` | systemd |
 
 **Requirements:** `mosquitto-clients` (`apt install mosquitto-clients`)
 
-**Debian/Ubuntu Install:**
+**Install:**
 1. Downloads scripts to `/opt/lumenmon/`
 2. Creates systemd service `lumenmon-agent.service`
 3. Creates CLI `/usr/local/bin/lumenmon-agent`
-
-**TrueNAS SCALE Install:**
-1. Prompts for install path (must be on a pool under `/mnt/`)
-2. Downloads scripts to chosen path (survives TrueNAS updates)
-3. Requires manual Init Script setup in WebUI:
-   - System Settings → Advanced → Init/Shutdown Scripts
-   - Type: Script, When: Post Init
-   - Script: `/mnt/yourpool/lumenmon/start-agent.sh`
 
 **Update:** `lumenmon-agent update` pulls latest scripts. Credentials preserved.
 
@@ -145,6 +136,58 @@ Pure bash scripts that collect metrics and publish via `mosquitto_pub` over TLS.
 <summary>Data Retention</summary>
 
 Metrics older than 24h are auto-deleted every 5 minutes. The most recent value per metric is always preserved so offline agents keep showing their last known status.
+
+</details>
+
+<details>
+<summary>Writing Custom Collectors</summary>
+
+Collectors are bash scripts in `agent/collectors/`. Standard structure:
+
+```bash
+#!/bin/bash
+# What this collector does.
+# Data source and calculation details.
+
+RHYTHM="PULSE"         # Timing: PULSE(1s), BREATHE(10s), CYCLE(60s), REPORT(1h)
+METRIC="generic_cpu"   # Metric name (prefix with category)
+TYPE="REAL"            # REAL, INTEGER, or TEXT
+MIN=0                  # Optional: minimum valid value
+MAX=100                # Optional: maximum valid value
+
+set -euo pipefail
+source "$LUMENMON_HOME/core/mqtt/publish.sh"
+
+while true; do
+    value="42.0"
+    publish_metric "$METRIC" "$value" "$TYPE" "$PULSE" "$MIN" "$MAX"
+    sleep $PULSE
+done
+```
+
+**publish_metric** signature:
+```bash
+publish_metric "name" "value" "TYPE" interval [min] [max]
+```
+
+**Health Detection:** Values outside min/max bounds show as **failed** in dashboard.
+
+```bash
+# Static bounds (percentages)
+publish_metric "cpu" "$val" "REAL" "$PULSE" 0 100
+
+# Dynamic bounds (ZFS: online must equal total drives)
+publish_metric "zfs_online" "$online" "INTEGER" "$CYCLE" "$total" "$total"
+
+# One-time metric (interval=0, never stale)
+publish_metric "hostname" "$host" "TEXT" 0
+```
+
+**Categories:**
+| Directory | Prefix | Purpose |
+|-----------|--------|---------|
+| `collectors/generic/` | `generic_` | Universal (CPU, memory, disk) |
+| `collectors/proxmox/` | `proxmox_` | Proxmox (VMs, containers, ZFS) |
 
 </details>
 
