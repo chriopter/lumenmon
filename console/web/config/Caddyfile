@@ -1,7 +1,7 @@
 # Caddy configuration for Lumenmon Console web interface
 # Serves static files from /app/web/public/ and proxies HTML to Flask
 
-:80 {
+:8080 {
     # Proxy root to Flask (for HTML rendering)
     handle / {
         reverse_proxy localhost:5000

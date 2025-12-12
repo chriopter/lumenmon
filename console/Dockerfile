@@ -44,6 +44,6 @@ RUN chmod +x console.sh core/*.sh core/*/*.sh web/app/*.py
 # Mount point for persistent data
 VOLUME /data
 
-EXPOSE 80 443
+EXPOSE 8080 8884
 
 CMD ["./console.sh"]
