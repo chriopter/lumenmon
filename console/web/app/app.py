@@ -29,6 +29,12 @@ app.register_blueprint(management_bp)
 # Background cleanup thread for old metrics
 def _cleanup_loop():
     """Run cleanup every 5 minutes to keep database size bounded."""
+    # Run cleanup immediately at startup to prevent overload from accumulated data
+    print("[cleanup] Running initial cleanup...")
+    deleted = cleanup_old_metrics()
+    if deleted > 0:
+        print(f"[cleanup] Initial cleanup deleted {deleted} old metric rows")
+
     while True:
         time.sleep(300)  # 5 minutes
         deleted = cleanup_old_metrics()

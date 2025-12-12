@@ -6,6 +6,8 @@ services:
     hostname: lumenmon-console
     restart: unless-stopped
     network_mode: host
+    mem_limit: 512m
+    memswap_limit: 512m
     volumes:
       - ./data:/data
     environment:

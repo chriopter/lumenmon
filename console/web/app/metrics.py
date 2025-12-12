@@ -199,7 +199,7 @@ def get_agent_metrics(agent_id):
         metrics['cpu'] = value
         metrics['lastUpdate'] = max(metrics['lastUpdate'], timestamp)
         metrics['minInterval'] = min(metrics['minInterval'], interval)
-    metrics['cpuHistory'] = get_history_from_db(agent_id, 'generic_cpu')
+    metrics['cpuHistory'] = get_history_from_db(agent_id, 'generic_cpu', max_points=30)
 
     # Read Memory
     timestamp, value, interval = get_latest_value(agent_id, 'generic_memory')
@@ -207,7 +207,7 @@ def get_agent_metrics(agent_id):
         metrics['memory'] = value
         metrics['lastUpdate'] = max(metrics['lastUpdate'], timestamp)
         metrics['minInterval'] = min(metrics['minInterval'], interval)
-    metrics['memHistory'] = get_history_from_db(agent_id, 'generic_memory')
+    metrics['memHistory'] = get_history_from_db(agent_id, 'generic_memory', max_points=30)
 
     # Read Disk
     timestamp, value, interval = get_latest_value(agent_id, 'generic_disk')
@@ -215,7 +215,7 @@ def get_agent_metrics(agent_id):
         metrics['disk'] = value
         metrics['lastUpdate'] = max(metrics['lastUpdate'], timestamp)
         metrics['minInterval'] = min(metrics['minInterval'], interval)
-    metrics['diskHistory'] = get_history_from_db(agent_id, 'generic_disk')
+    metrics['diskHistory'] = get_history_from_db(agent_id, 'generic_disk', max_points=30)
 
     # Read Hostname
     metrics['hostname'] = get_latest_hostname(agent_id)

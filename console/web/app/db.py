@@ -11,8 +11,8 @@ DB_PATH = "/data/metrics.db"
 RETENTION_SECONDS = 86400
 
 def get_db_connection():
-    """Get SQLite database connection."""
-    conn = sqlite3.connect(DB_PATH)
+    """Get SQLite database connection with timeout to prevent blocking."""
+    conn = sqlite3.connect(DB_PATH, timeout=5.0)  # 5 second timeout
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -26,7 +26,11 @@ def table_exists(conn, table_name):
     return cursor.fetchone() is not None
 
 def cleanup_old_metrics():
-    """Delete metrics older than RETENTION_SECONDS from all tables."""
+    """Delete metrics older than RETENTION_SECONDS from all tables.
+
+    Always preserves the most recent record per table, even if older than cutoff.
+    This ensures we always have the last known value for offline agents.
+    """
     cutoff = int(time.time()) - RETENTION_SECONDS
     deleted_total = 0
 
@@ -40,8 +44,11 @@ def cleanup_old_metrics():
 
         for table_name in tables:
             try:
+                # Delete old records BUT always keep the most recent one
                 cursor.execute(
-                    f'DELETE FROM "{table_name}" WHERE timestamp < ?',
+                    f'''DELETE FROM "{table_name}"
+                        WHERE timestamp < ?
+                        AND timestamp != (SELECT MAX(timestamp) FROM "{table_name}")''',
                     (cutoff,)
                 )
                 deleted_total += cursor.rowcount

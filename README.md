@@ -141,6 +141,13 @@ Pure bash scripts that collect metrics and publish via `mosquitto_pub` over TLS.
 </details>
 
 <details>
+<summary>Data Retention</summary>
+
+Metrics older than 24h are auto-deleted every 5 minutes. The most recent value per metric is always preserved so offline agents keep showing their last known status.
+
+</details>
+
+<details>
 <summary>Development</summary>
 
 ```bash

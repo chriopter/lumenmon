@@ -13,7 +13,8 @@ agents_bp = Blueprint('agents', __name__)
 
 # Simple cache for entities endpoint (reduces DB queries when multiple clients poll)
 _entities_cache = {'data': None, 'timestamp': 0}
-_CACHE_TTL = 1  # 1 second cache
+_CACHE_TTL = 2  # 2 second cache - balances responsiveness with performance
+_MAX_AGENTS = 100  # Limit agents to prevent memory exhaustion
 
 @agents_bp.route('/api/agents/<agent_id>/tables', methods=['GET'])
 def get_agent_tables_endpoint(agent_id):
@@ -75,8 +76,9 @@ def get_all_entities():
     except Exception as e:
         print(f"Error reading SQLite tables: {e}")
 
-    # 3. Determine type and validity for each entity
+    # 3. Determine type and validity for each entity (limited to prevent memory exhaustion)
     result = []
+    agent_count = 0
     for entity_id, checks in entities.items():
         # Determine type based on username prefix
         entity_type = 'invite' if entity_id.startswith('reg_') else 'agent'
@@ -102,8 +104,14 @@ def get_all_entities():
         if pending_invite:
             entity_data['pending_invite'] = pending_invite
 
-        # Add metrics for valid agents
+        # Add metrics for valid agents (with limit to prevent overload)
         if entity_type == 'agent' and valid:
+            agent_count += 1
+            if agent_count > _MAX_AGENTS:
+                # Skip metrics for agents beyond limit (still show in list but without data)
+                entity_data['status'] = 'limited'
+                result.append(entity_data)
+                continue
             try:
                 metrics = get_agent_metrics(entity_id)
                 entity_data.update({
@@ -119,10 +127,9 @@ def get_all_entities():
                     'heartbeat': metrics.get('heartbeat', 0),
                     'cpuSparkline': metrics.get('cpuSparkline', ''),
                     'memSparkline': metrics.get('memSparkline', ''),
-                    'diskSparkline': metrics.get('diskSparkline', ''),
-                    'cpuHistory': metrics.get('cpuHistory', []),
-                    'memHistory': metrics.get('memHistory', []),
-                    'diskHistory': metrics.get('diskHistory', [])
+                    'diskSparkline': metrics.get('diskSparkline', '')
+                    # Note: History arrays removed to reduce response size
+                    # Fetch via /api/agents/<id>/tables for detailed view
                 })
             except Exception as e:
                 print(f"Error getting metrics for {entity_id}: {e}")
