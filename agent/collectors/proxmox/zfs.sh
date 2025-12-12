@@ -12,7 +12,7 @@ while true; do
     # Get drive counts per pool (with dynamic min/max for health detection)
     zpool status | awk '/pool:/{pool=$2} /^\t    /{drives[pool]++; if($2=="ONLINE")online[pool]++} END{for(p in drives) print p, drives[p], online[p]}' | while read -r pool drives online; do
         pool_name=$(echo "$pool" | tr '-' '_')
-        publish_metric "proxmox_zfs_${pool_name}_drives" "$drives" "INTEGER" "$CYCLE"
+        publish_metric "proxmox_zfs_${pool_name}_drives" "$drives" "INTEGER" "$CYCLE" "" ""
         # online: min=max=drives, so if online < drives → failed (degraded pool)
         publish_metric "proxmox_zfs_${pool_name}_online" "$online" "INTEGER" "$CYCLE" "$drives" "$drives"
     done
