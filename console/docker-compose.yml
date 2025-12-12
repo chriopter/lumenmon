@@ -5,13 +5,9 @@ services:
     container_name: lumenmon-console
     hostname: lumenmon-console
     restart: unless-stopped
+    network_mode: host
     volumes:
       - ./data:/data
-    ports:
-      - "8080:8080"
-      - "8884:8884"
-    networks:
-      - lumenmon
     environment:
       - PYTHONUNBUFFERED=1
       - CONSOLE_HOST=${CONSOLE_HOST:-localhost}
@@ -22,8 +18,3 @@ services:
         max-file: "3"
     stdin_open: true
     tty: true
-
-networks:
-  lumenmon:
-    name: lumenmon-net
-    driver: bridge
