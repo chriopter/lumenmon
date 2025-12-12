@@ -19,7 +19,8 @@ RUN apt-get update && apt-get install -y \
     && curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | tee /etc/apt/sources.list.d/caddy-stable.list \
     && apt-get update \
     && apt-get install -y caddy \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && rm -f /etc/sysctl.d/caddy-sysctl.conf
 
 # Install Python packages
 RUN pip3 install --no-cache-dir flask paho-mqtt --break-system-packages
