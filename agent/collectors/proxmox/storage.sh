@@ -1,12 +1,11 @@
 #!/bin/bash
 # Collects Proxmox storage pool usage via pvesh API.
-# Only runs on Proxmox hosts where pvesh command exists.
+# Publishes _used and _total (in GB) for each storage pool.
 
 # Config
-RHYTHM="CYCLE"             # Uses CYCLE timing (60s)
+RHYTHM="CYCLE"             # Uses CYCLE timing (5m)
 TYPE="REAL"
 
-set -euo pipefail
 source "$LUMENMON_HOME/core/mqtt/publish.sh"
 
 # Check if pvesh exists
@@ -18,18 +17,23 @@ NODE=$(hostname)
 
 # Main loop
 while true; do
-    # Parse JSON: extract storage name and used_fraction pairs
+    # Get storage info as JSON and parse with awk
     pvesh get /nodes/$NODE/storage --output-format json 2>/dev/null | \
-        grep -oP '"storage"\s*:\s*"\K[^"]+|"used_fraction"\s*:\s*\K[0-9.eE+-]+' | \
-        paste - - | while read -r storage fraction; do
-            # Convert fraction to percentage
-            used_pct=$(awk "BEGIN {printf \"%.1f\", $fraction * 100}")
-
-            # Sanitize storage name (replace - with _)
-            metric_name="proxmox_storage_$(echo "$storage" | tr '-' '_')"
-
-            publish_metric "$metric_name" "$used_pct" "$TYPE" "$CYCLE"
-        done
+        python3 -c "
+import sys, json
+try:
+    data = json.load(sys.stdin)
+    for s in data:
+        name = s.get('storage', '').replace('-', '_')
+        total = s.get('total', 0) / (1024**3)  # bytes to GB
+        used = s.get('used', 0) / (1024**3)
+        print(f'{name} {used:.1f} {total:.1f}')
+except: pass
+" | while read -r storage used total; do
+        [ -z "$storage" ] && continue
+        publish_metric "proxmox_storage_${storage}_used" "$used" "$TYPE" "$CYCLE"
+        publish_metric "proxmox_storage_${storage}_total" "$total" "$TYPE" "$CYCLE"
+    done
 
     sleep $CYCLE
 done
