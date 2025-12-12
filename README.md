@@ -19,6 +19,7 @@ Next up:
 - docker update avilable check
 - sysos update check 
 - nextcloud backup check
+- Add PBS check
 
 ## Quick Start
 

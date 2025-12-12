@@ -132,7 +132,7 @@ def get_latest_value(agent_id, metric_name):
             except (ValueError, TypeError):
                 value = row[1]
 
-            interval = row[2] if row[2] else 60  # Default 60s
+            interval = row[2] if row[2] is not None else 60  # Default 60s, preserve 0 for one-time
             return row[0], value, interval
     except Exception:
         pass
@@ -322,13 +322,13 @@ def get_agent_tables(agent_id):
                     'value_text': value_text,
                     'min_value': min_value,
                     'max_value': max_value,
-                    'interval': interval or 60,
+                    'interval': interval if interval is not None else 60,
                     # Also provide coalesced value for widgets
                     'value': round(value_real, 1) if value_real is not None else (value_int if value_int is not None else value_text)
                 }
 
                 # Calculate staleness using centralized function
-                staleness = calculate_staleness(timestamp, interval or 60)
+                staleness = calculate_staleness(timestamp, interval if interval is not None else 60)
 
                 # Calculate metadata
                 timestamp_age = _format_timestamp_age(timestamp)
