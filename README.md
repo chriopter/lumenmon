@@ -49,8 +49,8 @@ curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/agent/instal
 | Rhythm | Interval | Metrics |
 |--------|----------|---------|
 | PULSE | 1s | cpu, heartbeat |
-| BREATHE | 10s | memory |
-| CYCLE | 60s | disk, proxmox vms/containers/storage |
+| BREATHE | 60s | memory, disk |
+| CYCLE | 5m | proxmox vms/containers/storage/zfs |
 | REPORT | 1h | hostname, os, kernel, uptime |
 
 ## Commands

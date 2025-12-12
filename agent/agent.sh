@@ -28,8 +28,8 @@ AGENT_ID="$MQTT_USERNAME"
 
 # Collector timing
 PULSE="1"
-BREATHE="10"
-CYCLE="60"
+BREATHE="60"
+CYCLE="300"
 REPORT="3600"
 
 echo "[agent] ✓ Agent registered: $AGENT_ID"
