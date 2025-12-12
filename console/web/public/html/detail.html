@@ -337,7 +337,16 @@ Widgets auto-load based on available metrics. Functions: openDetailView(), close
                     }
                 }
 
-                const rowClass = isStale ? 'stale-row' : '';
+                // Check if value is out of bounds (collector fail detection)
+                const currentValue = columns.value_real ?? columns.value_int;
+                const minVal = columns.min_value;
+                const maxVal = columns.max_value;
+                const isOutOfBounds = currentValue !== null && (
+                    (minVal !== null && currentValue < minVal) ||
+                    (maxVal !== null && currentValue > maxVal)
+                );
+
+                const rowClass = isOutOfBounds ? 'error-row' : (isStale ? 'stale-row' : '');
 
                 // Format display values (CSS handles truncation/expand on hover)
                 const fmtVal = (v) => v !== null && v !== undefined ? v : '-';
