@@ -10,17 +10,6 @@ Lightweight system monitoring with MQTT transport. Sets up in 60 Seconds.
 
 Console runs in Docker, agents are bare metal bash scripts.as
 
-Next up: 
-- Smart Collector Fail Detection (zfs.sh)
-- Proxmox Suppor
-- Failed Value State detection, deliver threshold values low and high (in DB yes or no?)
-- Socket Status Collector Script
-- github script test check
-- docker update avilable check
-- sysos update check 
-- nextcloud backup check
-- Add PBS check
-
 ## Quick Start
 
 **Console** (central dashboard):
