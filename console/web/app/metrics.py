@@ -330,6 +330,18 @@ def get_agent_tables(agent_id):
                 # Calculate staleness using centralized function
                 staleness = calculate_staleness(timestamp, interval if interval is not None else 60)
 
+                # Validate value against min/max bounds
+                current_value = value_real if value_real is not None else value_int
+                is_out_of_bounds = False
+                bounds_error = None
+                if current_value is not None:
+                    if min_value is not None and current_value < min_value:
+                        is_out_of_bounds = True
+                        bounds_error = f"value {current_value} < min {min_value}"
+                    elif max_value is not None and current_value > max_value:
+                        is_out_of_bounds = True
+                        bounds_error = f"value {current_value} > max {max_value}"
+
                 # Calculate metadata
                 timestamp_age = _format_timestamp_age(timestamp)
                 data_span = _format_duration(timestamp - oldest[0]) if oldest else "N/A"
@@ -339,6 +351,12 @@ def get_agent_tables(agent_id):
                     'table_name': table_name,
                     'columns': columns,
                     'staleness': staleness,
+                    'health': {
+                        'is_failed': is_out_of_bounds or staleness['is_stale'],
+                        'out_of_bounds': is_out_of_bounds,
+                        'bounds_error': bounds_error,
+                        'is_stale': staleness['is_stale']
+                    },
                     'metadata': {
                         'type': value_type,
                         'timestamp_age': timestamp_age,

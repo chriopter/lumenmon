@@ -337,14 +337,9 @@ Widgets auto-load based on available metrics. Functions: openDetailView(), close
                     }
                 }
 
-                // Check if value is out of bounds (collector fail detection)
-                const currentValue = columns.value_real ?? columns.value_int;
-                const minVal = columns.min_value;
-                const maxVal = columns.max_value;
-                const isOutOfBounds = currentValue !== null && (
-                    (minVal !== null && currentValue < minVal) ||
-                    (maxVal !== null && currentValue > maxVal)
-                );
+                // Use backend health status for row styling
+                const health = table.health || {};
+                const isOutOfBounds = health.out_of_bounds || false;
 
                 const rowClass = isOutOfBounds ? 'error-row' : (isStale ? 'stale-row' : '');
 

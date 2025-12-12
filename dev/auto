@@ -122,12 +122,15 @@ while true; do
     publish "proxmox_storage_nas_used" "$((1200 + RANDOM % 400))" "REAL" 60
     publish "proxmox_storage_nas_total" "4000" "REAL" 60
 
-    # ZFS metrics (capacity is a percentage)
-    publish "proxmox_zfs_rpool_drives" "2" "INTEGER" 60
-    publish "proxmox_zfs_rpool_online" "2" "INTEGER" 60
+    # ZFS metrics (online min/max = total drives for degraded detection)
+    RPOOL_DRIVES=2
+    TANK_DRIVES=4
+    TANK_ONLINE=$((3 + RANDOM % 2))  # Simulates occasional degraded state
+    publish "proxmox_zfs_rpool_drives" "$RPOOL_DRIVES" "INTEGER" 60
+    publish "proxmox_zfs_rpool_online" "$RPOOL_DRIVES" "INTEGER" 60 "$RPOOL_DRIVES" "$RPOOL_DRIVES"
     publish "proxmox_zfs_rpool_capacity" "$((35 + RANDOM % 10))" "REAL" 60 0 100
-    publish "proxmox_zfs_tank_drives" "4" "INTEGER" 60
-    publish "proxmox_zfs_tank_online" "$((3 + RANDOM % 2))" "INTEGER" 60
+    publish "proxmox_zfs_tank_drives" "$TANK_DRIVES" "INTEGER" 60
+    publish "proxmox_zfs_tank_online" "$TANK_ONLINE" "INTEGER" 60 "$TANK_DRIVES" "$TANK_DRIVES"
     publish "proxmox_zfs_tank_capacity" "$((60 + RANDOM % 15))" "REAL" 60 0 100
 
     sleep 1
