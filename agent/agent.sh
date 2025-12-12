@@ -52,6 +52,23 @@ export PULSE BREATHE CYCLE REPORT
 : ${AGENT_ID:?AGENT_ID not set} ${MQTT_HOST:?MQTT_HOST not set} ${MQTT_PORT:?MQTT_PORT not set}
 : ${MQTT_USERNAME:?MQTT_USERNAME not set} ${MQTT_PASSWORD:?MQTT_PASSWORD not set}
 
+# Test MQTT connection before starting collectors
+echo "[agent] Testing MQTT connection..."
+MQTT_CERT="$MQTT_DATA_DIR/server.crt"
+for i in 1 2 3; do
+    if mosquitto_pub -h "$MQTT_HOST" -p "$MQTT_PORT" -u "$MQTT_USERNAME" -P "$MQTT_PASSWORD" \
+        --cafile "$MQTT_CERT" -t "metrics/$AGENT_ID/startup" -m '{"value":1,"type":"INTEGER","interval":0}' 2>/dev/null; then
+        echo "[agent] ✓ MQTT connection verified"
+        break
+    fi
+    if [ "$i" -lt 3 ]; then
+        echo "[agent] Connection attempt $i failed, retrying..."
+        sleep 2
+    else
+        echo "[agent] WARNING: Could not verify MQTT connection, starting anyway"
+    fi
+done
+
 # Start collectors (background jobs)
 cd "$LUMENMON_HOME"
 source "$LUMENMON_HOME/core/connection/collectors.sh"
