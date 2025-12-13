@@ -38,11 +38,17 @@ while true; do
     freshness=$(get_update_age)
 
     # Count total updates (from cached package lists)
-    # Force English locale for consistent output parsing
-    total=$(LC_ALL=C apt list --upgradable 2>/dev/null | grep -c "upgradable from" || echo "0")
+    # Use intermediate variable to handle grep exit codes properly
+    total=0
+    if output=$(LC_ALL=C apt list --upgradable 2>/dev/null); then
+        total=$(echo "$output" | grep -c "upgradable from" || true)
+    fi
 
     # Count security updates
-    security=$(LC_ALL=C apt list --upgradable 2>/dev/null | grep -cE "(-security|/.*-security)" || echo "0")
+    security=0
+    if output=$(LC_ALL=C apt list --upgradable 2>/dev/null); then
+        security=$(echo "$output" | grep -cE "(-security|/.*-security)" || true)
+    fi
 
     # Check for release upgrade (read-only check)
     release=0
