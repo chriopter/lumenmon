@@ -17,6 +17,10 @@ run_collector() {
 
     {
         echo "[$(date '+%Y-%m-%d %H:%M:%S')] STARTED $name"
+        # Export all required environment variables for child processes
+        export LUMENMON_HOME LUMENMON_DATA
+        export PULSE BREATHE CYCLE REPORT
+        export AGENT_ID MQTT_HOST MQTT_PORT MQTT_USERNAME MQTT_PASSWORD
         "$script" 2>&1
         echo "[$(date '+%Y-%m-%d %H:%M:%S')] CRASHED $name (exit: $?)"
     } >> "$COLLECTOR_LOG" 2>&1 &
