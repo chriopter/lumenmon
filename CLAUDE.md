@@ -99,13 +99,21 @@ lumenmon/
 │   │   ├── mqtt/publish.sh     # MQTT publishing
 │   │   ├── setup/register.sh   # Registration
 │   │   └── status.sh           # Status checks
-│   └── collectors/generic/     # Metric collectors
-│       ├── cpu.sh
-│       ├── memory.sh
-│       ├── disk.sh
-│       ├── heartbeat.sh
-│       ├── hostname.sh
-│       └── lumenmon.sh
+│   └── collectors/             # Metric collectors
+│       ├── generic/            # Universal collectors
+│       │   ├── cpu.sh
+│       │   ├── memory.sh
+│       │   ├── disk.sh
+│       │   ├── heartbeat.sh
+│       │   ├── hostname.sh
+│       │   └── lumenmon.sh
+│       ├── proxmox/            # Proxmox-specific
+│       │   ├── containers.sh
+│       │   ├── vms.sh
+│       │   ├── storage.sh
+│       │   └── zfs.sh
+│       └── debian/             # Debian/Ubuntu-specific
+│           └── updates.sh      # Updates: total, security, release upgrade
 │
 └── dev/                        # Development scripts
 ```
@@ -154,10 +162,22 @@ REPORT=3600   # Hostname/system - 1 hour
 ## Common Tasks
 
 ### Adding New Metrics
+
+#### Generic Collectors (all systems)
 1. Create collector in `agent/collectors/generic/`
 2. Source publish.sh: `source "$LUMENMON_HOME/core/mqtt/publish.sh"`
 3. Call: `publish_metric "metric_name" "$value" "REAL" "$INTERVAL"`
 4. Types: REAL (numeric), TEXT (string), INTEGER (whole number)
+
+#### Platform-Specific Collectors
+Platform collectors only run when their platform is detected:
+- **Proxmox**: `agent/collectors/proxmox/` - checks for `pvesh` command
+- **Debian/Ubuntu**: `agent/collectors/debian/` - checks for `apt-get` and `/etc/debian_version`
+
+To add a new platform:
+1. Create directory: `agent/collectors/PLATFORM/`
+2. Add `_init.sh` that checks for platform and sources collectors
+3. Add collector scripts using same `publish_metric` pattern
 
 ### Debugging Agent
 ```bash

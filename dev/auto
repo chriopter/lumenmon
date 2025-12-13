@@ -133,5 +133,19 @@ while true; do
     publish "proxmox_zfs_tank_online" "$TANK_ONLINE" "INTEGER" 60 "$TANK_DRIVES" "$TANK_DRIVES"
     publish "proxmox_zfs_tank_capacity" "$((60 + RANDOM % 15))" "REAL" 60 0 100
 
+    # Debian/Ubuntu update metrics (publish once per minute for demo)
+    if [ "$((RANDOM % 60))" -eq 0 ]; then
+        # Simulate some updates available
+        UPDATES=$((RANDOM % 10))  # 0-9 total updates
+        SECURITY=$((UPDATES > 0 ? RANDOM % (UPDATES + 1) : 0))  # Some portion are security
+        RELEASE=$((RANDOM % 100 < 10 ? 1 : 0))  # 10% chance of release upgrade
+        FRESHNESS=$((RANDOM % 48))  # 0-47 hours old
+
+        publish "debian_updates" "$UPDATES" "INTEGER" 3600 0 0
+        publish "debian_security_updates" "$SECURITY" "INTEGER" 3600 0 0
+        publish "debian_release_upgrade" "$RELEASE" "INTEGER" 3600 0 0
+        publish "debian_update_age" "$FRESHNESS" "INTEGER" 3600 0 24
+    fi
+
     sleep 1
 done
