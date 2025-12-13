@@ -7,10 +7,10 @@ LumenmonWidget({
     title: 'Updates',
     category: 'debian',
     metrics: ['debian_updates_total', 'debian_updates_security', 'debian_updates_release', 'debian_updates_age'],
-    size: 'stat',
-    gridSize: 'sm',
+    size: 'sparkline',
+    gridSize: 'xs',  // 1-column width
     expandable: false,
-    priority: 10,  // Show early (after CPU/Memory)
+    priority: 13,  // Show after CPU(10), Memory(11), Disk(12)
     render: function(data, agent) {
         const total = data['debian_updates_total']?.columns?.value || 0;
         const security = data['debian_updates_security']?.columns?.value || 0;
@@ -29,36 +29,34 @@ LumenmonWidget({
         let statusClass = 'health-ok';
         if (hasUpdates || isStale) statusClass = 'status-warning';
 
-        // Build display
+        // Build compact display for 1-column width
         let html = `
             <div class="tui-metric-box">
-                <div class="tui-metric-header">updates</div>
+                <div class="tui-metric-header">update</div>
         `;
 
         if (!hasUpdates) {
+            // Show checkmark and "0" when up to date
             html += `
-                <div class="tui-metric-value ${statusClass}">${total}</div>
-                <div class="tui-metric-extra">up to date</div>
+                <div class="tui-metric-value ${statusClass}">0</div>
+                <div class="tui-metric-sparkline">✓</div>
             `;
         } else {
+            // Show count when updates available
             html += `
                 <div class="tui-metric-value ${statusClass}">${total}</div>
             `;
 
-            // Show breakdown
-            const details = [];
-            if (security > 0) details.push(`${security} security`);
-            if (release > 0) details.push('release upgrade');
-
-            if (details.length > 0) {
-                html += `<div class="tui-metric-extra">${details.join(', ')}</div>`;
+            // Show type indicators in sparkline area
+            if (security > 0 && release > 0) {
+                html += `<div class="tui-metric-sparkline">sec+rel</div>`;
+            } else if (security > 0) {
+                html += `<div class="tui-metric-sparkline">${security} sec</div>`;
+            } else if (release > 0) {
+                html += `<div class="tui-metric-sparkline">release</div>`;
+            } else {
+                html += `<div class="tui-metric-sparkline">avail</div>`;
             }
-        }
-
-        // Add stale indicator if package lists are old
-        if (isStale && freshness !== undefined) {
-            const ageText = freshness > 48 ? `${Math.floor(freshness/24)}d old` : `${freshness}h old`;
-            html += `<div class="tui-metric-footer status-warning">⚠ lists ${ageText}</div>`;
         }
 
         html += `</div>`;

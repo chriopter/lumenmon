@@ -88,6 +88,17 @@ publish() {
 publish "generic_hostname" '"virtual-test-agent"' "TEXT" 0
 publish "generic_lumenmon_version" '"1.0.0-virtual"' "TEXT" 0
 
+# Publish initial Debian update metrics
+UPDATES=$((RANDOM % 15))  # 0-14 total updates
+SECURITY=$((UPDATES > 0 ? RANDOM % (UPDATES + 1) : 0))  # Some portion are security
+RELEASE=$((RANDOM % 100 < 20 ? 1 : 0))  # 20% chance of release upgrade
+FRESHNESS=$((RANDOM % 48))  # 0-47 hours old
+
+publish "debian_updates_total" "$UPDATES" "INTEGER" 3600 0 0
+publish "debian_updates_security" "$SECURITY" "INTEGER" 3600 0 0
+publish "debian_updates_release" "$RELEASE" "INTEGER" 3600 0 0
+publish "debian_updates_age" "$FRESHNESS" "INTEGER" 3600 0 24
+
 echo ""
 echo "Done! Dashboard: http://localhost:8080"
 echo ""
@@ -133,13 +144,36 @@ while true; do
     publish "proxmox_zfs_tank_online" "$TANK_ONLINE" "INTEGER" 60 "$TANK_DRIVES" "$TANK_DRIVES"
     publish "proxmox_zfs_tank_capacity" "$((60 + RANDOM % 15))" "REAL" 60 0 100
 
-    # Debian/Ubuntu update metrics (publish once per minute for demo)
-    if [ "$((RANDOM % 60))" -eq 0 ]; then
-        # Simulate some updates available
-        UPDATES=$((RANDOM % 10))  # 0-9 total updates
-        SECURITY=$((UPDATES > 0 ? RANDOM % (UPDATES + 1) : 0))  # Some portion are security
-        RELEASE=$((RANDOM % 100 < 10 ? 1 : 0))  # 10% chance of release upgrade
-        FRESHNESS=$((RANDOM % 48))  # 0-47 hours old
+    # Debian/Ubuntu update metrics - changes every 30 seconds for demo
+    if [ "$((SECONDS % 30))" -eq 0 ]; then
+        # Simulate dynamic updates with various scenarios
+        SCENARIO=$((RANDOM % 4))
+        case $SCENARIO in
+            0)  # No updates, fresh
+                UPDATES=0
+                SECURITY=0
+                RELEASE=0
+                FRESHNESS=$((RANDOM % 12))  # 0-11 hours (fresh)
+                ;;
+            1)  # Regular updates only
+                UPDATES=$((1 + RANDOM % 8))  # 1-8 updates
+                SECURITY=0
+                RELEASE=0
+                FRESHNESS=$((RANDOM % 24))  # 0-23 hours
+                ;;
+            2)  # Security updates present
+                UPDATES=$((5 + RANDOM % 10))  # 5-14 updates
+                SECURITY=$((1 + RANDOM % 5))  # 1-5 security
+                RELEASE=0
+                FRESHNESS=$((RANDOM % 36))  # 0-35 hours
+                ;;
+            3)  # Critical: release upgrade + updates
+                UPDATES=$((10 + RANDOM % 20))  # 10-29 updates
+                SECURITY=$((3 + RANDOM % 7))  # 3-9 security
+                RELEASE=1
+                FRESHNESS=$((24 + RANDOM % 24))  # 24-47 hours (stale)
+                ;;
+        esac
 
         publish "debian_updates_total" "$UPDATES" "INTEGER" 3600 0 0
         publish "debian_updates_security" "$SECURITY" "INTEGER" 3600 0 0
