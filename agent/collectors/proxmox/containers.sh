@@ -28,7 +28,7 @@ while true; do
         elif echo "$line" | grep -q "stopped"; then
             ((stopped++)) || true
         fi
-    done < <(pct list 2>/dev/null | tail -n +2)
+    done < <(LC_ALL=C pct list 2>/dev/null | tail -n +2)
 
     publish_metric "$METRIC_RUNNING" "$running" "$TYPE" "$CYCLE"
     publish_metric "$METRIC_STOPPED" "$stopped" "$TYPE" "$CYCLE"

@@ -13,7 +13,8 @@ source "$LUMENMON_HOME/core/mqtt/publish.sh"
 
 while true; do
     # Get disk usage for root filesystem (remove % sign)
-    usage=$(df -P / | tail -1 | awk '{print $5}' | tr -d '%') || usage=0
+    # Force English locale for consistent output
+    usage=$(LC_ALL=C df -P / | tail -1 | awk '{print $5}' | tr -d '%') || usage=0
 
     # Publish with interval and bounds
     publish_metric "$METRIC" "$usage" "$TYPE" "$BREATHE" "$MIN" "$MAX"

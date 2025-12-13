@@ -147,10 +147,21 @@ set -euo pipefail
 source "$LUMENMON_HOME/core/mqtt/publish.sh"
 
 while true; do
-    value="42.0"
+    # IMPORTANT: Use LC_ALL=C for commands that produce localized output
+    value=$(LC_ALL=C some_command | parse_output)
     publish_metric "$METRIC" "$value" "$TYPE" "$PULSE" "$MIN" "$MAX"
     sleep $PULSE
 done
+```
+
+**Locale handling:** Always use `LC_ALL=C` prefix for system commands to ensure consistent English output parsing:
+```bash
+# Good - forces English output
+total=$(LC_ALL=C apt list --upgradable 2>/dev/null | grep -c "upgradable from")
+usage=$(LC_ALL=C df -P / | tail -1 | awk '{print $5}' | tr -d '%')
+
+# Bad - output varies by system locale
+total=$(apt list --upgradable | grep -c "upgradable from")  # Fails on German systems
 ```
 
 **publish_metric** signature:

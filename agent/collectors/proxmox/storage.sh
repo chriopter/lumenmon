@@ -18,7 +18,7 @@ NODE=$(hostname)
 # Main loop
 while true; do
     # Get storage info as JSON and parse with awk
-    pvesh get /nodes/$NODE/storage --output-format json 2>/dev/null | \
+    LC_ALL=C pvesh get /nodes/$NODE/storage --output-format json 2>/dev/null | \
         python3 -c "
 import sys, json
 try:
