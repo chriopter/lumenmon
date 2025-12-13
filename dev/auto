@@ -19,7 +19,8 @@ mkdir -p dev/data/mqtt dev/data/agents/virtual-test/mqtt console/data/mqtt
 
 echo "Starting console..."
 echo "CONSOLE_HOST=localhost" > console/.env
-docker compose -f console/docker-compose.yml up -d --build
+# Use dev override to mount web files for hot reload
+docker compose -f console/docker-compose.yml -f console/docker-compose.dev.yml up -d --build
 
 echo "Waiting for console..."
 sleep 3
