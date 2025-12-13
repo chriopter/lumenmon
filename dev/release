@@ -4,8 +4,12 @@
 
 set -e
 
-# Get latest version
-LATEST=$(git tag -l 'v*' | sort -V | tail -1)
+# Fetch remote tags to ensure we have the latest (force to overwrite local conflicts)
+echo "Fetching remote tags..."
+git fetch --tags --force
+
+# Get latest version from remote (source of truth)
+LATEST=$(git ls-remote --tags origin | grep -E 'refs/tags/v[0-9]' | sed 's/.*refs\/tags\///' | grep -v '\^{}' | sort -V | tail -1)
 
 # Calculate next version
 if [[ -n "$LATEST" ]]; then
