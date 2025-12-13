@@ -6,20 +6,20 @@ LumenmonWidget({
     name: 'debian_updates',
     title: 'Updates',
     category: 'debian',
-    metrics: ['debian_updates', 'debian_security_updates', 'debian_release_upgrade', 'debian_update_age'],
+    metrics: ['debian_updates_total', 'debian_updates_security', 'debian_updates_release', 'debian_updates_age'],
     size: 'stat',
     gridSize: 'sm',
     expandable: false,
     priority: 10,  // Show early (after CPU/Memory)
     render: function(data, agent) {
-        const total = data['debian_updates']?.columns?.value || 0;
-        const security = data['debian_security_updates']?.columns?.value || 0;
-        const release = data['debian_release_upgrade']?.columns?.value || 0;
-        const freshness = data['debian_update_age']?.columns?.value;
+        const total = data['debian_updates_total']?.columns?.value || 0;
+        const security = data['debian_updates_security']?.columns?.value || 0;
+        const release = data['debian_updates_release']?.columns?.value || 0;
+        const freshness = data['debian_updates_age']?.columns?.value;
 
         // Check health status for color (backend determines if out of bounds)
-        const totalHealth = data['debian_updates']?.health || {};
-        const freshnessHealth = data['debian_update_age']?.health || {};
+        const totalHealth = data['debian_updates_total']?.health || {};
+        const freshnessHealth = data['debian_updates_age']?.health || {};
 
         // Determine overall status
         const hasUpdates = total > 0 || security > 0 || release > 0;

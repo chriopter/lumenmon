@@ -4,10 +4,10 @@
 
 # Config
 RHYTHM="REPORT"                         # Uses REPORT timing (1hr)
-METRIC_UPDATES="debian_updates"         # Total updates
-METRIC_SECURITY="debian_security_updates"  # Security updates
-METRIC_RELEASE="debian_release_upgrade" # Release upgrade (0 or 1)
-METRIC_FRESHNESS="debian_update_age"    # Hours since last apt update
+METRIC_UPDATES="debian_updates_total"   # Total updates
+METRIC_SECURITY="debian_updates_security"  # Security updates
+METRIC_RELEASE="debian_updates_release" # Release upgrade (0 or 1)
+METRIC_FRESHNESS="debian_updates_age"   # Hours since last apt update
 TYPE="INTEGER"
 MIN=0
 MAX=0  # >0 triggers warning

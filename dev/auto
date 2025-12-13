@@ -141,10 +141,10 @@ while true; do
         RELEASE=$((RANDOM % 100 < 10 ? 1 : 0))  # 10% chance of release upgrade
         FRESHNESS=$((RANDOM % 48))  # 0-47 hours old
 
-        publish "debian_updates" "$UPDATES" "INTEGER" 3600 0 0
-        publish "debian_security_updates" "$SECURITY" "INTEGER" 3600 0 0
-        publish "debian_release_upgrade" "$RELEASE" "INTEGER" 3600 0 0
-        publish "debian_update_age" "$FRESHNESS" "INTEGER" 3600 0 24
+        publish "debian_updates_total" "$UPDATES" "INTEGER" 3600 0 0
+        publish "debian_updates_security" "$SECURITY" "INTEGER" 3600 0 0
+        publish "debian_updates_release" "$RELEASE" "INTEGER" 3600 0 0
+        publish "debian_updates_age" "$FRESHNESS" "INTEGER" 3600 0 24
     fi
 
     sleep 1

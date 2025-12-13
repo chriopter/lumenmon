@@ -113,7 +113,7 @@ lumenmon/
 │       │   ├── storage.sh
 │       │   └── zfs.sh
 │       └── debian/             # Debian/Ubuntu-specific
-│           └── updates.sh      # Updates: total, security, release upgrade
+│           └── updates.sh      # debian_updates_*: total, security, release, age
 │
 └── dev/                        # Development scripts
 ```
