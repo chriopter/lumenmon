@@ -60,7 +60,7 @@ while true; do
     publish_metric "$METRIC_UPDATES" "$total" "$TYPE" "$REPORT" "$MIN" "$MAX"
     publish_metric "$METRIC_SECURITY" "$security" "$TYPE" "$REPORT" "$MIN" "$MAX"
     publish_metric "$METRIC_RELEASE" "$release" "$TYPE" "$REPORT" "$MIN" "$MAX"
-    publish_metric "$METRIC_FRESHNESS" "$freshness" "$TYPE" "$REPORT" 0 24  # Warn if >24h old
+    publish_metric "$METRIC_FRESHNESS" "$freshness" "$TYPE" "$REPORT" 0 72  # Warn if >72h old
 
     sleep $REPORT
 done
