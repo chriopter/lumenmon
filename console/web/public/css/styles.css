@@ -632,7 +632,12 @@ footer {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    max-width: 140px;
+}
+.tui-info-value .tui-badge-warning {
+    display: inline-block;
+    vertical-align: middle;
+    margin-left: 0.3rem;
+    flex-shrink: 0;
 }
 
 .tui-stat-grid { display: flex; gap: 1rem; justify-content: space-around; }
