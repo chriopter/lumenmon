@@ -52,15 +52,30 @@ case "${1:-}" in
         # Stop service
         $SUDO systemctl stop lumenmon-agent 2>/dev/null || true
 
-        # Fetch and reset to remote (discard any local changes)
-        if $SUDO git -C "$GIT_ROOT" fetch origin && \
-           $SUDO git -C "$GIT_ROOT" reset --hard origin/main; then
+        # Fetch with tags
+        if ! $SUDO git -C "$GIT_ROOT" fetch origin --tags; then
             $SUDO systemctl start lumenmon-agent
-            echo "Updated and restarted"
-        else
-            $SUDO systemctl start lumenmon-agent
-            echo "Update failed, service restarted"
+            echo "Fetch failed, service restarted"
             exit 1
+        fi
+
+        # Get latest tag and checkout
+        LATEST_TAG=$($SUDO git -C "$GIT_ROOT" tag --sort=-v:refname | head -n1)
+        if [ -n "$LATEST_TAG" ]; then
+            CURRENT=$($SUDO git -C "$GIT_ROOT" describe --tags --always 2>/dev/null || echo "unknown")
+            if $SUDO git -C "$GIT_ROOT" checkout "$LATEST_TAG" 2>/dev/null; then
+                $SUDO systemctl start lumenmon-agent
+                echo "Updated: $CURRENT → $LATEST_TAG"
+            else
+                $SUDO systemctl start lumenmon-agent
+                echo "Checkout failed, service restarted"
+                exit 1
+            fi
+        else
+            # Fallback to main if no tags exist
+            $SUDO git -C "$GIT_ROOT" reset --hard origin/main
+            $SUDO systemctl start lumenmon-agent
+            echo "Updated to main (no release tags found)"
         fi
         ;;
     uninstall)
