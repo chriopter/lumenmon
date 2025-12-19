@@ -104,7 +104,7 @@ Pure bash scripts that collect metrics and publish via `mosquitto_pub` over TLS.
 2. Creates systemd service `lumenmon-agent.service`
 3. Creates CLI `/usr/local/bin/lumenmon-agent`
 
-**Update:** `lumenmon-agent update` pulls latest scripts. Credentials preserved.
+**Update:** `lumenmon-agent update` fetches and checks out the latest release tag. Credentials preserved. The console dashboard shows "UPDATE AVAILABLE" when a newer version exists.
 
 **Uninstall:** `lumenmon-agent uninstall` stops service/process, removes files.
 
