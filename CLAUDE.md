@@ -163,11 +163,32 @@ REPORT=3600   # Hostname/system - 1 hour
 
 ### Adding New Metrics
 
-#### Generic Collectors (all systems)
-1. Create collector in `agent/collectors/generic/`
-2. Source publish.sh: `source "$LUMENMON_HOME/core/mqtt/publish.sh"`
-3. Call: `publish_metric "metric_name" "$value" "REAL" "$INTERVAL"`
-4. Types: REAL (numeric), TEXT (string), INTEGER (whole number)
+#### Collector Template
+```bash
+#!/bin/bash
+# Description of what this collector does.
+# Reports X at Y interval.
+
+METRIC="generic_example"
+TYPE="REAL"  # REAL, INTEGER, or TEXT
+
+source "$LUMENMON_HOME/core/mqtt/publish.sh"
+
+while true; do
+    value=$(some_command)
+
+    publish_metric "$METRIC" "$value" "$TYPE" "$BREATHE" "$MIN" "$MAX"
+    [ "${LUMENMON_TEST_MODE:-}" = "1" ] && exit 0  # Support status test
+
+    sleep $BREATHE
+done
+```
+
+#### Key Points
+- **Types**: REAL (decimal), INTEGER (whole number), TEXT (string)
+- **Intervals**: `$PULSE` (1s), `$BREATHE` (60s), `$CYCLE` (5m), `$REPORT` (1h)
+- **Test mode line**: Required after all `publish_metric` calls - enables `lumenmon-agent status` to run collector once
+- **Min/Max**: Optional bounds for threshold warnings
 
 #### Platform-Specific Collectors
 Platform collectors only run when their platform is detected:
@@ -176,8 +197,8 @@ Platform collectors only run when their platform is detected:
 
 To add a new platform:
 1. Create directory: `agent/collectors/PLATFORM/`
-2. Add `_init.sh` that checks for platform and sources collectors
-3. Add collector scripts using same `publish_metric` pattern
+2. Add `_init.sh` that checks for platform and calls `run_collector` for each script
+3. Add collector scripts using same pattern above
 
 ### Debugging Agent
 ```bash

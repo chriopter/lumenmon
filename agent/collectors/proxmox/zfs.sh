@@ -23,6 +23,7 @@ while true; do
         capacity_num=$(echo "$capacity" | tr -d '%')
         publish_metric "proxmox_zfs_${pool_name}_capacity" "$capacity_num" "REAL" "$CYCLE" 0 100
     done
+    [ "${LUMENMON_TEST_MODE:-}" = "1" ] && exit 0
 
     sleep $CYCLE
 done

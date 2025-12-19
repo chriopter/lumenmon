@@ -22,6 +22,7 @@ while true; do
     publish_metric "generic_sys_os" "$os" "TEXT" "$REPORT"
     publish_metric "generic_sys_kernel" "$kernel" "TEXT" "$REPORT"
     publish_metric "generic_sys_uptime" "$uptime" "INTEGER" "$REPORT" 0
+    [ "${LUMENMON_TEST_MODE:-}" = "1" ] && exit 0
 
     sleep $REPORT
 done

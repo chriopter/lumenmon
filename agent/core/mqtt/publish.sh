@@ -25,6 +25,12 @@ publish_metric() {
     local min_value="$5"       # Optional min bound
     local max_value="$6"       # Optional max bound
 
+    # Test mode: print instead of publish
+    if [ "${LUMENMON_TEST_MODE:-}" = "1" ]; then
+        printf "  %-24s %s\n" "$metric_name" "$value"
+        return 0
+    fi
+
     _mqtt_load_creds
 
     # Build JSON payload - handle TEXT type needing quoted value

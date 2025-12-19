@@ -18,6 +18,7 @@ while true; do
 
     # Publish with interval and bounds
     publish_metric "$METRIC" "$usage" "$TYPE" "$BREATHE" "$MIN" "$MAX"
+    [ "${LUMENMON_TEST_MODE:-}" = "1" ] && exit 0
 
     sleep $BREATHE
 done

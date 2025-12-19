@@ -61,6 +61,7 @@ while true; do
     publish_metric "$METRIC_SECURITY" "$security" "$TYPE" "$REPORT" "$MIN" "$MAX"
     publish_metric "$METRIC_RELEASE" "$release" "$TYPE" "$REPORT" "$MIN" "$MAX"
     publish_metric "$METRIC_FRESHNESS" "$freshness" "$TYPE" "$REPORT" 0 72  # Warn if >72h old
+    [ "${LUMENMON_TEST_MODE:-}" = "1" ] && exit 0
 
     # Wait for next interval OR until apt lists change (whichever comes first)
     # inotifywait returns immediately if apt update runs, otherwise times out after REPORT seconds

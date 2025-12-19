@@ -32,6 +32,7 @@ while true; do
 
     publish_metric "$METRIC_RUNNING" "$running" "$TYPE" "$CYCLE"
     publish_metric "$METRIC_STOPPED" "$stopped" "$TYPE" "$CYCLE"
+    [ "${LUMENMON_TEST_MODE:-}" = "1" ] && exit 0
 
     sleep $CYCLE
 done

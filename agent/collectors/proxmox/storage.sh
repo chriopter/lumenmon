@@ -34,6 +34,7 @@ except: pass
         publish_metric "proxmox_storage_${storage}_used" "$used" "$TYPE" "$CYCLE"
         publish_metric "proxmox_storage_${storage}_total" "$total" "$TYPE" "$CYCLE"
     done
+    [ "${LUMENMON_TEST_MODE:-}" = "1" ] && exit 0
 
     sleep $CYCLE
 done

@@ -23,6 +23,7 @@ while true; do
 
     # Publish as one-time value (interval=0, never stale)
     publish_metric "$METRIC" "$host_value" "$TYPE" 0
+    [ "${LUMENMON_TEST_MODE:-}" = "1" ] && exit 0
 
     sleep $REPORT
 done

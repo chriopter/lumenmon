@@ -73,3 +73,23 @@ if [ "$COLLECTORS" -gt 0 ]; then
 else
     printf "  Collectors   ${YELLOW}⚠${NC} None running\n"
 fi
+
+# Collector snapshot - runs each collector once in test mode
+echo ""
+echo "Collectors:"
+
+export LUMENMON_TEST_MODE=1
+export LUMENMON_HOME LUMENMON_DATA
+export PULSE=1 BREATHE=60 CYCLE=300 REPORT=3600
+
+# Override run_collector to run once (test mode exits after first publish)
+run_collector() {
+    local name="$1"
+    local script="$2"
+    timeout 5s "$script" 2>/dev/null || true
+}
+
+# Source collector init files (same as agent.sh)
+for init in "$LUMENMON_HOME/collectors"/*/_init.sh; do
+    [ -f "$init" ] && source "$init"
+done

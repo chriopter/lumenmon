@@ -42,6 +42,7 @@ while true; do
 
     # Publish with interval and bounds
     publish_metric "$METRIC" "$usage" "$TYPE" "$PULSE" "$MIN" "$MAX"
+    [ "${LUMENMON_TEST_MODE:-}" = "1" ] && exit 0
 
     # Save for next iteration
     prev_cpu=("${curr_cpu[@]}")
