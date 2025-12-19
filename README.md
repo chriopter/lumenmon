@@ -8,6 +8,7 @@ Lightweight system monitoring with MQTT transport. Sets up as docker server 60 S
 **Console** (central dashboard):
 ```bash
 curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/console/install.sh | bash
+
 ```
 
   ██╗     ██╗   ██╗███╗   ███╗███████╗███╗   ██╗███╗   ██╗ ██████╗ ███╗   ██╗
@@ -17,7 +18,6 @@ curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/console/inst
   ███████╗╚██████╔╝██║ ╚═╝ ██║███████╗██║ ╚████║██║ ╚═╝ ██║╚██████╔╝██║ ╚████║
   ╚══════╝ ╚═════╝ ╚═╝     ╚═╝╚══════╝╚═╝  ╚═══╝╚═╝     ╚═╝ ╚═════╝ ╚═╝  ╚═══╝
 ```
-
 
 ## Supported Agent Systems
 
