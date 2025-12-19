@@ -96,7 +96,7 @@ Loads CSS, Chart.js vendor library, and initializes components. Served by Flask 
                 // Log after page loads (addLog defined in logger.html)
                 if (data.version) {
                     window.addEventListener('load', () => {
-                        addLog(`latest release: ${data.version}`, 'info');
+                        addLog(`latest release: ${data.version}`, 'warning');
                     }, { once: true });
                 }
             })
