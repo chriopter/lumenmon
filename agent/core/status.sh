@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # Displays agent health status with color-coded checks.
 # Shows MQTT credentials, certificate, connection test, and collectors.
 
