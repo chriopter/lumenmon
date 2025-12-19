@@ -62,5 +62,11 @@ while true; do
     publish_metric "$METRIC_RELEASE" "$release" "$TYPE" "$REPORT" "$MIN" "$MAX"
     publish_metric "$METRIC_FRESHNESS" "$freshness" "$TYPE" "$REPORT" 0 72  # Warn if >72h old
 
-    sleep $REPORT
+    # Wait for next interval OR until apt lists change (whichever comes first)
+    # inotifywait returns immediately if apt update runs, otherwise times out after REPORT seconds
+    if command -v inotifywait &>/dev/null; then
+        inotifywait -t $REPORT -qq -e modify -e create -e delete /var/lib/apt/lists 2>/dev/null || true
+    else
+        sleep $REPORT
+    fi
 done

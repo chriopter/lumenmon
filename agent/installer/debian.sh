@@ -25,17 +25,17 @@ echo ""
 has_error=0
 missing_pkgs=""
 
-for cmd in bash git openssl systemctl mosquitto_pub; do
+for cmd in bash git openssl systemctl mosquitto_pub inotifywait; do
     if command -v "$cmd" >/dev/null 2>&1; then
         echo -e "  $cmd ${GREEN}found${NC}"
     else
         echo -e "  $cmd ${RED}missing${NC}"
         has_error=1
-        if [ "$cmd" = "mosquitto_pub" ]; then
-            missing_pkgs="$missing_pkgs mosquitto-clients"
-        else
-            missing_pkgs="$missing_pkgs $cmd"
-        fi
+        case "$cmd" in
+            mosquitto_pub) missing_pkgs="$missing_pkgs mosquitto-clients" ;;
+            inotifywait)   missing_pkgs="$missing_pkgs inotify-tools" ;;
+            *)             missing_pkgs="$missing_pkgs $cmd" ;;
+        esac
     fi
 done
 
