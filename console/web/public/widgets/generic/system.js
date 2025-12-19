@@ -20,7 +20,7 @@ LumenmonWidget({
         const isOutdated = version && version !== '-' && latest &&
             !version.startsWith(latest) && version !== latest;
         const versionClass = isOutdated ? 'status-warning' : '';
-        const outdatedBadge = isOutdated ? ' <span class="tui-badge-warning">update</span>' : '';
+        const outdatedBadge = isOutdated ? ' <span class="tui-badge-warning">UPDATE AVAILABLE</span>' : '';
 
         return `
             <div class="tui-metric-box tui-metric-box-info">
