@@ -137,20 +137,21 @@ Collectors are bash scripts in `agent/collectors/`. Standard structure:
 # What this collector does.
 # Data source and calculation details.
 
-RHYTHM="PULSE"         # Timing: PULSE(1s), BREATHE(10s), CYCLE(60s), REPORT(1h)
-METRIC="generic_cpu"   # Metric name (prefix with category)
+METRIC="generic_example"
 TYPE="REAL"            # REAL, INTEGER, or TEXT
 MIN=0                  # Optional: minimum valid value
 MAX=100                # Optional: maximum valid value
 
-set -euo pipefail
 source "$LUMENMON_HOME/core/mqtt/publish.sh"
 
 while true; do
     # IMPORTANT: Use LC_ALL=C for commands that produce localized output
     value=$(LC_ALL=C some_command | parse_output)
-    publish_metric "$METRIC" "$value" "$TYPE" "$PULSE" "$MIN" "$MAX"
-    sleep $PULSE
+
+    publish_metric "$METRIC" "$value" "$TYPE" "$BREATHE" "$MIN" "$MAX"
+    [ "${LUMENMON_TEST_MODE:-}" = "1" ] && exit 0  # Support: lumenmon-agent status
+
+    sleep $BREATHE
 done
 ```
 
