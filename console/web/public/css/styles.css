@@ -117,6 +117,17 @@ body {
 .status-warning { color: #f9e2af; }
 .status-error { color: #f38ba8; }
 
+/* Status badges */
+.tui-badge-warning {
+    background: #f9e2af;
+    color: #1e1e2e;
+    padding: 0 0.3rem;
+    border-radius: 2px;
+    font-size: 0.65rem;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
 /* Type badges */
 .type-text { color: #89b4fa; font-weight: bold; text-transform: uppercase; }
 .type-real { color: #a6e3a1; font-weight: bold; text-transform: uppercase; }
@@ -190,6 +201,7 @@ body {
 .log-level-info { color: var(--accent2); }
 .log-level-success { color: var(--accent3); }
 .log-level-error { color: var(--accent4); }
+.log-level-warning { color: #f9e2af; }
 .log-level-mqtt { color: var(--accent5); font-style: italic; }
 
 .invite-url-log {
@@ -387,6 +399,8 @@ body {
 .stale-row { background-color: rgba(243, 139, 168, 0.1); }
 .error-row { background-color: rgba(243, 139, 168, 0.25); }
 .error-row .metric-name { color: #f38ba8 !important; }
+.warning-row { background-color: rgba(249, 226, 175, 0.15); }
+.warning-row .metric-name { color: #f9e2af !important; }
 .stale-text, .overdue-text { color: #f38ba8; font-weight: bold; }
 .db-content-separator { border-left: 1px solid var(--foreground2); padding-left: 0.5rem !important; }
 

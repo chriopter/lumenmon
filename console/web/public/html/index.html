@@ -78,7 +78,8 @@ Loads CSS, Chart.js vendor library, and initializes components. Served by Flask 
             },
             data: {
                 previousAgentCount: 0,
-                isFirstLoad: true
+                isFirstLoad: true,
+                latestVersion: null
             },
             mqtt: {
                 lastMqttCount: 0,
@@ -86,6 +87,20 @@ Loads CSS, Chart.js vendor library, and initializes components. Served by Flask 
             },
             charts: {}
         };
+
+        // Fetch latest version from backend (cached hourly)
+        fetch('/api/version/latest')
+            .then(r => r.json())
+            .then(data => {
+                window.app.data.latestVersion = data.version;
+                // Log after page loads (addLog defined in logger.html)
+                if (data.version) {
+                    window.addEventListener('load', () => {
+                        addLog(`latest release: ${data.version}`, 'info');
+                    }, { once: true });
+                }
+            })
+            .catch(() => {});
     </script>
 </head>
 <body>

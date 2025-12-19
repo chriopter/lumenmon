@@ -12,6 +12,11 @@ import random
 import string
 import threading
 import time
+import json
+import urllib.request
+
+# Version cache (fetched from GitHub hourly)
+_version_cache = {'version': None, 'checked_at': 0}
 
 # Configure template and static directories
 template_dir = os.path.join(os.path.dirname(__file__), '..', 'public', 'html')
@@ -55,6 +60,24 @@ def index():
 def health():
     """Health check endpoint."""
     return jsonify({'status': 'ok', 'service': 'lumenmon-api'})
+
+@app.route('/api/version/latest', methods=['GET'])
+def latest_version():
+    """Returns latest release version from GitHub (cached hourly)."""
+    now = time.time()
+    if now - _version_cache['checked_at'] > 3600:  # 1 hour cache
+        try:
+            req = urllib.request.Request(
+                'https://api.github.com/repos/chriopter/lumenmon/releases/latest',
+                headers={'User-Agent': 'lumenmon-console'}
+            )
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                data = json.loads(resp.read().decode())
+                _version_cache['version'] = data.get('tag_name')
+                _version_cache['checked_at'] = now
+        except Exception:
+            pass  # Keep old cached value on error
+    return jsonify({'version': _version_cache['version']})
 
 @app.route('/api', methods=['GET'])
 def api_info():
