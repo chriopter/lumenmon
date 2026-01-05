@@ -19,7 +19,21 @@ source "$LUMENMON_HOME/core/mqtt/publish.sh"
 get_update_age() {
     local age_hours=999
 
-    # Check modification time of package lists
+    # Check apt's update stamp first (accounts for HTTP 304 caching)
+    # This file is touched whenever apt-get update successfully runs
+    if [ -f /var/lib/apt/periodic/update-stamp ]; then
+        local stamp_time=$(stat -c %Y /var/lib/apt/periodic/update-stamp 2>/dev/null)
+        if [ -n "$stamp_time" ]; then
+            local now=$(date +%s)
+            local age_seconds=$((now - stamp_time))
+            age_hours=$((age_seconds / 3600))
+            echo "$age_hours"
+            return 0
+        fi
+    fi
+
+    # Fallback: Check modification time of package lists
+    # (for systems not using apt-daily or manual updates)
     if [ -d /var/lib/apt/lists ]; then
         # Find newest package file
         local newest=$(find /var/lib/apt/lists -maxdepth 1 -name "*_Packages" -type f -printf '%T@\n' 2>/dev/null | sort -rn | head -1)
