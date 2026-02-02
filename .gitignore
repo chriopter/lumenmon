@@ -80,3 +80,9 @@ dev/data/
 
 # Dev reset trigger file
 .reset
+
+# Playwright test artifacts
+dev/tests/test-results/
+dev/tests/playwright-report/
+dev/tests/playwright/.cache/
+dev/tests/node_modules/
