@@ -43,11 +43,16 @@ def init_messages_table():
     print(f"[smtp] Messages table initialized", flush=True)
 
 
+MQTT_PASSWD_FILE = '/data/mqtt/passwd'
+
+
 def get_agent_ids():
-    """Get list of valid agent IDs from database."""
+    """Get list of valid agent IDs from database and MQTT password file."""
+    agent_ids = set()
+
+    # 1. Get from database tables
     try:
         conn = sqlite3.connect(DB_PATH)
-        # Get unique agent IDs from metric tables (they start with id_)
         cursor = conn.execute("""
             SELECT name FROM sqlite_master
             WHERE type='table' AND name LIKE 'id_%'
@@ -55,19 +60,29 @@ def get_agent_ids():
         tables = cursor.fetchall()
         conn.close()
 
-        # Extract unique agent IDs
-        agent_ids = set()
         for (table_name,) in tables:
             # Table names are like id_abc123_metric_name
             parts = table_name.split('_')
             if len(parts) >= 2:
                 agent_id = f"{parts[0]}_{parts[1]}"
                 agent_ids.add(agent_id)
-
-        return agent_ids
     except Exception as e:
-        print(f"[smtp] Error getting agent IDs: {e}", flush=True)
-        return set()
+        print(f"[smtp] Error getting agent IDs from DB: {e}", flush=True)
+
+    # 2. Also get from MQTT password file (agents may exist before sending data)
+    try:
+        if os.path.exists(MQTT_PASSWD_FILE):
+            with open(MQTT_PASSWD_FILE, 'r') as f:
+                for line in f:
+                    line = line.strip()
+                    if line and ':' in line:
+                        username = line.split(':')[0]
+                        if username.startswith('id_'):
+                            agent_ids.add(username)
+    except Exception as e:
+        print(f"[smtp] Error getting agent IDs from passwd: {e}", flush=True)
+
+    return agent_ids
 
 
 def extract_agent_from_recipient(recipient):
@@ -121,16 +136,32 @@ class LumenmonSMTPHandler:
     """Handler for incoming SMTP messages."""
 
     async def handle_RCPT(self, server, session, envelope, address, rcpt_options):
-        """Only accept recipients that match known agent IDs."""
-        agent_id = extract_agent_from_recipient(address)
-        if agent_id is None:
-            # Reject unknown recipients - prevents spam/guessing attacks
-            return '550 User not found'
+        """Accept if this or any previous recipient matches a known agent."""
         envelope.rcpt_tos.append(address)
+
+        # Check if ANY recipient so far matches a known agent
+        for rcpt in envelope.rcpt_tos:
+            if extract_agent_from_recipient(rcpt):
+                return '250 OK'
+
+        # No match yet - accept anyway, final check happens in handle_DATA
+        # This allows multi-recipient emails where agent ID comes later
         return '250 OK'
 
     async def handle_DATA(self, server, session, envelope):
-        """Process incoming message."""
+        """Process incoming message - only store if a recipient matches known agent."""
+        # First verify at least one recipient is a known agent
+        agent_id = None
+        for rcpt in envelope.rcpt_tos:
+            agent_id = extract_agent_from_recipient(rcpt)
+            if agent_id:
+                break
+
+        if not agent_id:
+            # No valid agent recipient - reject to prevent spam
+            print(f"[smtp] Rejected: no valid agent in recipients {envelope.rcpt_tos}", flush=True)
+            return '550 No valid recipient'
+
         try:
             mail_from = envelope.mail_from
             mail_to = ', '.join(envelope.rcpt_tos) if envelope.rcpt_tos else ''
@@ -153,13 +184,6 @@ class LumenmonSMTPHandler:
                 payload = msg.get_payload(decode=True)
                 if payload:
                     body = payload.decode('utf-8', errors='replace')
-
-            # Try to match recipient to agent
-            agent_id = None
-            for rcpt in envelope.rcpt_tos:
-                agent_id = extract_agent_from_recipient(rcpt)
-                if agent_id:
-                    break
 
             # Store message
             store_message(agent_id, mail_from, mail_to, subject, body, raw_content)
