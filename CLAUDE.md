@@ -332,6 +332,16 @@ This triggers the `./dev/auto` script to restart the container and serve updated
 - Only push when the user explicitly says to push
 - This allows review of changes before they go to the remote repository
 
+## Important: No Sensitive Info in Commits
+
+**Never include sensitive or identifying information in code or commits:**
+
+- No real hostnames, machine names, or domain names (use `example.com`, `your-server.local`)
+- No real IP addresses (use `192.168.x.x` or `10.0.0.x` examples)
+- No real usernames or credentials
+- No internal infrastructure details
+- Review diffs before committing to catch accidental leaks
+
 ## Development Workflow
 
 ### Fast Development Loop (Recommended)

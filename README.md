@@ -118,6 +118,19 @@ Pure bash scripts that collect metrics and publish via `mosquitto_pub` over TLS.
 </details>
 
 <details>
+<summary>Email Receiving</summary>
+
+The console runs an SMTP server (port 25) that accepts emails from monitored hosts. Each agent gets a unique email address (`id_xxx@your-console-host`) that can be used for:
+
+- Receiving cron job output and alerts
+- Collecting automated reports from services
+- Forwarding system notifications
+
+Emails are stored per-agent and displayed in the web dashboard. Only emails from known agent IDs are accepted.
+
+</details>
+
+<details>
 <summary>Data Retention</summary>
 
 Metrics older than 24h are auto-deleted every 5 minutes. The most recent value per metric is always preserved so offline agents keep showing their last known status.
