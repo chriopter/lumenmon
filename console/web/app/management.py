@@ -125,3 +125,47 @@ def delete_agent(agent_id):
             'success': False,
             'message': f'Deletion failed: {str(e)}'
         }), 500
+
+
+@management_bp.route('/api/agents/<agent_id>/metrics/<metric_name>', methods=['DELETE'])
+def delete_metric(agent_id, metric_name):
+    """Delete a single metric table for an agent."""
+
+    # Validate agent_id format
+    if not re.match(r'^id_[a-f0-9]+$', agent_id):
+        return jsonify({'success': False, 'message': 'Invalid agent_id format'}), 400
+
+    # Validate metric_name (alphanumeric and underscores only)
+    if not re.match(r'^[a-zA-Z0-9_]+$', metric_name):
+        return jsonify({'success': False, 'message': 'Invalid metric_name format'}), 400
+
+    table_name = f"{agent_id}_{metric_name}"
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Check if table exists
+        cursor.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+            (table_name,)
+        )
+        if not cursor.fetchone():
+            conn.close()
+            return jsonify({'success': False, 'message': 'Metric not found'}), 404
+
+        # Drop the table
+        cursor.execute(f'DROP TABLE IF EXISTS "{table_name}"')
+        conn.commit()
+        conn.close()
+
+        log_message(f"Deleted metric table: {table_name}")
+
+        return jsonify({
+            'success': True,
+            'message': f'Metric {metric_name} deleted'
+        })
+
+    except Exception as e:
+        log_message(f"ERROR deleting metric {table_name}: {str(e)}")
+        return jsonify({'success': False, 'message': str(e)}), 500

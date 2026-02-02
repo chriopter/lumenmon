@@ -68,18 +68,29 @@ deploy_console() {
         console/core/ \
         "$LUMENMON_TEST_HOST:/tmp/lumenmon-dev/core/"
 
+    # Sync entry point
+    scp console/console.sh "$LUMENMON_TEST_HOST:/tmp/lumenmon-dev/console.sh"
+
+    # Sync config (mosquitto config)
+    rsync -avz --delete \
+        console/config/ \
+        "$LUMENMON_TEST_HOST:/tmp/lumenmon-dev/config/"
+
     # Fix permissions on host BEFORE copying (docker cp loses execute bits)
     echo "==> Fixing permissions..."
-    ssh "$LUMENMON_TEST_HOST" "find /tmp/lumenmon-dev -name '*.sh' -exec chmod +x {} \;"
+    ssh "$LUMENMON_TEST_HOST" "find /tmp/lumenmon-dev -name '*.sh' -exec chmod +x {} \; && chmod +x /tmp/lumenmon-dev/console.sh"
 
     echo "==> Copying into container..."
     ssh "$LUMENMON_TEST_HOST" "docker cp /tmp/lumenmon-dev/web/. lumenmon-console:/app/web/"
     ssh "$LUMENMON_TEST_HOST" "docker cp /tmp/lumenmon-dev/core/. lumenmon-console:/app/core/"
+    ssh "$LUMENMON_TEST_HOST" "docker cp /tmp/lumenmon-dev/console.sh lumenmon-console:/app/console.sh"
+    ssh "$LUMENMON_TEST_HOST" "docker cp /tmp/lumenmon-dev/config/. lumenmon-console:/app/config/"
+    ssh "$LUMENMON_TEST_HOST" "docker cp /tmp/lumenmon-dev/web/config/Caddyfile lumenmon-console:/etc/caddy/Caddyfile"
 
     echo "==> Restarting container..."
     ssh "$LUMENMON_TEST_HOST" "docker restart lumenmon-console"
 
-    sleep 3
+    sleep 5
     echo "==> Console status:"
     ssh "$LUMENMON_TEST_HOST" "lumenmon"
 }

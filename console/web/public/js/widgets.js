@@ -80,6 +80,15 @@ window.LumenmonWidgets = {
         const matched = [];
 
         for (const [name, widget] of Object.entries(this.registered)) {
+            // Widgets with empty metrics array are standalone (e.g., messages widget)
+            if (widget.metrics.length === 0) {
+                matched.push({
+                    widget: widget,
+                    metrics: []
+                });
+                continue;
+            }
+
             const matchingMetrics = metricNames.filter(m =>
                 this.matchesPattern(m, widget.metrics)
             );

@@ -1,6 +1,13 @@
 # Caddy configuration for Lumenmon Console web interface
 # Serves static files from /app/web/public/ and proxies HTML to Flask
+# Uses self-signed TLS for HTTPS (required for clipboard API)
 
+{
+    # Global options
+    # Note: No auto_https off - needed for internal CA to work
+}
+
+# HTTP - just serves, no redirect (for backwards compat)
 :8080 {
     # Proxy root to Flask (for HTML rendering)
     handle / {
@@ -34,14 +41,58 @@
         encode gzip
     }
 
-    # Custom error pages
     handle_errors {
         respond "{http.error.status_code} {http.error.status_text}"
     }
 
-    # Logging - temporary file, not in docker logs or persistent storage
     log {
         output file /tmp/caddy.log
+        format console
+    }
+}
+
+# HTTPS with self-signed certificate
+localhost:8443, {$CONSOLE_HOST:localhost}:8443 {
+    tls internal
+
+    # Proxy root to Flask (for HTML rendering)
+    handle / {
+        reverse_proxy localhost:5000
+    }
+
+    # Proxy API requests to Flask
+    handle /api/* {
+        reverse_proxy localhost:5000
+    }
+
+    # Serve static files (CSS, JS) - no cache
+    handle /css/* {
+        root * /app/web/public
+        header Cache-Control "no-cache, max-age=0"
+        file_server
+        encode gzip
+    }
+
+    handle /js/* {
+        root * /app/web/public
+        header Cache-Control "no-cache, max-age=0"
+        file_server
+        encode gzip
+    }
+
+    handle /widgets/* {
+        root * /app/web/public
+        header Cache-Control "no-cache, max-age=0"
+        file_server
+        encode gzip
+    }
+
+    handle_errors {
+        respond "{http.error.status_code} {http.error.status_text}"
+    }
+
+    log {
+        output file /tmp/caddy-https.log
         format console
     }
 }

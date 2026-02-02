@@ -6,6 +6,7 @@ from flask import Flask, jsonify, render_template
 from agents import agents_bp
 from invites import invites_bp
 from management import management_bp
+from messages import messages_bp
 from db import cleanup_old_metrics
 import os
 import random
@@ -30,6 +31,7 @@ app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 app.register_blueprint(agents_bp)
 app.register_blueprint(invites_bp)
 app.register_blueprint(management_bp)
+app.register_blueprint(messages_bp)
 
 # Background cleanup thread for old metrics
 def _cleanup_loop():
@@ -61,6 +63,42 @@ def health():
     """Health check endpoint."""
     return jsonify({'status': 'ok', 'service': 'lumenmon-api'})
 
+@app.route('/api/agent-update', methods=['GET'])
+def agent_update_script():
+    """Serve shell script to update agent certificate."""
+    from flask import request, Response
+    host = os.environ.get('CONSOLE_HOST') or request.host.split(':')[0]
+    script = f'''#!/bin/bash
+H={host}
+D=/opt/lumenmon/agent/data/mqtt
+openssl s_client -connect $H:8884 </dev/null 2>/dev/null | openssl x509 > $D/server.crt
+openssl x509 -in $D/server.crt -noout -fingerprint -sha256 | cut -d= -f2 > $D/fingerprint
+echo $H > $D/host
+curl -sS "$H:8080/api/agent-sync?id=$(cat $D/username)&pw=$(cat $D/password)"
+systemctl restart lumenmon-agent
+echo "Updated to $H"
+'''
+    return Response(script, mimetype='text/plain')
+
+@app.route('/api/agent-sync', methods=['GET'])
+def agent_sync():
+    """Sync agent password to MQTT broker."""
+    from flask import request
+    import subprocess
+    agent_id = request.args.get('id')
+    password = request.args.get('pw')
+    if not agent_id or not password:
+        return jsonify({'error': 'missing id or pw'}), 400
+    # Update password in mosquitto
+    try:
+        subprocess.run([
+            'mosquitto_passwd', '-b', '/data/mqtt/passwd', agent_id, password
+        ], check=True)
+        subprocess.run(['pkill', '-HUP', 'mosquitto'], check=False)
+        return jsonify({'status': 'ok', 'agent': agent_id})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/version/latest', methods=['GET'])
 def latest_version():
     """Returns latest release version from GitHub (cached hourly)."""
@@ -91,6 +129,12 @@ def api_info():
                 'list': '/api/invites',
                 'create': '/api/invites/create',
                 'create_full': '/api/invites/create/full'
+            },
+            'messages': {
+                'list': '/api/messages',
+                'unread_counts': '/api/messages/unread-counts',
+                'agent_messages': '/api/agents/{agent_id}/messages',
+                'agent_email': '/api/agents/{agent_id}/email'
             },
             'health': '/health'
         }

@@ -20,6 +20,7 @@ Tab switches focus between agent list and detail pane.
     // Focus the agent list
     function focusAgentList() {
         window.app.focusPane = 'list';
+        document.querySelector('.agents-section')?.classList.add('focused');
         // Remove focus from widgets
         const focused = document.querySelector('.widget:focus');
         if (focused) focused.blur();
@@ -92,6 +93,13 @@ Tab switches focus between agent list and detail pane.
                 } else {
                     focusAgentList();
                 }
+            } else if (key === 'm' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                // Copy email works from detail pane too
+                e.preventDefault();
+                const selected = getSelectedAgent();
+                if (selected && selected.id && selected.type === 'agent') {
+                    copyAgentEmail(selected.id);
+                }
             }
             return;
         }
@@ -112,6 +120,12 @@ Tab switches focus between agent list and detail pane.
                 openDetailView();
                 // Focus first widget after detail view loads
                 setTimeout(focusFirstWidget, 150);
+            }
+        } else if (key === 'm' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+            e.preventDefault();
+            const selected = getSelectedAgent();
+            if (selected && selected.id && selected.type === 'agent') {
+                copyAgentEmail(selected.id);
             }
         } else if (key === 'escape') {
             e.preventDefault();

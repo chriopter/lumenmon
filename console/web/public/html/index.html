@@ -118,16 +118,17 @@ Loads CSS, Chart.js vendor library, and initializes components. Served by Flask 
 
     <footer>
         <div class="footer-left">
-            <kbd>↑/k</kbd> <kbd>↓/j</kbd> select · <kbd>enter</kbd> view · <span class="kbd-clickable" onclick="createInvite()" title="click to create invite"><kbd>i</kbd> invite</span> · <span class="kbd-clickable" onclick="fetchAgents(); addLog('manual refresh', 'info');" title="click to refresh"><kbd>r</kbd> refresh</span> · <span class="kbd-clickable" onclick="openDeleteConfirmation()" title="click to delete agent"><kbd>d</kbd> delete</span> · <span class="kbd-clickable" onclick="closeDetailView()" title="click to close detail"><kbd>esc</kbd> close</span>
+            <kbd>↑/k</kbd> <kbd>↓/j</kbd> select · <kbd>enter</kbd> view · <span class="kbd-clickable" onclick="createInvite()" title="click to create invite"><kbd>i</kbd> invite</span> · <kbd>m</kbd> email · <span class="kbd-clickable" onclick="fetchAgents(); addLog('manual refresh', 'info');" title="click to refresh"><kbd>r</kbd> refresh</span> · <span class="kbd-clickable" onclick="openDeleteConfirmation()" title="click to delete agent"><kbd>d</kbd> delete</span> · <span class="kbd-clickable" onclick="closeDetailView()" title="click to close detail"><kbd>esc</kbd> close</span>
         </div>
         <div class="footer-right">
-            <span class="status-compact" data-tooltip="web: 8080 · mqtt: 8884">console: online</span>
+            <span class="status-compact" data-tooltip="https: 8443 · http: 8080 · mqtt: 8884 · smtp: 25">console: online</span>
         </div>
     </footer>
 
     <script src="/js/vendor/chart.js?v={{ v }}"></script>
     <script src="/js/widgets.js?v={{ v }}"></script>
     <!-- Generic widgets -->
+    <script src="/widgets/generic/messages.js?v={{ v }}"></script>
     <script src="/widgets/generic/cpu.js?v={{ v }}"></script>
     <script src="/widgets/generic/memory.js?v={{ v }}"></script>
     <script src="/widgets/generic/disk.js?v={{ v }}"></script>

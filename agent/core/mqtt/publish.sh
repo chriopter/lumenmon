@@ -22,8 +22,8 @@ publish_metric() {
     local value="$2"
     local type="$3"
     local interval="${4:-60}"  # Default 60s if not specified
-    local min_value="$5"       # Optional min bound
-    local max_value="$6"       # Optional max bound
+    local min_value="${5:-}"   # Optional min bound
+    local max_value="${6:-}"   # Optional max bound
 
     # Test mode: print instead of publish
     if [ "${LUMENMON_TEST_MODE:-}" = "1" ]; then
@@ -51,10 +51,11 @@ publish_metric() {
     local topic="metrics/$_MQTT_USER/$metric_name"
 
     # Publish via mosquitto_pub with TLS
+    # Note: --insecure skips hostname verification (we use cert pinning instead)
     mosquitto_pub \
         -h "$_MQTT_HOST" -p 8884 \
         -u "$_MQTT_USER" -P "$_MQTT_PASS" \
-        --cafile "$_MQTT_CERT" \
+        --cafile "$_MQTT_CERT" --insecure \
         -t "$topic" \
         -m "$payload" 2>/dev/null || \
         echo "[collector] WARNING: Failed to publish $metric_name" >&2

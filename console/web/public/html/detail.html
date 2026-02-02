@@ -301,6 +301,7 @@ Widgets auto-load based on available metrics. Functions: openDetailView(), close
             html += '<td>NEXT UPDATE</td>';
             html += '<td>DATA SPAN</td>';
             html += '<td># SAMPLES</td>';
+            html += '<td></td>';
             html += '</tr></thead><tbody>';
 
             data.tables.forEach(table => {
@@ -366,16 +367,42 @@ Widgets auto-load based on available metrics. Functions: openDetailView(), close
                 html += `<td class="${isOverdue ? 'overdue-text' : ''}">${nextUpdateText}</td>`;
                 html += `<td>${metadata.data_span || '-'}</td>`;
                 html += `<td>${metadata.line_count || '-'}</td>`;
+                html += `<td class="metric-delete" data-agent="${agent.id}" data-metric="${metricName}" title="Delete metric">×</td>`;
                 html += `</tr>`;
             });
 
             window.metricsPreviousValues = currentValues;
             html += '</tbody></table>';
 
-            if (window.globalClock.pendingDomUpdates) {
-                window.globalClock.pendingDomUpdates.push(() => metricsList.innerHTML = html);
-            } else {
+            const updateTable = () => {
                 metricsList.innerHTML = html;
+                // Attach delete handlers
+                metricsList.querySelectorAll('.metric-delete').forEach(btn => {
+                    btn.addEventListener('click', async (e) => {
+                        const agentId = e.target.dataset.agent;
+                        const metricName = e.target.dataset.metric;
+                        if (confirm(`Delete metric "${metricName}"?`)) {
+                            try {
+                                const resp = await fetch(`/api/agents/${agentId}/metrics/${metricName}`, { method: 'DELETE' });
+                                const result = await resp.json();
+                                if (result.success) {
+                                    addLog(`deleted ${metricName}`, 'success');
+                                    loadMetrics(agentId);
+                                } else {
+                                    addLog(`delete failed: ${result.message}`, 'error');
+                                }
+                            } catch (err) {
+                                addLog(`delete error: ${err.message}`, 'error');
+                            }
+                        }
+                    });
+                });
+            };
+
+            if (window.globalClock.pendingDomUpdates) {
+                window.globalClock.pendingDomUpdates.push(updateTable);
+            } else {
+                updateTable();
             }
         } catch (error) {
             console.error('Error loading metrics:', error);

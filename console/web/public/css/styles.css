@@ -202,6 +202,237 @@ body {
 .log-level-success { color: var(--accent3); }
 .log-level-error { color: var(--accent4); }
 .log-level-warning { color: #f9e2af; }
+
+/* --- Messages Box (TUI inbox) --- */
+.messages-box {
+    margin-top: 0.5rem;
+    max-height: 140px;
+    overflow: hidden;
+}
+
+.messages-inbox {
+    overflow-y: auto;
+    max-height: 110px;
+    scrollbar-width: none;
+    font-size: 0.75rem;
+}
+.messages-inbox::-webkit-scrollbar { display: none; }
+
+.messages-empty {
+    color: var(--subtext0);
+    font-size: 0.75rem;
+    padding: 0.3rem 0.5rem;
+}
+
+.msg-header {
+    display: flex;
+    align-items: center;
+    padding: 0.15rem 0.5rem;
+    font-size: 0.65rem;
+    color: var(--subtext0);
+    text-transform: uppercase;
+}
+
+.msg-row {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    padding: 0.15rem 0.5rem;
+}
+.msg-row:hover { background: var(--surface0); }
+.msg-row.msg-selected { background: var(--surface1); }
+
+.msg-icon {
+    width: 1.5rem;
+    flex-shrink: 0;
+    margin-right: 0.5rem;
+}
+.mail-unread .msg-icon { color: var(--mauve); }
+.mail-unread .msg-subject { color: var(--text); }
+.mail-read { color: var(--subtext0); }
+
+.msg-from {
+    width: 5.5rem;
+    flex-shrink: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--subtext1);
+    margin-right: 1rem;
+}
+
+.msg-subject {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--subtext0);
+}
+
+.msg-time {
+    width: 3rem;
+    flex-shrink: 0;
+    text-align: right;
+    color: var(--subtext0);
+    font-size: 0.65rem;
+}
+
+/* Focus states for mail/list */
+.messages-box.focused { border-color: var(--mauve); }
+.agents-section.focused { border-color: var(--mauve); }
+
+/* Messages widget */
+.widget-messages {
+    min-height: 80px;
+}
+.widget-messages-empty {
+    color: var(--subtext0);
+    font-size: 0.75rem;
+    padding: 0.5rem;
+    text-align: center;
+}
+.widget-messages-list {
+    font-size: 0.7rem;
+}
+.widget-msg-row {
+    display: flex;
+    padding: 0.15rem 0.3rem;
+    cursor: pointer;
+}
+.widget-msg-row:hover { background: var(--surface0); }
+.widget-msg-icon { width: 1rem; }
+.widget-msg-from { width: 4rem; color: var(--subtext1); margin-right: 0.5rem; }
+.widget-msg-subject { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.widget-msg-time { width: 2.5rem; text-align: right; color: var(--subtext0); font-size: 0.85em; }
+.mail-unread .widget-msg-icon { color: var(--mauve); }
+.mail-unread .widget-msg-subject { color: var(--text); }
+.mail-read { color: var(--subtext0); }
+.widget-msg-badge {
+    background: var(--mauve);
+    color: var(--base);
+    font-size: 0.6rem;
+    padding: 0.1rem 0.3rem;
+    border-radius: 3px;
+    margin-left: 0.3rem;
+}
+
+/* Message overlay popup */
+.msg-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+.msg-overlay-content {
+    width: 90%;
+    max-width: 450px;
+    background: var(--base);
+    padding: 0;
+}
+.msg-overlay-header {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--surface1);
+    font-size: 0.85rem;
+}
+.msg-overlay-close { cursor: pointer; color: var(--subtext0); }
+.msg-overlay-close:hover { color: var(--text); }
+.msg-overlay-meta {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.7rem;
+    color: var(--subtext0);
+    font-family: monospace;
+}
+.msg-overlay-body {
+    padding: 0.5rem 0.75rem;
+    max-height: 200px;
+    overflow-y: auto;
+}
+.msg-overlay-body pre {
+    margin: 0;
+    font-size: 0.75rem;
+    white-space: pre-wrap;
+    font-family: monospace;
+}
+.msg-overlay-actions {
+    padding: 0.5rem 0.75rem;
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+    border-top: 1px solid var(--surface0);
+}
+
+/* Message detail view in right panel */
+.message-detail-view {
+    padding: 1rem;
+}
+
+.msg-view-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+}
+.msg-view-icon { color: var(--mauve); }
+.msg-view-subject { color: var(--text); }
+
+.msg-view-meta {
+    margin-bottom: 1rem;
+}
+.msg-meta-row {
+    display: flex;
+    padding: 0.2rem 0.5rem;
+    font-size: 0.75rem;
+}
+.msg-meta-label {
+    width: 4rem;
+    color: var(--subtext0);
+    flex-shrink: 0;
+}
+.msg-meta-value {
+    color: var(--text);
+}
+
+.msg-view-body {
+    margin-bottom: 1rem;
+    max-height: 300px;
+    overflow-y: auto;
+}
+.msg-view-body pre {
+    margin: 0;
+    padding: 0.5rem;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-size: 0.8rem;
+    color: var(--text);
+    font-family: monospace;
+}
+
+.msg-view-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.btn-tui {
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--surface1);
+    padding: 0.3rem 0.8rem;
+    cursor: pointer;
+    font-size: 0.75rem;
+    font-family: monospace;
+}
+.btn-tui:hover { background: var(--surface0); }
+.btn-tui.btn-danger {
+    color: var(--red);
+    border-color: var(--red);
+}
+.btn-danger:hover { opacity: 0.8; }
 .log-level-mqtt { color: var(--accent5); font-style: italic; }
 
 .invite-url-log {
@@ -403,6 +634,8 @@ body {
 .warning-row .metric-name { color: #f9e2af !important; }
 .stale-text, .overdue-text { color: #f38ba8; font-weight: bold; }
 .db-content-separator { border-left: 1px solid var(--foreground2); padding-left: 0.5rem !important; }
+.metric-delete { color: var(--foreground2); cursor: pointer; text-align: center; opacity: 0.4; transition: opacity 0.15s, color 0.15s; }
+.metric-delete:hover { color: #f38ba8; opacity: 1; }
 
 /* Value cells - truncate with overlay on hover */
 .type-real, .type-integer, .type-text {
@@ -836,3 +1069,33 @@ footer {
     .footer-left, .footer-right { width: 100%; }
     .tui-stat-grid { justify-content: space-around; }
 }
+
+/* ============================================================
+   8. MESSAGES
+   ============================================================ */
+
+/* Unread badge in agent row */
+.unread-badge-inline {
+    margin-left: 0.5em;
+    font-size: 0.8em;
+    color: var(--mauve);
+}
+
+.unread-badge {
+    background: var(--mauve);
+    color: var(--base);
+    padding: 0.1em 0.4em;
+    border-radius: 3px;
+    font-size: 0.8em;
+    font-weight: bold;
+}
+
+.unread-badge-cell {
+    text-align: right;
+}
+
+/* Messages row styling */
+.entity-messages {
+    background: var(--surface0);
+}
+
