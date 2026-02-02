@@ -331,16 +331,23 @@ cd console && npm run dev    # Watch mode for development
 </div>
 ```
 
-## Important: Dev Server Restart
+## Important: Auto-Deploy During Development
 
-**Always restart the dev server before reporting completed changes to the user.**
+**Always deploy changes to the test server immediately after making them - don't wait for user to ask.**
 
-After making changes to frontend files (HTML, CSS, JS), run:
+After making code changes, deploy automatically:
 ```bash
-touch .reset
+# Frontend changes (HTML, CSS, JS, widgets)
+./dev/deploy-test web
+
+# Backend changes (Python, Flask, SMTP, MQTT)
+./dev/deploy-test console
+
+# Agent changes (collectors, shell scripts)
+./dev/deploy-test agent
 ```
 
-This triggers the `./dev/auto` script to restart the container and serve updated files. Without this, the browser may serve cached/stale files and changes won't be visible.
+This ensures the user sees changes immediately when testing. Never report changes as "done" without deploying first.
 
 ## Important: Git Push Policy
 
