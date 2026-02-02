@@ -191,13 +191,27 @@ publish_metric "hostname" "$host" "TEXT" 0
 <details>
 <summary>Development</summary>
 
+### Local Development
 ```bash
-./dev/auto         # Full reset and setup
+./dev/auto         # Full reset and setup with virtual agent
 ./dev/add3         # Spawn 3 test agents
-./dev/add-virtual  # Virtual agent with ALL metrics (no Proxmox/ZFS needed)
-./dev/release      # Create new release
 ```
 
-The virtual agent publishes fake data for all collectors (generic + proxmox + zfs) for testing widgets without real infrastructure.
+### Remote Test Server
+Deploy directly to a test server via SSH (bypasses GitHub Actions):
+```bash
+export LUMENMON_TEST_HOST="root@your-test-server"
+./dev/deploy-test web      # Hot reload frontend (~2s)
+./dev/deploy-test agent    # Deploy agent + restart (~1s)
+./dev/deploy-test console  # Full console + restart (~5s)
+./dev/deploy-test status   # Check remote status
+```
+
+### Releases
+```bash
+./dev/release      # Create version tag, triggers GitHub Actions build
+```
+
+GitHub Actions only builds Docker images on version tags (`v*`), not on every commit. This keeps the dev loop fast.
 
 </details>

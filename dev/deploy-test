@@ -1,0 +1,122 @@
+#!/bin/bash
+# Deploy local code to remote test server via rsync+SSH.
+# Usage: ./dev/deploy-test [agent|web|console|all]
+
+set -e
+cd "$(dirname "$0")/.."
+
+# Test server SSH target - set via environment variable
+# Example: export LUMENMON_TEST_HOST="root@test-server.local"
+if [ -z "$LUMENMON_TEST_HOST" ]; then
+    echo "Error: LUMENMON_TEST_HOST not set"
+    echo "Set it to your test server SSH target, e.g.:"
+    echo "  export LUMENMON_TEST_HOST=\"root@test-server.local\""
+    exit 1
+fi
+
+TARGET="$1"
+if [ -z "$TARGET" ]; then
+    echo "Usage: $0 [agent|web|console|all|status]"
+    echo ""
+    echo "  agent   - Deploy agent scripts, restart service"
+    echo "  web     - Deploy web frontend (hot reload, no restart)"
+    echo "  console - Deploy full console, restart container"
+    echo "  all     - Deploy everything"
+    echo "  status  - Check status on test server"
+    exit 1
+fi
+
+# Helper functions
+deploy_agent() {
+    echo "==> Deploying agent to $LUMENMON_TEST_HOST..."
+    rsync -avz --delete \
+        --exclude='data/' \
+        agent/ \
+        "$LUMENMON_TEST_HOST:/opt/lumenmon/agent/"
+
+    echo "==> Restarting agent service..."
+    ssh "$LUMENMON_TEST_HOST" "systemctl restart lumenmon-agent"
+
+    echo "==> Agent status:"
+    ssh "$LUMENMON_TEST_HOST" "lumenmon-agent"
+}
+
+deploy_web() {
+    echo "==> Deploying web frontend to $LUMENMON_TEST_HOST..."
+    ssh "$LUMENMON_TEST_HOST" "mkdir -p /tmp/lumenmon-dev"
+    rsync -avz --delete \
+        console/web/public/ \
+        "$LUMENMON_TEST_HOST:/tmp/lumenmon-dev/public/"
+
+    echo "==> Copying into container (hot reload)..."
+    ssh "$LUMENMON_TEST_HOST" "docker cp /tmp/lumenmon-dev/public/. lumenmon-console:/app/web/public/"
+
+    echo "==> Web files deployed (no restart needed)"
+}
+
+deploy_console() {
+    echo "==> Deploying full console to $LUMENMON_TEST_HOST..."
+    ssh "$LUMENMON_TEST_HOST" "mkdir -p /tmp/lumenmon-dev"
+
+    # Sync web files
+    rsync -avz --delete \
+        console/web/ \
+        "$LUMENMON_TEST_HOST:/tmp/lumenmon-dev/web/"
+
+    # Sync core scripts
+    rsync -avz --delete \
+        console/core/ \
+        "$LUMENMON_TEST_HOST:/tmp/lumenmon-dev/core/"
+
+    # Fix permissions on host BEFORE copying (docker cp loses execute bits)
+    echo "==> Fixing permissions..."
+    ssh "$LUMENMON_TEST_HOST" "find /tmp/lumenmon-dev -name '*.sh' -exec chmod +x {} \;"
+
+    echo "==> Copying into container..."
+    ssh "$LUMENMON_TEST_HOST" "docker cp /tmp/lumenmon-dev/web/. lumenmon-console:/app/web/"
+    ssh "$LUMENMON_TEST_HOST" "docker cp /tmp/lumenmon-dev/core/. lumenmon-console:/app/core/"
+
+    echo "==> Restarting container..."
+    ssh "$LUMENMON_TEST_HOST" "docker restart lumenmon-console"
+
+    sleep 3
+    echo "==> Console status:"
+    ssh "$LUMENMON_TEST_HOST" "lumenmon"
+}
+
+show_status() {
+    echo "==> Console status on $LUMENMON_TEST_HOST:"
+    ssh "$LUMENMON_TEST_HOST" "lumenmon"
+    echo ""
+    echo "==> Agent status on $LUMENMON_TEST_HOST:"
+    ssh "$LUMENMON_TEST_HOST" "lumenmon-agent"
+}
+
+# Execute based on target
+case "$TARGET" in
+    agent)
+        deploy_agent
+        ;;
+    web)
+        deploy_web
+        ;;
+    console)
+        deploy_console
+        ;;
+    all)
+        deploy_agent
+        echo ""
+        deploy_console
+        ;;
+    status)
+        show_status
+        ;;
+    *)
+        echo "Unknown target: $TARGET"
+        echo "Use: agent, web, console, all, or status"
+        exit 1
+        ;;
+esac
+
+echo ""
+echo "Done!"

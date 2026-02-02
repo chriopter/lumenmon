@@ -35,7 +35,41 @@ lumenmon-agent uninstall    # Remove agent
 ./dev/add3         # Spawn 3 test agents
 ./dev/release      # Create new release
 ./dev/updatedeps   # Update vendored CSS/JS
+./dev/deploy-test  # Deploy to remote test server (see below)
 ```
+
+### Remote Test Server Deployment
+
+For rapid development without waiting for GitHub Actions builds, deploy directly to a test server via SSH.
+
+**Setup:**
+```bash
+# Set the test server SSH target (add to ~/.bashrc or export before running)
+export LUMENMON_TEST_HOST="root@your-test-server.local"
+```
+
+**Usage:**
+```bash
+./dev/deploy-test agent    # Deploy agent scripts, restart systemd service
+./dev/deploy-test web      # Deploy web frontend (hot reload, no restart)
+./dev/deploy-test console  # Deploy full console, restart container
+./dev/deploy-test all      # Deploy everything
+./dev/deploy-test status   # Check status on test server
+```
+
+**What each deployment does:**
+
+| Target | Files | Restart | Speed |
+|--------|-------|---------|-------|
+| `agent` | `agent/` → `/opt/lumenmon/agent/` | systemd service | ~1s |
+| `web` | `console/web/public/` → container `/app/web/public/` | None (hot reload) | ~2s |
+| `console` | `console/web/` + `console/core/` → container `/app/` | Docker container | ~5s |
+
+**Notes:**
+- Requires SSH key auth to test server
+- Agent data (`/opt/lumenmon/agent/data/`) is preserved (excluded from rsync)
+- Console data (`~/.lumenmon/console/data/`) is preserved (lives outside container)
+- Shell scripts get `chmod +x` automatically before copying to container
 
 ### Remote Development (.reset file)
 When developing in a remote environment (e.g., CodeCage), the dev server runs on the host machine. To trigger a full restart of the dev environment:
@@ -289,3 +323,97 @@ touch .reset
 ```
 
 This triggers the `./dev/auto` script to restart the container and serve updated files. Without this, the browser may serve cached/stale files and changes won't be visible.
+
+## Important: Git Push Policy
+
+**DO NOT push to git unless explicitly requested by the user.**
+
+- Commit changes locally when asked
+- Only push when the user explicitly says to push
+- This allows review of changes before they go to the remote repository
+
+## Development Workflow
+
+### Fast Development Loop (Recommended)
+
+Use `./dev/deploy-test` to deploy directly to a test server via SSH. This bypasses GitHub Actions entirely:
+
+```bash
+export LUMENMON_TEST_HOST="root@your-test-server"
+./dev/deploy-test web      # Hot reload frontend (~2s)
+./dev/deploy-test agent    # Deploy agent + restart (~1s)
+./dev/deploy-test console  # Full console + restart (~5s)
+```
+
+### Release Workflow
+
+GitHub Actions only builds Docker images on version tags (`v*`), not on every commit:
+
+1. Develop and test using `./dev/deploy-test`
+2. When ready for release: `./dev/release` creates a version tag
+3. Push the tag → GitHub Actions builds and publishes to ghcr.io
+4. Users update via `lumenmon update` / `lumenmon-agent update`
+
+### Why This Approach
+
+| Method | Speed | Use Case |
+|--------|-------|----------|
+| `./dev/deploy-test` | 1-5 sec | Active development |
+| GitHub Actions | 2-3 min | Releases only (tags) |
+
+This keeps the dev loop fast while ensuring releases go through CI.
+
+### Debugging the Test Server
+
+If deployment fails or the test server isn't working:
+
+**1. Check SSH connectivity:**
+```bash
+ssh $LUMENMON_TEST_HOST "echo ok"
+```
+
+**2. Check container status:**
+```bash
+ssh $LUMENMON_TEST_HOST "docker ps -a | grep lumenmon"
+ssh $LUMENMON_TEST_HOST "lumenmon"
+```
+
+**3. View container logs:**
+```bash
+ssh $LUMENMON_TEST_HOST "docker logs lumenmon-console --tail 50"
+ssh $LUMENMON_TEST_HOST "docker logs lumenmon-console -f"  # Follow live
+```
+
+**4. Check if container is crash-looping:**
+```bash
+ssh $LUMENMON_TEST_HOST "docker inspect lumenmon-console --format='{{.State.Status}} {{.State.Restarting}}'"
+```
+
+**5. Fix permission issues (common after deploy):**
+```bash
+# Shell scripts losing +x after docker cp
+ssh $LUMENMON_TEST_HOST "docker exec lumenmon-console find /app -name '*.sh' -exec chmod +x {} \;"
+ssh $LUMENMON_TEST_HOST "docker restart lumenmon-console"
+```
+
+**6. If container won't start, check from inside:**
+```bash
+ssh $LUMENMON_TEST_HOST "docker run --rm -it --entrypoint /bin/sh ghcr.io/chriopter/lumenmon-console:latest"
+```
+
+**7. Check agent status:**
+```bash
+ssh $LUMENMON_TEST_HOST "lumenmon-agent"
+ssh $LUMENMON_TEST_HOST "journalctl -u lumenmon-agent --tail 50"
+```
+
+**8. Test web interface:**
+```bash
+ssh $LUMENMON_TEST_HOST "curl -s http://localhost:8080 | head -20"
+```
+
+**9. Nuclear option - full reset:**
+```bash
+ssh $LUMENMON_TEST_HOST "docker stop lumenmon-console; docker rm lumenmon-console"
+ssh $LUMENMON_TEST_HOST "cd ~/.lumenmon/console && docker compose up -d"
+```
