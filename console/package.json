@@ -1,0 +1,13 @@
+{
+  "name": "lumenmon-console",
+  "version": "1.0.0",
+  "description": "Lumenmon Console CSS build",
+  "scripts": {
+    "build": "tailwindcss -i ./web/public/css/input.css -o ./web/public/css/styles.css --minify",
+    "dev": "tailwindcss -i ./web/public/css/input.css -o ./web/public/css/styles.css --watch"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.0.0",
+    "tailwindcss": "^4.0.0"
+  }
+}

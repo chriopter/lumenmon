@@ -1,3 +1,12 @@
+# Stage 1: Build CSS with Tailwind
+FROM node:22-slim AS css-builder
+WORKDIR /build
+COPY package.json ./
+RUN npm install
+COPY web/public/css/ ./web/public/css/
+RUN npm run build
+
+# Stage 2: Runtime image
 FROM debian:bookworm-slim
 
 # Install all system dependencies in one layer
@@ -35,6 +44,9 @@ COPY console.sh .
 COPY core/ ./core/
 COPY web/ ./web/
 COPY config/ ./config/
+
+# Copy compiled CSS from build stage (overwrites uncompiled input.css output location)
+COPY --from=css-builder /build/web/public/css/styles.css ./web/public/css/styles.css
 
 # Copy Caddyfile from web config
 COPY web/config/Caddyfile /etc/caddy/Caddyfile

@@ -29,8 +29,6 @@ jobs:
           chore: update vendored dependencies
 
           Automated update of vendored web dependencies:
-          - WebTUI CSS
-          - Catppuccin theme
           - Chart.js
           - MQTT.js
         branch: auto/update-deps
@@ -41,25 +39,23 @@ jobs:
 
           This PR updates vendored web dependencies from unpkg.com CDN:
 
-          - **WebTUI CSS** - Latest version
-          - **Catppuccin theme** - Latest version
           - **Chart.js** - Latest version
           - **MQTT.js** - Latest version
 
           ### What changed?
 
           Run `./dev/updatedeps` to fetch the latest versions of:
-          - `console/web/public/css/webtui.css`
-          - `console/web/public/css/catppuccin.css`
           - `console/web/public/js/vendor/chart.js`
           - `console/web/public/js/vendor/mqtt.min.js`
+
+          > **Note:** CSS is now managed via Tailwind CSS (see `console/package.json`).
+          > To update Tailwind: `cd console && npm update tailwindcss @tailwindcss/cli`
 
           ### Testing
 
           - [ ] Verify web dashboard loads correctly
           - [ ] Check Chart.js visualizations render properly
           - [ ] Test MQTT live stream (press `L` key)
-          - [ ] Verify CSS styling is intact
 
           ---
 

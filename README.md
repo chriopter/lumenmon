@@ -15,8 +15,14 @@ Lightweight system monitoring with MQTT transport. Sets up as docker server in 6
 **Console** (central dashboard):
 ```bash
 curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/console/install.sh | bash
+```
 
-
+**Agent** (on each monitored host):
+```bash
+curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/agent/install.sh | bash
+lumenmon-agent register '<invite-url>'
+lumenmon-agent start
+```
 
 ## Supported Agent Systems
 
@@ -24,8 +30,6 @@ curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/console/inst
 |----|------------|
 | Debian/Ubuntu | **generic**: cpu, memory, disk, heartbeat, hostname |
 | Proxmox VE | **generic** + **proxmox**: vms, containers, storage, ZFS |
-
-```
 
 ## Architecture
 
@@ -210,11 +214,18 @@ publish_metric "hostname" "$host" "TEXT" 0
 ./dev/add3         # Spawn 3 test agents
 ```
 
+### CSS (Tailwind)
+```bash
+cd console && npm install   # First time setup
+cd console && npm run dev   # Watch mode - auto-recompile on changes
+cd console && npm run build # One-time build
+```
+
 ### Remote Test Server
 Deploy directly to a test server via SSH (bypasses GitHub Actions):
 ```bash
 export LUMENMON_TEST_HOST="root@your-test-server"
-./dev/deploy-test web      # Hot reload frontend (~2s)
+./dev/deploy-test web      # Build CSS + hot reload frontend (~3s)
 ./dev/deploy-test agent    # Deploy agent + restart (~1s)
 ./dev/deploy-test console  # Full console + restart (~5s)
 ./dev/deploy-test status   # Check remote status

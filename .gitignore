@@ -25,7 +25,7 @@ config/master.key
 # config/secrets.yml
 
 # dotenv, dotenv-rails
-# TODO Comment out these rules if environment variables can be committed
+# Local environment (test server config, etc)
 .env
 .env*.local
 
@@ -52,6 +52,7 @@ bower.json
 
 # Ignore node_modules
 node_modules/
+console/node_modules/
 
 # Ignore precompiled javascript packs
 /public/packs

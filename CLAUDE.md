@@ -34,8 +34,15 @@ lumenmon-agent uninstall    # Remove agent
 ./dev/auto         # Full reset, setup, virtual agent, and watch for .reset
 ./dev/add3         # Spawn 3 test agents
 ./dev/release      # Create new release
-./dev/updatedeps   # Update vendored CSS/JS
+./dev/updatedeps   # Update vendored JS (Chart.js, MQTT.js)
 ./dev/deploy-test  # Deploy to remote test server (see below)
+```
+
+### CSS Development (Tailwind)
+```bash
+cd console && npm install   # First time only
+cd console && npm run dev   # Watch mode - recompiles on changes
+cd console && npm run build # One-time build (used by deploy-test)
 ```
 
 ### Remote Test Server Deployment
@@ -62,11 +69,12 @@ export LUMENMON_TEST_HOST="root@your-test-server.local"
 | Target | Files | Restart | Speed |
 |--------|-------|---------|-------|
 | `agent` | `agent/` → `/opt/lumenmon/agent/` | systemd service | ~1s |
-| `web` | `console/web/public/` → container `/app/web/public/` | None (hot reload) | ~2s |
+| `web` | `console/web/public/` → container `/app/web/public/` | None (hot reload) | ~3s |
 | `console` | `console/web/` + `console/core/` → container `/app/` | Docker container | ~5s |
 
 **Notes:**
 - Requires SSH key auth to test server
+- `web` deployment runs `npm run build` first to compile Tailwind CSS
 - Agent data (`/opt/lumenmon/agent/data/`) is preserved (excluded from rsync)
 - Console data (`~/.lumenmon/console/data/`) is preserved (lives outside container)
 - Shell scripts get `chmod +x` automatically before copying to container
@@ -259,7 +267,17 @@ Shell scripts start with 2-line comment after shebang:
 
 ## Frontend CSS Architecture
 
-CSS lives in `console/web/public/css/styles.css` with clear sections:
+CSS is built with **Tailwind CSS v4**. Source files:
+- `console/web/public/css/input.css` - Tailwind + Catppuccin theme + all styles
+- `console/web/public/css/styles.css` - Compiled output (do not edit directly)
+
+**Build commands:**
+```bash
+cd console && npm run build  # One-time compile
+cd console && npm run dev    # Watch mode for development
+```
+
+**Styles structure** (in `input.css`):
 1. **Base & Layout** - Body, main content, columns
 2. **Utility Classes** - Reusable DRY patterns
 3. **Components** - Log box, agents table, detail panel, footer

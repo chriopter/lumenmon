@@ -1,22 +1,14 @@
 #!/bin/bash
-# Downloads latest vendored web dependencies (CSS, JS libraries) to console/web/public/.
-# Run this to update WebTUI CSS, Catppuccin theme, Chart.js, and MQTT.js from unpkg.com CDN.
+# Downloads latest vendored web dependencies (JS libraries) to console/web/public/.
+# Run this to update Chart.js and MQTT.js from unpkg.com CDN.
+# CSS is now managed via Tailwind (see console/package.json).
 
 set -e
 
 echo "Updating vendored dependencies..."
 
 # Create directories if they don't exist
-mkdir -p console/web/public/css
 mkdir -p console/web/public/js/vendor
-
-# Update WebTUI CSS
-echo "  Downloading WebTUI CSS..."
-curl -sL https://unpkg.com/@webtui/css@latest/dist/full.css -o console/web/public/css/webtui.css
-
-# Update Catppuccin theme
-echo "  Downloading Catppuccin theme..."
-curl -sL https://unpkg.com/@webtui/theme-catppuccin@latest/dist/index.css -o console/web/public/css/catppuccin.css
 
 # Update Chart.js
 echo "  Downloading Chart.js..."
@@ -27,3 +19,6 @@ echo "  Downloading MQTT.js..."
 curl -sL https://unpkg.com/mqtt@latest/dist/mqtt.min.js -o console/web/public/js/vendor/mqtt.min.js
 
 echo "Done! Dependencies updated successfully."
+echo ""
+echo "Note: CSS is now managed via Tailwind CSS."
+echo "To update Tailwind: cd console && npm update tailwindcss @tailwindcss/cli"

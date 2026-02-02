@@ -5,7 +5,10 @@
 set -e
 cd "$(dirname "$0")/.."
 
-# Test server SSH target - set via environment variable
+# Load .env if it exists
+[ -f .env ] && source .env
+
+# Test server SSH target - set via environment variable or .env
 # Example: export LUMENMON_TEST_HOST="root@test-server.local"
 if [ -z "$LUMENMON_TEST_HOST" ]; then
     echo "Error: LUMENMON_TEST_HOST not set"
@@ -42,6 +45,9 @@ deploy_agent() {
 }
 
 deploy_web() {
+    echo "==> Building CSS with Tailwind..."
+    (cd console && npm run build)
+
     echo "==> Deploying web frontend to $LUMENMON_TEST_HOST..."
     ssh "$LUMENMON_TEST_HOST" "mkdir -p /tmp/lumenmon-dev"
     rsync -avz --delete \
