@@ -7,7 +7,7 @@ import subprocess
 import re
 import os
 from datetime import datetime
-from db import get_db_connection
+from db import get_db_connection, validate_identifier
 import logging
 
 logger = logging.getLogger(__name__)
@@ -58,6 +58,10 @@ def delete_agent(agent_id):
 
             if tables:
                 for (table_name,) in tables:
+                    # Validate table name from database (SQL injection prevention)
+                    if not validate_identifier(table_name):
+                        log_message(f"  Skipping invalid table name: {table_name}")
+                        continue
                     cursor.execute(f'DROP TABLE IF EXISTS "{table_name}"')
                     log_message(f"  Dropped table: {table_name}")
                 conn.commit()
@@ -143,6 +147,10 @@ def delete_metric(agent_id, metric_name):
         return jsonify({'success': False, 'message': 'Invalid metric_name format'}), 400
 
     table_name = f"{agent_id}_{metric_name}"
+
+    # Validate constructed table name (SQL injection prevention)
+    if not validate_identifier(table_name):
+        return jsonify({'success': False, 'message': 'Invalid table name'}), 400
 
     try:
         conn = get_db_connection()

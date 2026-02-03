@@ -12,6 +12,7 @@ from datetime import datetime
 # Add app directory to path for imports
 sys.path.insert(0, '/app/web/app')
 from pending_invites import clear_invite
+from db import validate_identifier
 
 DB_PATH = "/data/metrics.db"
 
@@ -71,13 +72,13 @@ class MQTTBridge:
             agent_id = parts[1]
             metric_name = parts[2]
 
-            # Validate agent_id format (security)
-            if not re.match(r'^[a-zA-Z0-9_-]+$', agent_id):
+            # Validate agent_id format (SQL injection prevention)
+            if not validate_identifier(agent_id):
                 log('error', f'Invalid agent_id: {agent_id}')
                 return
 
-            # Validate metric_name format
-            if not re.match(r'^[a-zA-Z0-9_-]+$', metric_name):
+            # Validate metric_name format (SQL injection prevention)
+            if not validate_identifier(metric_name):
                 log('error', f'Invalid metric_name: {metric_name}')
                 return
 
@@ -115,6 +116,12 @@ class MQTTBridge:
 
             # Write to SQLite using persistent connection
             table_name = f"{agent_id}_{metric_name}"
+
+            # Validate constructed table name (SQL injection prevention)
+            if not validate_identifier(table_name):
+                log('error', f'Invalid table_name: {table_name}')
+                return
+
             cursor = self.db_conn.cursor()
 
             # Unified schema - create table or migrate old tables

@@ -32,7 +32,7 @@ RUN apt-get update && apt-get install -y \
     && rm -f /etc/sysctl.d/caddy-sysctl.conf
 
 # Install Python packages
-RUN pip3 install --no-cache-dir flask paho-mqtt --break-system-packages
+RUN pip3 install --no-cache-dir flask paho-mqtt aiosmtpd --break-system-packages
 
 # Setup directory structure
 RUN mkdir -p /data && \
@@ -57,6 +57,6 @@ RUN chmod +x console.sh core/*.sh core/*/*.sh web/app/*.py
 # Mount point for persistent data
 VOLUME /data
 
-EXPOSE 8080 8443 8884
+EXPOSE 8080 8443 8884 25
 
 CMD ["./console.sh"]

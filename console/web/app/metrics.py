@@ -3,7 +3,7 @@
 # Reads metrics from SQLite database and generates formatted metrics for agents.
 
 import time
-from db import get_db_connection, table_exists
+from db import get_db_connection, table_exists, validate_identifier
 from formatters import generate_tui_sparkline, format_age
 
 def _format_duration(seconds):
@@ -84,6 +84,11 @@ def calculate_staleness(timestamp, interval):
 def get_history_from_db(agent_id, metric_name, max_points=100):
     """Read recent history for a metric from SQLite (limited to max_points)."""
     history = []
+
+    # Validate inputs before constructing table name (SQL injection prevention)
+    if not validate_identifier(agent_id) or not validate_identifier(metric_name):
+        return history
+
     table_name = f"{agent_id}_{metric_name}"
 
     try:
@@ -126,6 +131,11 @@ def get_history_from_db(agent_id, metric_name, max_points=100):
 def get_latest_value(agent_id, metric_name, value_type=None):
     """Get the most recent value, timestamp, and interval for a metric.
     value_type: 'text' to return raw value without float conversion."""
+
+    # Validate inputs before constructing table name (SQL injection prevention)
+    if not validate_identifier(agent_id) or not validate_identifier(metric_name):
+        return None, None, None
+
     table_name = f"{agent_id}_{metric_name}"
 
     try:
@@ -164,6 +174,11 @@ def get_latest_value(agent_id, metric_name, value_type=None):
 
 def get_latest_hostname(agent_id):
     """Get the most recent hostname value."""
+
+    # Validate agent_id before constructing table name (SQL injection prevention)
+    if not validate_identifier(agent_id):
+        return ''
+
     table_name = f"{agent_id}_generic_hostname"
 
     try:
@@ -306,6 +321,10 @@ def count_failed_collectors(agent_id):
     failed = 0
     total = 0
 
+    # Validate agent_id (SQL injection prevention)
+    if not validate_identifier(agent_id):
+        return 0, 0
+
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -320,6 +339,10 @@ def count_failed_collectors(agent_id):
             table_name = row[0]
             # Skip non-metric tables
             if '_registration_test' in table_name:
+                continue
+
+            # Validate table name from database (SQL injection prevention)
+            if not validate_identifier(table_name):
                 continue
 
             total += 1
@@ -362,6 +385,10 @@ def get_agent_tables(agent_id):
     """Get all metric tables for an agent with their latest data and schema info."""
     tables = []
 
+    # Validate agent_id (SQL injection prevention)
+    if not validate_identifier(agent_id):
+        return tables
+
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -374,6 +401,10 @@ def get_agent_tables(agent_id):
 
         for row in cursor.fetchall():
             table_name = row[0]
+
+            # Validate table name from database (SQL injection prevention)
+            if not validate_identifier(table_name):
+                continue
 
             # Extract metric name (remove agent_id_ prefix)
             metric_name = table_name[len(agent_id)+1:]

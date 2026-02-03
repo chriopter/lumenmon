@@ -124,20 +124,21 @@ Pure bash scripts that collect metrics and publish via `mosquitto_pub` over TLS.
 <details>
 <summary>Mail Forwarding</summary>
 
-Agents automatically forward local system mail (`/var/mail/root`) to the console via MQTT. This captures:
+Two methods to receive system mail - use whichever fits your setup:
 
-- Cron job output and errors
-- System alerts and notifications
-- Automated reports from services (Proxmox, PBS, ZFS, etc.)
-
-**How it works:**
+**Method 1: Local spool (Debian/Ubuntu)**
 ```
-/var/mail/root → agent (parse mbox) → MQTT → console → messages table → UI
+/var/mail/root → agent → MQTT → console
 ```
+Agent automatically reads local mail spool every 5 minutes. Works out-of-the-box on systems where mail delivers to `/var/mail/root`.
 
-**Requirements:** Any local MTA that delivers to `/var/mail/root` (postfix, sendmail, exim, nullmailer, etc.). Most systems have this by default.
+**Method 2: SMTP (Proxmox/PBS)**
+```
+System notifications → SMTP (port 25) → console
+```
+Configure your system to send mail to `<agent_id>@<console-host>`. Works with Proxmox notification system.
 
-**No SMTP port needed** - mail is forwarded via the existing MQTT connection (port 8884).
+Both methods store mail in the same messages table, displayed per-agent in the web UI.
 
 </details>
 
