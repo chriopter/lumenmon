@@ -740,21 +740,22 @@ footer {
 .kbd-clickable kbd { background: transparent; border: none; padding: 0; margin: 0; }
 
 /* ============================================================
-   4. GRID SYSTEM (4-column)
+   4. GRID SYSTEM (12-column)
    ============================================================ */
 
 .widget-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(12, 1fr);
   gap: 0.75rem;
   margin-bottom: 1rem;
   align-items: stretch;
 }
 
-.grid-xs { grid-column: span 1; }
-.grid-sm { grid-column: span 2; }
-.grid-md { grid-column: span 3; }
-.grid-lg { grid-column: span 4; }
+.grid-xs { grid-column: span 3; }     /* 1/4 */
+.grid-sm { grid-column: span 6; }     /* 1/2 */
+.grid-md { grid-column: span 9; }     /* 3/4 */
+.grid-lg { grid-column: span 12; }    /* full */
+.grid-third { grid-column: span 4; }  /* 1/3 */
 
 .widget {
   display: flex;
@@ -903,24 +904,51 @@ footer {
 .tui-zfs-list {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.25rem;
   font-family: monospace;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
 }
 .tui-storage-row,
 .tui-zfs-row {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  padding: 0.25rem 0;
+  gap: 0.5rem;
+  padding: 0.15rem 0;
 }
 .tui-storage-name,
-.tui-zfs-name { min-width: 5rem; color: var(--accent2); font-weight: bold; }
+.tui-zfs-name {
+  width: 10ch;
+  min-width: 10ch;
+  max-width: 10ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--foreground1);
+}
 .tui-storage-bar,
-.tui-zfs-bar { font-family: monospace; letter-spacing: -0.05em; }
-.tui-storage-info { color: var(--foreground2); font-size: 0.75rem; white-space: nowrap; }
-.tui-zfs-health { min-width: 8rem; font-size: 0.75rem; }
-.tui-zfs-capacity { min-width: 3rem; text-align: right; color: var(--foreground1); }
+.tui-zfs-bar {
+  width: 12ch;
+  min-width: 12ch;
+  font-family: monospace;
+  letter-spacing: -0.05em;
+}
+.tui-storage-info {
+  flex: 1;
+  text-align: right;
+  color: var(--foreground2);
+  font-size: 0.7rem;
+  white-space: nowrap;
+}
+.tui-zfs-health {
+  width: 12ch;
+  min-width: 12ch;
+  font-size: 0.7rem;
+}
+.tui-zfs-capacity {
+  width: 4ch;
+  min-width: 4ch;
+  text-align: right;
+  color: var(--foreground1);
+}
 
 /* ============================================================
    6. MODALS
@@ -1057,11 +1085,12 @@ footer {
 }
 
 @media (max-width: 1000px) {
-  .widget-grid { grid-template-columns: repeat(2, 1fr); }
-  .grid-xs { grid-column: span 1; }
-  .grid-sm { grid-column: span 1; }
-  .grid-md { grid-column: span 2; }
-  .grid-lg { grid-column: span 2; }
+  .widget-grid { grid-template-columns: repeat(6, 1fr); }
+  .grid-xs { grid-column: span 3; }
+  .grid-sm { grid-column: span 3; }
+  .grid-third { grid-column: span 2; }
+  .grid-md { grid-column: span 6; }
+  .grid-lg { grid-column: span 6; }
 }
 
 @media (max-width: 900px) {
@@ -1071,7 +1100,7 @@ footer {
 
 @media (max-width: 600px) {
   .widget-grid { grid-template-columns: 1fr; }
-  .grid-xs, .grid-sm, .grid-md, .grid-lg { grid-column: span 1; }
+  .grid-xs, .grid-sm, .grid-third, .grid-md, .grid-lg { grid-column: span 1; }
 }
 
 @media (max-width: 500px) {

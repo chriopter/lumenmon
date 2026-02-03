@@ -8,7 +8,7 @@ LumenmonWidget({
     category: 'generic',
     metrics: ['generic_disk'],
     size: 'chart',
-    gridSize: 'sm',
+    gridSize: 'xs',  // 1/4 width
     priority: 12,
     expandable: false,
     render: function(data, agent) {

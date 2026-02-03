@@ -8,8 +8,8 @@ LumenmonWidget({
     category: 'generic',
     metrics: [],  // No metrics, fetches from messages API
     size: 'stat',
-    gridSize: 'sm',  // 2/4 width
-    priority: 5,  // Show before CPU
+    gridSize: 'sm',  // 1/2 width
+    priority: 1,  // First widget (top left)
     expandable: false,
     render: function(data, agent) {
         // Initial loading state - init() will populate

@@ -8,7 +8,7 @@ LumenmonWidget({
     category: 'generic',
     metrics: ['generic_cpu'],
     size: 'chart',
-    gridSize: 'sm',
+    gridSize: 'xs',  // 1/4 width
     priority: 10,
     expandable: false,
     render: function(data, agent) {
