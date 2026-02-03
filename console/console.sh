@@ -37,13 +37,6 @@ sleep 1
 echo "[console] Starting Caddy web server..."
 caddy start --config /etc/caddy/Caddyfile 2>&1 | sed 's/^/[caddy] /' &
 
-# Start SMTP receiver
-echo "[console] Starting SMTP receiver..."
-# Ensure aiosmtpd is installed (fallback for older images)
-python3 -c "import aiosmtpd" 2>/dev/null || pip3 install --quiet --no-cache-dir aiosmtpd --break-system-packages
-python3 /app/core/smtp/smtp_receiver.py 2>&1 | sed 's/^/[smtp] /' &
-sleep 1
-
 # Display console info
 echo "[console] ======================================"
 echo "[console] Lumenmon Console Ready"
@@ -51,9 +44,9 @@ echo "[console] ======================================"
 echo "[console] Console Host: ${CONSOLE_HOST:-localhost}"
 echo "[console] MQTT Broker: lumenmon-console:8884 (TLS)"
 echo "[console] MQTT Internal: localhost:1883"
-echo "[console] SMTP Receiver: Port 25 (no auth, known agents only)"
 echo "[console] Web Interface: Port 8080 (HTTP), 8443 (HTTPS)"
 echo "[console] Database: /data/metrics.db"
+echo "[console] Mail: Received via MQTT from agents (no SMTP needed)"
 echo "[console]"
 echo "[console] Access WebTUI: https://localhost:8443 (or http://localhost:8080)"
 echo "[console]"

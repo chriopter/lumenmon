@@ -89,6 +89,11 @@ class MQTTBridge:
                 log(agent_id, f'Invalid JSON payload: {e}')
                 return
 
+            # Handle mail messages specially - store in messages table
+            if metric_name == 'mail_message':
+                self.handle_mail_message(agent_id, data)
+                return
+
             # Extract fields from JSON
             if 'value' not in data:
                 log(agent_id, f'Missing "value" field in payload')
@@ -192,6 +197,54 @@ class MQTTBridge:
         except Exception as e:
             log('error', f'Exception in on_message: {type(e).__name__}: {str(e)}')
             # Attempt reconnection on any unexpected error
+            self.reconnect_db()
+
+    def handle_mail_message(self, agent_id, data):
+        """Handle mail messages from agent - store in messages table."""
+        try:
+            mail_from = data.get('mail_from', 'unknown')
+            subject = data.get('subject', '(no subject)')
+            body = data.get('body', '')
+            date_str = data.get('date', '')
+
+            # Create messages table if not exists
+            cursor = self.db_conn.cursor()
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS messages (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    agent_id TEXT,
+                    mail_from TEXT,
+                    mail_to TEXT,
+                    subject TEXT,
+                    body TEXT,
+                    raw_content TEXT,
+                    received_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    read INTEGER DEFAULT 0
+                )
+            ''')
+
+            # Create indexes if not exist
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_messages_agent ON messages(agent_id)')
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_messages_read ON messages(read)')
+
+            # Build mail_to from agent_id
+            mail_to = f"{agent_id}@localhost"
+
+            # Insert message
+            cursor.execute('''
+                INSERT INTO messages (agent_id, mail_from, mail_to, subject, body, raw_content, read)
+                VALUES (?, ?, ?, ?, ?, ?, 0)
+            ''', (agent_id, mail_from, mail_to, subject, body, body))
+
+            self.db_conn.commit()
+
+            # Clear pending invite on activity
+            clear_invite(agent_id)
+
+            log(agent_id, f'mail: {subject[:50]}')
+
+        except Exception as e:
+            log(agent_id, f'Error storing mail: {e}')
             self.reconnect_db()
 
     def run(self):
