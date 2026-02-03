@@ -36,7 +36,7 @@ while true; do
     idle_d=$((curr_idle - prev_idle))
 
     if [ $total_d -gt 0 ]; then
-        usage=$(awk "BEGIN {printf \"%.1f\", ($total_d - $idle_d) * 100.0 / $total_d}")
+        usage=$(LC_ALL=C awk "BEGIN {printf \"%.1f\", ($total_d - $idle_d) * 100.0 / $total_d}")
     else
         usage="0.0"
     fi
