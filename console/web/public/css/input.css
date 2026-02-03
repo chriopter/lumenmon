@@ -649,9 +649,35 @@ body {
   color: var(--foreground2);
   background: var(--background0);
 }
+.metrics-problems { margin-bottom: 1rem; }
+.metrics-problems h4,
+.metrics-ok h4 {
+  font-size: 0.75rem;
+  font-weight: normal;
+  color: var(--foreground2);
+  margin: 0 0 0.5rem 0;
+  text-transform: uppercase;
+}
+.metrics-problems h4 { color: var(--yellow); }
+.metrics-ok-header {
+  cursor: pointer;
+  user-select: none;
+}
+.metrics-ok-header:hover { color: var(--foreground1); }
+.expand-hint {
+  font-size: 0.6rem;
+  margin-left: 0.3rem;
+}
+.all-ok-message {
+  color: var(--green);
+  font-size: 0.8rem;
+  margin-bottom: 0.75rem;
+}
 .metrics-list { padding-top: 0.75rem; font-family: monospace; font-size: 0.75rem; }
 
-#metrics-table {
+#metrics-table,
+#metrics-table-problems,
+#metrics-table-ok {
   width: 100%;
   border-collapse: collapse;
   font-family: monospace;
@@ -663,15 +689,29 @@ body {
 #metrics-table tr th:before,
 #metrics-table tr td:before,
 #metrics-table tr th:after,
-#metrics-table tr td:after { display: none !important; }
-#metrics-table thead td {
+#metrics-table tr td:after,
+#metrics-table-problems:before,
+#metrics-table-problems tr th:before,
+#metrics-table-problems tr td:before,
+#metrics-table-problems tr th:after,
+#metrics-table-problems tr td:after,
+#metrics-table-ok:before,
+#metrics-table-ok tr th:before,
+#metrics-table-ok tr td:before,
+#metrics-table-ok tr th:after,
+#metrics-table-ok tr td:after { display: none !important; }
+#metrics-table thead td,
+#metrics-table-problems thead td,
+#metrics-table-ok thead td {
   padding: 0.25rem 0.35rem;
   text-transform: uppercase;
   font-weight: bold;
   color: var(--foreground2);
   font-size: 0.7rem;
 }
-#metrics-table tbody td {
+#metrics-table tbody td,
+#metrics-table-problems tbody td,
+#metrics-table-ok tbody td {
   padding: 0.25rem 0.35rem;
   font-size: 0.75rem;
   color: var(--foreground1);

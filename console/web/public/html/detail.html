@@ -118,10 +118,7 @@ Widgets auto-load based on available metrics. Functions: openDetailView(), close
             // Build detail view with header and widget container
             panel.innerHTML = `
                 <div class="detail-header">
-                    <div class="detail-header-left">
-                        <h2><span class="status-dot ${agent.status}"></span>${agent.hostname || agent.id}</h2>
-                        <button id="toggle-view-btn" class="view-toggle-btn" onclick="toggleDetailView()">all values</button>
-                    </div>
+                    <h2><span class="status-dot ${agent.status}"></span>${agent.hostname || agent.id}</h2>
                     <div class="detail-header-right">
                         <span class="detail-status">${agent.id}</span>
                         <span class="status-warnings" id="status-warnings"></span>
@@ -129,7 +126,8 @@ Widgets auto-load based on available metrics. Functions: openDetailView(), close
                 </div>
                 <div class="detail-content">
                     <div id="widgets-container"></div>
-                    <div id="metrics-section" class="metrics-section hidden-section">
+                    <div id="metrics-section" class="metrics-section">
+                        <h3>All Values</h3>
                         <div id="metrics-list" class="metrics-list">
                             <span class="loading-text">Loading metrics...</span>
                         </div>
@@ -175,25 +173,15 @@ Widgets auto-load based on available metrics. Functions: openDetailView(), close
         }
     }
 
-    function toggleDetailView() {
-        const widgetsContainer = document.getElementById('widgets-container');
-        const metricsSection = document.getElementById('metrics-section');
-        const toggleBtn = document.getElementById('toggle-view-btn');
+    function toggleOkMetrics() {
+        const content = document.getElementById('ok-metrics-content');
+        const header = document.querySelector('.metrics-ok-header .expand-hint');
+        if (!content) return;
 
-        if (!widgetsContainer || !metricsSection || !toggleBtn) return;
-
-        const showingWidgets = !widgetsContainer.classList.contains('hidden-section');
-
-        if (showingWidgets) {
-            // Switch to all values view
-            widgetsContainer.classList.add('hidden-section');
-            metricsSection.classList.remove('hidden-section');
-            toggleBtn.textContent = 'dashboard';
-        } else {
-            // Switch to dashboard view
-            widgetsContainer.classList.remove('hidden-section');
-            metricsSection.classList.add('hidden-section');
-            toggleBtn.textContent = 'all values';
+        window.okMetricsExpanded = !window.okMetricsExpanded;
+        content.classList.toggle('hidden-section');
+        if (header) {
+            header.textContent = window.okMetricsExpanded ? '▼' : '▶';
         }
     }
 
@@ -310,24 +298,10 @@ Widgets auto-load based on available metrics. Functions: openDetailView(), close
 
             const previousValues = window.metricsPreviousValues || {};
             const currentValues = {};
+            const problemMetrics = [];
+            const okMetrics = [];
 
-            // Fixed column order: name, timestamp, value columns, min/max, interval | calculated fields
-            let html = '<table id="metrics-table"><thead><tr>';
-            html += '<td>NAME</td>';
-            html += '<td>TIMESTAMP</td>';
-            html += '<td>REAL</td>';
-            html += '<td>INT</td>';
-            html += '<td>TEXT</td>';
-            html += '<td>MIN</td>';
-            html += '<td>MAX</td>';
-            html += '<td>INTERVAL</td>';
-            html += '<td class="db-content-separator">LAST UPDATE</td>';
-            html += '<td>NEXT UPDATE</td>';
-            html += '<td>DATA SPAN</td>';
-            html += '<td># SAMPLES</td>';
-            html += '<td></td>';
-            html += '</tr></thead><tbody>';
-
+            // Process and categorize metrics
             data.tables.forEach(table => {
                 const metricName = table.metric_name;
                 const columns = table.columns || {};
@@ -362,41 +336,81 @@ Widgets auto-load based on available metrics. Functions: openDetailView(), close
                     }
                 }
 
-                // Use backend health status for row styling
                 const health = table.health || {};
                 const isOutOfBounds = health.out_of_bounds || false;
 
-                // Check if agent version is outdated
                 const latestVersion = window.app?.data?.latestVersion;
                 const isVersionMetric = metricName === 'generic_agent_version';
                 const versionValue = columns.value_text;
                 const isOutdated = isVersionMetric && latestVersion && versionValue &&
                     versionValue !== latestVersion && !versionValue.startsWith(latestVersion);
 
+                const hasProblem = isOutdated || isOutOfBounds || isStale;
                 const rowClass = isOutdated ? 'warning-row' : (isOutOfBounds ? 'error-row' : (isStale ? 'stale-row' : ''));
 
-                // Format display values (CSS handles truncation/expand on hover)
-                const fmtVal = (v) => v !== null && v !== undefined ? v : '-';
-
-                html += `<tr class="${rowClass}">`;
-                html += `<td class="metric-name">${metricName}</td>`;
-                html += `<td>${columns.timestamp || '-'}</td>`;
-                html += `<td class="type-real ${columns.value_real !== null ? flashClass : ''}" data-full="${fmtVal(columns.value_real)}">${fmtVal(columns.value_real)}</td>`;
-                html += `<td class="type-integer ${columns.value_int !== null ? flashClass : ''}" data-full="${fmtVal(columns.value_int)}">${fmtVal(columns.value_int)}</td>`;
-                html += `<td class="type-text" data-full="${fmtVal(columns.value_text)}">${fmtVal(columns.value_text)}</td>`;
-                html += `<td>${fmtVal(columns.min_value)}</td>`;
-                html += `<td>${fmtVal(columns.max_value)}</td>`;
-                html += `<td>${columns.interval}s</td>`;
-                html += `<td class="db-content-separator">${metadata.timestamp_age || '-'}</td>`;
-                html += `<td class="${isOverdue ? 'overdue-text' : ''}">${nextUpdateText}</td>`;
-                html += `<td>${metadata.data_span || '-'}</td>`;
-                html += `<td>${metadata.line_count || '-'}</td>`;
-                html += `<td class="metric-delete" data-agent="${agentId}" data-metric="${metricName}" title="Delete metric">×</td>`;
-                html += `</tr>`;
+                const metricData = { metricName, columns, metadata, flashClass, rowClass, nextUpdateText, isOverdue, agentId };
+                if (hasProblem) {
+                    problemMetrics.push(metricData);
+                } else {
+                    okMetrics.push(metricData);
+                }
             });
 
             window.metricsPreviousValues = currentValues;
-            html += '</tbody></table>';
+
+            // Helper to build table row
+            const fmtVal = (v) => v !== null && v !== undefined ? v : '-';
+            const buildRow = (m) => {
+                let row = `<tr class="${m.rowClass}">`;
+                row += `<td class="metric-name">${m.metricName}</td>`;
+                row += `<td>${m.columns.timestamp || '-'}</td>`;
+                row += `<td class="type-real ${m.columns.value_real !== null ? m.flashClass : ''}" data-full="${fmtVal(m.columns.value_real)}">${fmtVal(m.columns.value_real)}</td>`;
+                row += `<td class="type-integer ${m.columns.value_int !== null ? m.flashClass : ''}" data-full="${fmtVal(m.columns.value_int)}">${fmtVal(m.columns.value_int)}</td>`;
+                row += `<td class="type-text" data-full="${fmtVal(m.columns.value_text)}">${fmtVal(m.columns.value_text)}</td>`;
+                row += `<td>${fmtVal(m.columns.min_value)}</td>`;
+                row += `<td>${fmtVal(m.columns.max_value)}</td>`;
+                row += `<td>${m.columns.interval}s</td>`;
+                row += `<td class="db-content-separator">${m.metadata.timestamp_age || '-'}</td>`;
+                row += `<td class="${m.isOverdue ? 'overdue-text' : ''}">${m.nextUpdateText}</td>`;
+                row += `<td>${m.metadata.data_span || '-'}</td>`;
+                row += `<td>${m.metadata.line_count || '-'}</td>`;
+                row += `<td class="metric-delete" data-agent="${m.agentId}" data-metric="${m.metricName}" title="Delete metric">×</td>`;
+                row += `</tr>`;
+                return row;
+            };
+
+            const tableHeader = `<thead><tr>
+                <td>NAME</td><td>TIMESTAMP</td><td>REAL</td><td>INT</td><td>TEXT</td>
+                <td>MIN</td><td>MAX</td><td>INTERVAL</td>
+                <td class="db-content-separator">LAST UPDATE</td><td>NEXT UPDATE</td>
+                <td>DATA SPAN</td><td># SAMPLES</td><td></td>
+            </tr></thead>`;
+
+            let html = '';
+
+            // Problem metrics (always visible)
+            if (problemMetrics.length > 0) {
+                html += `<div class="metrics-problems"><h4>⚠ Issues (${problemMetrics.length})</h4>`;
+                html += `<table id="metrics-table-problems">${tableHeader}<tbody>`;
+                problemMetrics.forEach(m => html += buildRow(m));
+                html += '</tbody></table></div>';
+            }
+
+            // OK metrics (collapsible)
+            if (okMetrics.length > 0) {
+                const isExpanded = window.okMetricsExpanded || false;
+                html += `<div class="metrics-ok">`;
+                html += `<h4 class="metrics-ok-header" onclick="toggleOkMetrics()">✓ OK (${okMetrics.length}) <span class="expand-hint">${isExpanded ? '▼' : '▶'}</span></h4>`;
+                html += `<div id="ok-metrics-content" class="${isExpanded ? '' : 'hidden-section'}">`;
+                html += `<table id="metrics-table-ok">${tableHeader}<tbody>`;
+                okMetrics.forEach(m => html += buildRow(m));
+                html += '</tbody></table></div></div>';
+            }
+
+            // All OK message
+            if (problemMetrics.length === 0 && okMetrics.length > 0) {
+                html = `<div class="all-ok-message">✓ All ${okMetrics.length} metrics OK</div>` + html;
+            }
 
             const updateTable = () => {
                 metricsList.innerHTML = html;
