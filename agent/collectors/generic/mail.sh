@@ -1,8 +1,8 @@
 #!/bin/bash
 # Reads local mail from /var/mail/root and forwards via MQTT.
-# Only runs if mail spool exists. Checks every 5 minutes.
+# Only runs if mail spool exists. Checks at CYCLE interval (5 min).
 
-CHECK_INTERVAL=300  # 5 minutes
+RHYTHM="CYCLE"  # Uses CYCLE timing from agent.sh (5 min)
 
 source "$LUMENMON_HOME/core/mqtt/publish.sh"
 
@@ -84,5 +84,5 @@ while true; do
         echo "$size" > "$STATE_FILE"
     fi
 
-    sleep $CHECK_INTERVAL
+    sleep $CYCLE
 done
