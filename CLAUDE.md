@@ -78,6 +78,7 @@ export LUMENMON_TEST_HOST="root@your-test-server.local"
 - Agent data (`/opt/lumenmon/agent/data/`) is preserved (excluded from rsync)
 - Console data (`~/.lumenmon/console/data/`) is preserved (lives outside container)
 - Shell scripts get `chmod +x` automatically before copying to container
+- **Flask template caching**: HTML templates (Jinja2) may be cached by Flask. If template changes don't appear after `deploy-test web`, restart the container: `ssh $LUMENMON_TEST_HOST "docker restart lumenmon-console"`
 
 ### Remote Development (.reset file)
 When developing in a remote environment (e.g., CodeCage), the dev server runs on the host machine. To trigger a full restart of the dev environment:
@@ -387,7 +388,10 @@ GitHub Actions only builds Docker images on version tags (`v*`), not on every co
 1. Develop and test using `./dev/deploy-test`
 2. When ready for release: `./dev/release` creates a version tag
 3. Push the tag → GitHub Actions builds and publishes to ghcr.io
-4. Users update via `lumenmon update` / `lumenmon-agent update`
+4. Create GitHub Release with release notes: `gh release create vX.X --notes "..."`
+5. Users update via `lumenmon update` / `lumenmon-agent update`
+
+**Version detection:** Agent version is determined by `git describe --tags` in `collectors/generic/version.sh`. Console fetches latest version from GitHub API (cached 1 hour). After creating a new release, restart the test console to clear version cache.
 
 ### Why This Approach
 
