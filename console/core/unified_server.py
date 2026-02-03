@@ -75,6 +75,8 @@ class AgentState:
         self._mqtt_users_time = 0
         # Agent tables cache {agent_id: (bytes, gzip_bytes, timestamp)}
         self._tables_cache = {}
+        # Mail-only agents (agents that only send mail, no metrics)
+        self.mail_only_agents = set()
 
     def update_metric(self, agent_id, metric_name, value, data_type, interval, min_val, max_val):
         """Update metric in RAM (called from MQTT thread)."""
@@ -167,16 +169,31 @@ class AgentState:
                 agent_data = self.agents.get(agent_id, {})
                 agent_history = self.history.get(agent_id, {})
 
+                # Check if mail-only agent
+                is_mail_only = agent_id in self.mail_only_agents and not agent_data
+
                 # Build entity
                 entity = {
                     'id': agent_id,
                     'type': 'agent',
-                    'valid': bool(agent_data),
+                    'valid': bool(agent_data) or is_mail_only,
                     'has_mqtt_user': agent_id in mqtt_users,
                     'has_table': bool(agent_data),
+                    'is_mail_only': is_mail_only,
                 }
 
-                if agent_data:
+                if is_mail_only:
+                    # Mail-only agent - show special status
+                    entity.update({
+                        'status': 'mail-only',
+                        'hostname': '',
+                        'cpu': 0,
+                        'memory': 0,
+                        'disk': 0,
+                        'failed_collectors': 0,
+                        'total_collectors': 0,
+                    })
+                elif agent_data:
                     # Extract core metrics
                     cpu_data = agent_data.get('generic_cpu', {})
                     mem_data = agent_data.get('generic_memory', {})
@@ -464,7 +481,15 @@ class AgentState:
                 except Exception:
                     pass
 
-            print(f"[unified] Loaded {len(self.agents)} agents from SQLite", flush=True)
+            # Load mail-only agents (agents that have sent messages)
+            try:
+                cursor.execute("SELECT DISTINCT agent_id FROM messages")
+                for (agent_id,) in cursor.fetchall():
+                    self.mail_only_agents.add(agent_id)
+            except Exception:
+                pass  # messages table might not exist
+
+            print(f"[unified] Loaded {len(self.agents)} agents, {len(self.mail_only_agents)} mail senders from SQLite", flush=True)
         except Exception as e:
             print(f"[unified] Error loading from SQLite: {e}", flush=True)
 
@@ -600,7 +625,9 @@ class MQTTClient(threading.Thread):
             data = json.loads(msg.payload.decode())
 
             if metric_name == 'mail_message':
-                # TODO: Handle mail messages
+                # Track as mail-sending agent (might be mail-only)
+                STATE.mail_only_agents.add(agent_id)
+                clear_invite(agent_id)
                 return
 
             if 'value' not in data:
