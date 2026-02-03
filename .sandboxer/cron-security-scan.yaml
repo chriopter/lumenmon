@@ -1,0 +1,48 @@
+schedule: "0 3 * * 0"  # Weekly on Sunday at 3am
+type: claude
+prompt: |
+  Fix all open GitHub CodeQL security alerts. Token is in .sandboxer/.env
+
+  1. FETCH ALERTS via gh CLI:
+     source .sandboxer/.env
+     gh api repos/chriopter/lumenmon/code-scanning/alerts --jq '.[] | select(.state=="open") | {number, rule: .rule.id, severity: .rule.security_severity_level, file: .most_recent_instance.location.path, line: .most_recent_instance.location.start_line, description: .rule.description}'
+
+  2. FOR EACH ALERT:
+     - Read the affected file
+     - Understand the vulnerability (SQL injection, information exposure, unused imports, bare except, etc.)
+     - Fix the code properly
+     - Do NOT expose internal error details in API responses - use generic messages
+     - Do NOT use bare except: - catch specific exceptions
+
+  3. COMMON FIXES:
+     - "Information exposure through exception": Replace `str(e)` with generic error message in API responses
+     - "SQL query built from user-controlled sources": Ensure proper validation/parameterization
+     - "Unused import": Remove the unused import
+     - "Except block handles BaseException": Replace bare `except:` with `except Exception:`
+
+  4. VERIFY: Run any available tests or linting
+
+  5. Do NOT commit or push - leave for user review
+
+  Start now - fetch all open security alerts.
+
+condition_script: |
+  #!/bin/bash
+  # Check if there are open CodeQL security alerts
+  # Exit 0 = alerts found (run the job)
+  # Exit 1 = no alerts (skip the job)
+
+  source .sandboxer/.env 2>/dev/null || true
+
+  # Query GitHub API for open code scanning alerts
+  count=$(gh api repos/chriopter/lumenmon/code-scanning/alerts --jq '[.[] | select(.state=="open")] | length' 2>/dev/null || echo "0")
+
+  if [ "$count" -gt 0 ]; then
+    echo "Found $count open security alerts"
+    exit 0
+  else
+    echo "No open security alerts"
+    exit 1
+  fi
+
+enabled: true
