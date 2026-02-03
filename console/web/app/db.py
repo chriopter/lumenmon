@@ -41,6 +41,63 @@ def table_exists(conn, table_name):
     )
     return cursor.fetchone() is not None
 
+def init_host_settings_table():
+    """Create host_settings table if not exists."""
+    conn = get_db_connection()
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS host_settings (
+            agent_id TEXT PRIMARY KEY,
+            display_name TEXT,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+def get_host_display_name(agent_id):
+    """Get custom display name for a host, or None if not set."""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT display_name FROM host_settings WHERE agent_id = ?", (agent_id,))
+        row = cursor.fetchone()
+        conn.close()
+        return row['display_name'] if row else None
+    except Exception:
+        return None
+
+def set_host_display_name(agent_id, display_name):
+    """Set custom display name for a host."""
+    try:
+        init_host_settings_table()
+        conn = get_db_connection()
+        conn.execute('''
+            INSERT INTO host_settings (agent_id, display_name, updated_at)
+            VALUES (?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(agent_id) DO UPDATE SET
+                display_name = excluded.display_name,
+                updated_at = CURRENT_TIMESTAMP
+        ''', (agent_id, display_name if display_name else None))
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"Error setting display name: {e}")
+        return False
+
+def get_all_host_display_names():
+    """Get all custom display names as a dict."""
+    try:
+        init_host_settings_table()
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT agent_id, display_name FROM host_settings WHERE display_name IS NOT NULL")
+        result = {row['agent_id']: row['display_name'] for row in cursor.fetchall()}
+        conn.close()
+        return result
+    except Exception:
+        return {}
+
 def cleanup_old_metrics():
     """Delete metrics older than RETENTION_SECONDS from all tables.
 

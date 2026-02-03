@@ -110,15 +110,23 @@ Widgets auto-load based on available metrics. Functions: openDetailView(), close
                 return;
             }
 
+            // Check if this is a mail-only host
+            const row = document.querySelector(`.agent-row[data-entity-id="${agent.id}"]`);
+            if (row && row.dataset.mailOnly === 'true') {
+                renderMailOnlyView(agent, panel);
+                return;
+            }
+
             // Fetch metric tables for this agent
             const response = await fetch(`/api/agents/${agent.id}/tables`);
             const data = await response.json();
             const tables = data.tables || [];
 
             // Build detail view with header and widget container
+            const displayName = agent.display_name || agent.original_hostname || agent.hostname || agent.id;
             panel.innerHTML = `
                 <div class="detail-header">
-                    <h2><span class="status-dot ${agent.status}"></span>${agent.hostname || agent.id}</h2>
+                    <h2><span class="status-dot ${agent.status}"></span>${displayName}<span class="edit-name-btn" id="edit-name-btn" title="Edit display name">✎</span></h2>
                     <div class="detail-header-right">
                         <span class="detail-status">${agent.id}</span>
                         <span class="status-warnings" id="status-warnings"></span>
@@ -134,6 +142,16 @@ Widgets auto-load based on available metrics. Functions: openDetailView(), close
                     </div>
                 </div>
             `;
+
+            // Add edit name handler
+            document.getElementById('edit-name-btn').addEventListener('click', () => {
+                const currentName = agent.display_name || '';
+                const placeholder = agent.original_hostname || agent.hostname || agent.id;
+                const newName = prompt(`Enter display name (leave empty to use "${placeholder}"):`, currentName);
+                if (newName !== null) {
+                    updateHostName(agent.id, newName.trim());
+                }
+            });
 
             // Render widgets
             const widgetsContainer = document.getElementById('widgets-container');
@@ -199,6 +217,7 @@ Widgets auto-load based on available metrics. Functions: openDetailView(), close
         const inviteData = agent.pending_invite;
         const installCommand = inviteData.install_command ||
             `curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/agent/install.sh | bash -s '${inviteData.invite_url}'`;
+        const emailAddress = inviteData.email_address || '';
 
         panel.innerHTML = `
             <div class="detail-header-tui">
@@ -213,6 +232,12 @@ Widgets auto-load based on available metrics. Functions: openDetailView(), close
                     <h3>invite url</h3>
                     <div class="tui-box-content" id="copy-invite-url">${inviteData.invite_url}</div>
                 </div>
+                ${emailAddress ? `
+                <div class="tui-box">
+                    <h3>email address (for smtp mail forwarding)</h3>
+                    <div class="tui-box-content" id="copy-email-addr">${emailAddress}</div>
+                </div>
+                ` : ''}
                 <div class="tui-footer">
                     <span class="pulse-dot"></span> waiting for data...
                 </div>
@@ -222,6 +247,7 @@ Widgets auto-load based on available metrics. Functions: openDetailView(), close
         // Click handlers for copying
         const installBox = document.getElementById('copy-install-cmd');
         const urlBox = document.getElementById('copy-invite-url');
+        const emailBox = document.getElementById('copy-email-addr');
 
         const flashCopy = (box, message) => {
             const header = box.previousElementSibling;
@@ -257,6 +283,18 @@ Widgets auto-load based on available metrics. Functions: openDetailView(), close
                 addLog('clipboard unavailable (use https or localhost)', 'error');
             }
         });
+
+        if (emailBox) {
+            emailBox.addEventListener('click', async () => {
+                if (navigator.clipboard) {
+                    await navigator.clipboard.writeText(emailAddress);
+                    flashCopy(emailBox, 'copied!');
+                    addLog('copied email address', 'success');
+                } else {
+                    addLog('clipboard unavailable (use https or localhost)', 'error');
+                }
+            });
+        }
     }
 
     async function renderInviteDetailView(invite, panel) {
@@ -280,6 +318,66 @@ Widgets auto-load based on available metrics. Functions: openDetailView(), close
                 </div>
             </div>
         `;
+    }
+
+    async function renderMailOnlyView(agent, panel) {
+        // Render a simplified view for mail-only hosts (no agent, just mail)
+        const displayName = agent.display_name || agent.id;
+
+        panel.innerHTML = `
+            <div class="detail-header">
+                <h2><span class="status-dot warning"></span>${displayName}<span class="edit-name-btn" id="edit-name-btn" title="Edit display name">✎</span></h2>
+                <div class="detail-header-right">
+                    <span class="detail-status">${agent.id}</span>
+                    <span class="tui-badge">mail only</span>
+                </div>
+            </div>
+            <div class="detail-content">
+                <div id="widgets-container"></div>
+                <div class="mail-only-info">
+                    <p>This host has no agent installed - it only sends mail via SMTP.</p>
+                    <p>To install the monitoring agent, create an invite with <kbd>i</kbd></p>
+                </div>
+            </div>
+        `;
+
+        // Add edit name handler
+        document.getElementById('edit-name-btn').addEventListener('click', () => {
+            const currentName = agent.display_name || '';
+            const newName = prompt(`Enter display name (leave empty to use "${agent.id}"):`, currentName);
+            if (newName !== null) {
+                updateHostName(agent.id, newName.trim());
+            }
+        });
+
+        // Render only the messages widget for mail-only hosts
+        const widgetsContainer = document.getElementById('widgets-container');
+        if (widgetsContainer && window.LumenmonWidgets) {
+            // Just render messages widget - use empty tables list to skip metric widgets
+            LumenmonWidgets.renderAll(widgetsContainer, agent, []);
+        }
+    }
+
+    async function updateHostName(agentId, newName) {
+        try {
+            const response = await fetch(`/api/agents/${agentId}/name`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: newName })
+            });
+            const data = await response.json();
+            if (data.success) {
+                addLog(`name updated: ${newName || '(cleared)'}`, 'success');
+                // Refresh to show new name
+                await fetchAgents();
+                // Re-open detail view to reflect change
+                setTimeout(() => openDetailView(), 100);
+            } else {
+                addLog(`failed to update name: ${data.error}`, 'error');
+            }
+        } catch (error) {
+            addLog(`error updating name: ${error.message}`, 'error');
+        }
     }
 
     async function loadMetrics(agentId) {

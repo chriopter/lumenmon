@@ -70,13 +70,18 @@ def create_invite():
             # Generate install command
             one_click = f"curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/agent/install.sh | bash -s '{invite_data['url']}'"
 
+            # Get console host for email address
+            console_host = os.environ.get('CONSOLE_HOST', 'localhost')
+            email_address = f"{invite_data['username']}@{console_host}"
+
             # Store invite data IN RAM for detail view display
             agent_id = invite_data['username']
             store_invite(agent_id, {
                 'username': invite_data['username'],
                 'fingerprint': invite_data['fingerprint'],
                 'invite_url': invite_data['url'],
-                'install_command': one_click
+                'install_command': one_click,
+                'email_address': email_address
             })
 
             return jsonify({
@@ -84,6 +89,7 @@ def create_invite():
                 'username': invite_data['username'],
                 'invite_url': invite_data['url'],
                 'fingerprint': invite_data['fingerprint'],
+                'email_address': email_address,
                 'message': 'Invite created successfully. Copy this URL now - it will not be shown again.'
             })
         else:
@@ -133,6 +139,10 @@ def create_invite_full():
             # Generate full install command
             one_click = f"curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/agent/install.sh | bash -s '{invite_data['url']}'"
 
+            # Get console host for email address
+            console_host = os.environ.get('CONSOLE_HOST', 'localhost')
+            email_address = f"{invite_data['username']}@{console_host}"
+
             # Store invite data IN RAM (including URLs) for detail view display
             # NOTE: This is stored temporarily so detail view can show it, but
             # cleared when agent connects or on container restart
@@ -141,7 +151,8 @@ def create_invite_full():
                 'username': invite_data['username'],
                 'fingerprint': invite_data['fingerprint'],
                 'invite_url': invite_data['url'],
-                'install_command': one_click
+                'install_command': one_click,
+                'email_address': email_address
             })
 
             return jsonify({
@@ -150,6 +161,7 @@ def create_invite_full():
                 'invite_url': invite_data['url'],
                 'install_command': one_click,
                 'fingerprint': invite_data['fingerprint'],
+                'email_address': email_address,
                 'message': 'Invite created successfully. Copy this command now - it will not be shown again.'
             })
         else:

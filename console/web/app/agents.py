@@ -2,11 +2,11 @@
 # Agent metrics API endpoints.
 # Provides JSON endpoints for agent data and unified entities view.
 
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
 import time
 import os
 from metrics import get_agent_tables, get_agent_metrics, count_failed_collectors, calculate_host_status, calculate_staleness
-from db import get_db_connection
+from db import get_db_connection, get_all_host_display_names, set_host_display_name
 from pending_invites import get_invite
 
 agents_bp = Blueprint('agents', __name__)
@@ -45,7 +45,8 @@ def get_all_entities():
                             entities[username] = {
                                 'id': username,
                                 'has_mqtt_user': True,
-                                'has_table': False
+                                'has_table': False,
+                                'has_mail': False
                             }
     except Exception as e:
         print(f"Error reading MQTT passwd file: {e}")
@@ -67,16 +68,35 @@ def get_all_entities():
                         entities[agent_id] = {
                             'id': agent_id,
                             'has_mqtt_user': False,
-                            'has_table': True
+                            'has_table': True,
+                            'has_mail': False
                         }
                     else:
                         entities[agent_id]['has_table'] = True
+
+        # 3. Get mail-only hosts from messages table (hosts that have received mail but no agent)
+        cursor.execute("SELECT DISTINCT agent_id FROM messages WHERE agent_id LIKE 'id_%'")
+        for row in cursor.fetchall():
+            agent_id = row[0]
+            if agent_id not in entities:
+                # Mail-only host - no MQTT user, no metric tables, but has messages
+                entities[agent_id] = {
+                    'id': agent_id,
+                    'has_mqtt_user': False,
+                    'has_table': False,
+                    'has_mail': True
+                }
+            else:
+                entities[agent_id]['has_mail'] = True
 
         conn.close()
     except Exception as e:
         print(f"Error reading SQLite tables: {e}")
 
-    # 3. Determine type and validity for each entity (limited to prevent memory exhaustion)
+    # 4. Get custom display names
+    display_names = get_all_host_display_names()
+
+    # 5. Determine type and validity for each entity (limited to prevent memory exhaustion)
     result = []
     agent_count = 0
     for entity_id, checks in entities.items():
@@ -88,15 +108,21 @@ def get_all_entities():
             # Invite needs: MQTT user entry in passwd file
             valid = checks['has_mqtt_user']
         else:
-            # Agent needs: database tables (has_table is sufficient - metrics are flowing)
-            valid = checks['has_table']
+            # Agent needs: database tables OR mail messages (mail-only hosts are valid too)
+            valid = checks['has_table'] or checks.get('has_mail', False)
+
+        # Get custom display name if set
+        custom_name = display_names.get(entity_id)
 
         entity_data = {
             'id': entity_id,
             'type': entity_type,
             'valid': valid,
             'has_mqtt_user': checks['has_mqtt_user'],
-            'has_table': checks['has_table']
+            'has_table': checks['has_table'],
+            'has_mail': checks.get('has_mail', False),
+            'mail_only': not checks['has_table'] and checks.get('has_mail', False),
+            'display_name': custom_name  # Custom editable name
         }
 
         # Check for pending invite (held in RAM until first data arrives)
@@ -106,6 +132,13 @@ def get_all_entities():
 
         # Add metrics for valid agents (with limit to prevent overload)
         if entity_type == 'agent' and valid:
+            # Mail-only hosts don't have metrics, just mark them specially
+            if entity_data.get('mail_only'):
+                entity_data['status'] = 'mail-only'
+                entity_data['hostname'] = ''  # No hostname from agent
+                result.append(entity_data)
+                continue
+
             agent_count += 1
             if agent_count > _MAX_AGENTS:
                 # Skip metrics for agents beyond limit (still show in list but without data)
@@ -151,14 +184,20 @@ def get_all_entities():
 
         result.append(entity_data)
 
-    # Sort: invites first, then by status (for agents), then by ID
+    # Sort: regular agents alphabetically, then mail-only hosts, then invites at bottom
     def sort_key(entity):
+        # Get display name for sorting (lowercase for case-insensitive sort)
+        name = (entity.get('display_name') or entity.get('hostname') or entity['id']).lower()
+
         if entity['type'] == 'invite':
-            return (0, entity['id'])
+            # Invites at the very bottom (group 2)
+            return (2, name)
+        elif entity.get('mail_only'):
+            # Mail-only hosts before invites (group 1)
+            return (1, name)
         else:
-            status_order = {'online': 1, 'degraded': 2, 'offline': 3}
-            status = entity.get('status', 'offline')
-            return (status_order.get(status, 4), entity['id'])
+            # Regular agents first (group 0), sorted alphabetically
+            return (0, name)
 
     result.sort(key=sort_key)
 
@@ -185,3 +224,26 @@ def get_entities():
     _entities_cache = {'data': result, 'timestamp': now}
 
     return jsonify(result)
+
+@agents_bp.route('/api/agents/<agent_id>/name', methods=['PUT', 'POST'])
+def update_agent_name(agent_id):
+    """Update the display name for an agent (useful for mail-only hosts)."""
+    global _entities_cache
+
+    data = request.get_json() or {}
+    display_name = data.get('name', '').strip()
+
+    # Allow empty string to clear the name
+    if set_host_display_name(agent_id, display_name if display_name else None):
+        # Clear cache to reflect change immediately
+        _entities_cache = {'data': None, 'timestamp': 0}
+        return jsonify({
+            'success': True,
+            'agent_id': agent_id,
+            'display_name': display_name if display_name else None
+        })
+    else:
+        return jsonify({
+            'success': False,
+            'error': 'Failed to update display name'
+        }), 500
