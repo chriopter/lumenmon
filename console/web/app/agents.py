@@ -8,6 +8,7 @@ import os
 from metrics import get_agent_tables, get_agent_metrics, count_failed_collectors, calculate_host_status, calculate_staleness
 from db import get_db_connection, get_all_host_display_names, set_host_display_name
 from pending_invites import get_invite
+from formatters import generate_tui_sparkline
 
 agents_bp = Blueprint('agents', __name__)
 
@@ -183,6 +184,20 @@ def get_all_entities():
                 print(f"Error getting metrics for {entity_id}: {e}")
 
         result.append(entity_data)
+
+    # Calculate global max CPU for sparkline scaling (compare load across hosts)
+    all_cpu_values = []
+    for entity in result:
+        if entity.get('cpuHistory'):
+            all_cpu_values.extend([h['value'] for h in entity['cpuHistory'] if isinstance(h.get('value'), (int, float))])
+
+    global_cpu_max = max(all_cpu_values) if all_cpu_values else 100
+
+    # Regenerate sparklines with global max for cross-host comparison
+    for entity in result:
+        if entity.get('cpuHistory'):
+            cpu_values = [h['value'] for h in entity['cpuHistory'] if isinstance(h.get('value'), (int, float))]
+            entity['cpuSparkline'] = generate_tui_sparkline(cpu_values, global_max=global_cpu_max)
 
     # Sort: regular agents alphabetically, then mail-only hosts, then invites at bottom
     def sort_key(entity):

@@ -2,8 +2,12 @@
 # Formatting utilities for TUI-style sparklines and human-readable timestamps.
 # Used by metrics module to format data for HTML templates.
 
-def generate_tui_sparkline(values, max_chars=8):
-    """Generate TUI-style sparkline using Unicode block characters."""
+def generate_tui_sparkline(values, max_chars=8, global_max=None):
+    """Generate TUI-style sparkline using Unicode block characters.
+
+    If global_max is provided, scales to 0-global_max range (for comparing across hosts).
+    Otherwise scales to local min-max range.
+    """
     if not values or len(values) == 0:
         return ''
 
@@ -12,13 +16,22 @@ def generate_tui_sparkline(values, max_chars=8):
 
     blocks = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█']
 
-    min_val = min(values)
-    max_val = max(values)
+    if global_max is not None:
+        # Scale to 0-global_max for cross-host comparison
+        min_val = 0
+        max_val = global_max if global_max > 0 else 1
+    else:
+        # Scale to local min-max (original behavior)
+        min_val = min(values)
+        max_val = max(values)
+
     range_val = max_val - min_val if max_val - min_val > 0 else 1
 
     sparkline = ''
     for val in values:
         normalized = (val - min_val) / range_val
+        # Clamp to valid range
+        normalized = max(0, min(1, normalized))
         index = int(normalized * (len(blocks) - 1))
         sparkline += blocks[index]
 

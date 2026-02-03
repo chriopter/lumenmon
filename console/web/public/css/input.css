@@ -621,10 +621,15 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+/* Column widths - apply to both thead and tbody for alignment */
+#agents-table thead td:nth-child(2),
 #agents-table tbody td:nth-child(2) { width: 5rem; min-width: 5rem; max-width: 5rem; }
+#agents-table thead td:nth-child(3),
+#agents-table thead td:nth-child(4),
+#agents-table thead td:nth-child(5),
 #agents-table tbody td:nth-child(3),
 #agents-table tbody td:nth-child(4),
-#agents-table tbody td:nth-child(5) { width: 3.5rem; min-width: 3.5rem; max-width: 3.5rem; padding-left: 0.5rem; }
+#agents-table tbody td:nth-child(5) { width: 3.5rem; min-width: 3.5rem; max-width: 3.5rem; text-align: right; }
 
 #agents-table .agent-row {
   cursor: pointer;
