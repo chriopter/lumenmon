@@ -72,6 +72,8 @@ class AgentState:
         self._entities_json_time = 0
         # MQTT users cache
         self._mqtt_users = {}
+        # Display names cache {agent_id: display_name}
+        self.display_names = {}
         self._mqtt_users_time = 0
         # Agent tables cache {agent_id: (bytes, gzip_bytes, timestamp)}
         self._tables_cache = {}
@@ -173,6 +175,7 @@ class AgentState:
                 is_mail_only = agent_id in self.mail_only_agents and not agent_data
 
                 # Build entity
+                display_name = self.display_names.get(agent_id)
                 entity = {
                     'id': agent_id,
                     'type': 'agent',
@@ -180,6 +183,7 @@ class AgentState:
                     'has_mqtt_user': agent_id in mqtt_users,
                     'has_table': bool(agent_data),
                     'is_mail_only': is_mail_only,
+                    'display_name': display_name,
                 }
 
                 if is_mail_only:
@@ -234,11 +238,13 @@ class AgentState:
                     mem_hist = list(agent_history.get('generic_memory', []))
                     disk_hist = list(agent_history.get('generic_disk', []))
 
+                    original_hostname = hostname_data.get('value', '')
                     entity.update({
                         'cpu': cpu_data.get('value', 0),
                         'memory': mem_data.get('value', 0),
                         'disk': disk_data.get('value', 0),
-                        'hostname': hostname_data.get('value', ''),
+                        'hostname': display_name or original_hostname,
+                        'original_hostname': original_hostname,
                         'status': status,
                         'failed_collectors': failed,
                         'total_collectors': total,
@@ -386,6 +392,16 @@ class AgentState:
             tables.sort(key=lambda t: t['metric_name'].lower())
             return tables
 
+    def update_display_name(self, agent_id, display_name):
+        """Update display name in RAM cache and invalidate JSON cache."""
+        with self.lock:
+            if display_name:
+                self.display_names[agent_id] = display_name
+            elif agent_id in self.display_names:
+                del self.display_names[agent_id]
+            # Invalidate JSON cache so it gets rebuilt
+            self._entities_json_time = 0
+
     def get_stats(self):
         """Get server statistics."""
         with self.lock:
@@ -489,7 +505,15 @@ class AgentState:
             except Exception:
                 pass  # messages table might not exist
 
-            print(f"[unified] Loaded {len(self.agents)} agents, {len(self.mail_only_agents)} mail senders from SQLite", flush=True)
+            # Load display names
+            try:
+                cursor.execute("SELECT agent_id, display_name FROM host_settings WHERE display_name IS NOT NULL")
+                for agent_id, display_name in cursor.fetchall():
+                    self.display_names[agent_id] = display_name
+            except Exception:
+                pass  # host_settings table might not exist
+
+            print(f"[unified] Loaded {len(self.agents)} agents, {len(self.mail_only_agents)} mail senders, {len(self.display_names)} display names from SQLite", flush=True)
         except Exception as e:
             print(f"[unified] Error loading from SQLite: {e}", flush=True)
 
@@ -691,6 +715,28 @@ def get_stats():
     stats['uptime'] = int(time.time() - START_TIME)
     stats['agents'] = len(STATE.agents)
     return jsonify(stats)
+
+@app.route('/api/agents/<agent_id>/name', methods=['PUT', 'POST'])
+def update_agent_name(agent_id):
+    """Update the display name for an agent."""
+    from db import set_host_display_name
+    data = request.get_json() or {}
+    display_name = data.get('name', '').strip()
+
+    # Update in database
+    if set_host_display_name(agent_id, display_name if display_name else None):
+        # Update RAM cache
+        STATE.update_display_name(agent_id, display_name if display_name else None)
+        return jsonify({
+            'success': True,
+            'agent_id': agent_id,
+            'display_name': display_name if display_name else None
+        })
+    else:
+        return jsonify({
+            'success': False,
+            'error': 'Failed to update display name'
+        }), 500
 
 # Import other blueprints for non-optimized endpoints
 sys.path.insert(0, '/app/web/app')
