@@ -47,7 +47,7 @@ LumenmonWidget({
                 <span class="tui-storage-name">${name.replace(/_/g, '-')}</span>
                 <span class="tui-storage-bar ${colorClass}">${asciiBar(percent)}</span>
                 <span class="tui-storage-pct">${pctStr}%</span>
-                <span class="tui-storage-info">${used}/${total}GB</span>
+                <span class="tui-storage-info">${Math.round(used)}/${Math.round(total)}GB</span>
             </div>`;
         });
         html += '</div></div>';

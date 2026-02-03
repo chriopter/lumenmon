@@ -118,16 +118,18 @@ Widgets auto-load based on available metrics. Functions: openDetailView(), close
             // Build detail view with header and widget container
             panel.innerHTML = `
                 <div class="detail-header">
-                    <h2><span class="status-dot ${agent.status}"></span>${agent.hostname || agent.id}</h2>
-                    <div class="detail-header-right">
+                    <div class="detail-header-left">
+                        <h2><span class="status-dot ${agent.status}"></span>${agent.hostname || agent.id}</h2>
                         <button id="toggle-view-btn" class="view-toggle-btn" onclick="toggleDetailView()">all values</button>
+                    </div>
+                    <div class="detail-header-right">
                         <span class="detail-status">${agent.id}</span>
                         <span class="status-warnings" id="status-warnings"></span>
                     </div>
                 </div>
                 <div class="detail-content">
                     <div id="widgets-container"></div>
-                    <div id="metrics-section" class="metrics-section" style="display: none;">
+                    <div id="metrics-section" class="metrics-section hidden-section">
                         <div id="metrics-list" class="metrics-list">
                             <span class="loading-text">Loading metrics...</span>
                         </div>
@@ -180,17 +182,17 @@ Widgets auto-load based on available metrics. Functions: openDetailView(), close
 
         if (!widgetsContainer || !metricsSection || !toggleBtn) return;
 
-        const showingWidgets = widgetsContainer.style.display !== 'none';
+        const showingWidgets = !widgetsContainer.classList.contains('hidden-section');
 
         if (showingWidgets) {
             // Switch to all values view
-            widgetsContainer.style.display = 'none';
-            metricsSection.style.display = 'block';
+            widgetsContainer.classList.add('hidden-section');
+            metricsSection.classList.remove('hidden-section');
             toggleBtn.textContent = 'dashboard';
         } else {
             // Switch to dashboard view
-            widgetsContainer.style.display = 'block';
-            metricsSection.style.display = 'none';
+            widgetsContainer.classList.remove('hidden-section');
+            metricsSection.classList.add('hidden-section');
             toggleBtn.textContent = 'all values';
         }
     }
