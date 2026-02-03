@@ -24,11 +24,12 @@ while true; do
     read curr_line < /proc/stat
     curr_cpu=($curr_line)
 
-    # Calculate totals
-    prev_total=$((${prev_cpu[1]} + ${prev_cpu[2]} + ${prev_cpu[3]} + ${prev_cpu[4]} + ${prev_cpu[5]:-0} + ${prev_cpu[6]:-0} + ${prev_cpu[7]:-0}))
-    curr_total=$((${curr_cpu[1]} + ${curr_cpu[2]} + ${curr_cpu[3]} + ${curr_cpu[4]} + ${curr_cpu[5]:-0} + ${curr_cpu[6]:-0} + ${curr_cpu[7]:-0}))
-    prev_idle=${prev_cpu[4]}
-    curr_idle=${curr_cpu[4]}
+    # Calculate totals (user + nice + system + idle + iowait + irq + softirq + steal)
+    prev_total=$((${prev_cpu[1]} + ${prev_cpu[2]} + ${prev_cpu[3]} + ${prev_cpu[4]} + ${prev_cpu[5]:-0} + ${prev_cpu[6]:-0} + ${prev_cpu[7]:-0} + ${prev_cpu[8]:-0}))
+    curr_total=$((${curr_cpu[1]} + ${curr_cpu[2]} + ${curr_cpu[3]} + ${curr_cpu[4]} + ${curr_cpu[5]:-0} + ${curr_cpu[6]:-0} + ${curr_cpu[7]:-0} + ${curr_cpu[8]:-0}))
+    # Idle = idle + iowait (CPU not doing work during I/O wait)
+    prev_idle=$((${prev_cpu[4]} + ${prev_cpu[5]:-0}))
+    curr_idle=$((${curr_cpu[4]} + ${curr_cpu[5]:-0}))
 
     # Calculate usage percentage
     total_d=$((curr_total - prev_total))

@@ -127,7 +127,7 @@ Widgets auto-load based on available metrics. Functions: openDetailView(), close
                 <div class="detail-content">
                     <div id="widgets-container"></div>
                     <div id="metrics-section" class="metrics-section">
-                        <h3>All Values</h3>
+                        <h3 id="metrics-header">All Values</h3>
                         <div id="metrics-list" class="metrics-list">
                             <span class="loading-text">Loading metrics...</span>
                         </div>
@@ -388,9 +388,19 @@ Widgets auto-load based on available metrics. Functions: openDetailView(), close
 
             let html = '';
 
+            // Update header with issues count
+            const metricsHeader = document.getElementById('metrics-header');
+            if (metricsHeader) {
+                if (problemMetrics.length > 0) {
+                    metricsHeader.innerHTML = `All Values <span class="issues-badge">⚠ ${problemMetrics.length}</span>`;
+                } else {
+                    metricsHeader.textContent = 'All Values';
+                }
+            }
+
             // Problem metrics (always visible)
             if (problemMetrics.length > 0) {
-                html += `<div class="metrics-problems"><h4>⚠ Issues (${problemMetrics.length})</h4>`;
+                html += `<div class="metrics-problems">`;
                 html += `<table id="metrics-table-problems">${tableHeader}<tbody>`;
                 problemMetrics.forEach(m => html += buildRow(m));
                 html += '</tbody></table></div>';
@@ -405,11 +415,6 @@ Widgets auto-load based on available metrics. Functions: openDetailView(), close
                 html += `<table id="metrics-table-ok">${tableHeader}<tbody>`;
                 okMetrics.forEach(m => html += buildRow(m));
                 html += '</tbody></table></div></div>';
-            }
-
-            // All OK message
-            if (problemMetrics.length === 0 && okMetrics.length > 0) {
-                html = `<div class="all-ok-message">✓ All ${okMetrics.length} metrics OK</div>` + html;
             }
 
             const updateTable = () => {

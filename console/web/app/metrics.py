@@ -124,8 +124,9 @@ def get_history_from_db(agent_id, metric_name, max_points=100):
 
     return history
 
-def get_latest_value(agent_id, metric_name):
-    """Get the most recent value, timestamp, and interval for a metric."""
+def get_latest_value(agent_id, metric_name, value_type=None):
+    """Get the most recent value, timestamp, and interval for a metric.
+    value_type: 'text' to return raw value without float conversion."""
     table_name = f"{agent_id}_{metric_name}"
 
     try:
@@ -146,11 +147,14 @@ def get_latest_value(agent_id, metric_name):
         conn.close()
 
         if row:
-            # Try to convert to float
-            try:
-                value = round(float(row[1]), 1)
-            except (ValueError, TypeError):
+            # Return raw value for text type, otherwise try float conversion
+            if value_type == 'text':
                 value = row[1]
+            else:
+                try:
+                    value = round(float(row[1]), 1)
+                except (ValueError, TypeError):
+                    value = row[1]
 
             interval = row[2] if row[2] is not None else 60  # Default 60s, preserve 0 for one-time
             return row[0], value, interval
@@ -245,6 +249,10 @@ def get_agent_metrics(agent_id):
         metrics['minInterval'] = min(metrics['minInterval'], interval)
     else:
         metrics['heartbeat'] = 0
+
+    # Read Agent Version
+    timestamp, value, interval = get_latest_value(agent_id, 'generic_agent_version', value_type='text')
+    metrics['agent_version'] = value if value else ''
 
     # Calculate age and status based on data freshness
     current_time = int(time.time())

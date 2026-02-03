@@ -540,9 +540,10 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-#agents-table tbody td:nth-child(2) { width: 7rem; min-width: 7rem; max-width: 7rem; padding-left: 1rem; }
+#agents-table tbody td:nth-child(2) { width: 5rem; min-width: 5rem; max-width: 5rem; }
 #agents-table tbody td:nth-child(3),
-#agents-table tbody td:nth-child(4) { width: 3.5rem; min-width: 3.5rem; max-width: 3.5rem; padding-left: 1rem; }
+#agents-table tbody td:nth-child(4),
+#agents-table tbody td:nth-child(5) { width: 3.5rem; min-width: 3.5rem; max-width: 3.5rem; padding-left: 0.5rem; }
 
 #agents-table .agent-row {
   cursor: pointer;
@@ -648,6 +649,10 @@ body {
   text-transform: uppercase;
   color: var(--foreground2);
   background: var(--background0);
+}
+.issues-badge {
+  color: var(--yellow);
+  margin-left: 0.5rem;
 }
 .metrics-problems { margin-bottom: 1rem; }
 .metrics-problems h4,
@@ -1132,10 +1137,10 @@ footer {
    ============================================================ */
 
 @media (max-width: 1200px) {
-  #agents-table thead td:nth-child(3),
   #agents-table thead td:nth-child(4),
-  #agents-table tbody td:nth-child(3),
-  #agents-table tbody td:nth-child(4) { display: none; }
+  #agents-table thead td:nth-child(5),
+  #agents-table tbody td:nth-child(4),
+  #agents-table tbody td:nth-child(5) { display: none; }
 }
 
 @media (max-width: 1000px) {

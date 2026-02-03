@@ -7,6 +7,7 @@ Fetches server-rendered rows every 1s. Provides row selection, navigation functi
         <thead>
             <tr>
                 <td>hostname</td>
+                <td></td>
                 <td>cpu</td>
                 <td>mem</td>
                 <td>disk</td>
@@ -14,7 +15,7 @@ Fetches server-rendered rows every 1s. Provides row selection, navigation functi
         </thead>
         <tbody id="agents-tbody">
             <tr>
-                <td colspan="4" class="no-data">loading...</td>
+                <td colspan="5" class="no-data">loading...</td>
             </tr>
         </tbody>
     </table>
@@ -75,11 +76,19 @@ Fetches server-rendered rows every 1s. Provides row selection, navigation functi
                         const statusDot = entity.valid ? 'online' : 'offline';
                         html += `<tr class="agent-row entity-invite ${selected} ${validClass}" data-index="${index}" data-entity-id="${entity.id}" data-entity-type="invite" data-valid="${entity.valid}">`;
                         html += `<td><span class="status-dot ${statusDot}" title="${entity.valid ? 'active invite' : 'invalid'}"></span>${entity.id} ◷</td>`;
-                        html += `<td colspan="3"></td>`;
+                        html += `<td colspan="4"></td>`;
                         html += `</tr>`;
                     } else {
                         // Render agent row
-                        const statusDot = entity.status || 'offline';
+                        // Status: use backend status, but also check failed_collectors and outdated version
+                        let statusDot = entity.status || 'offline';
+                        const latestVersion = window.app?.data?.latestVersion;
+                        const agentVersion = entity.agent_version || '';
+                        const isOutdated = latestVersion && agentVersion &&
+                            agentVersion !== latestVersion && !agentVersion.startsWith(latestVersion);
+                        if (statusDot === 'online' && (entity.failed_collectors > 0 || isOutdated)) {
+                            statusDot = 'degraded';
+                        }
                         const hostname = entity.hostname || entity.id;
                         const cpu = entity.cpu || 0;
                         const memory = entity.memory || 0;
@@ -97,7 +106,8 @@ Fetches server-rendered rows every 1s. Provides row selection, navigation functi
                         const unreadBadge = agentUnread > 0 ? `<span class="unread-badge-inline" title="${agentUnread} unread">\u2709${agentUnread}</span>` : '';
 
                         html += `<td title="ID: ${entity.id}"><span class="status-dot ${statusDot}" title="${statusDot}"></span>${hostname}${pendingSymbol}${unreadBadge}</td>`;
-                        html += `<td>${cpu.toFixed(0)}%<span class="sparkline">${cpuSparkline}</span></td>`;
+                        html += `<td><span class="sparkline">${cpuSparkline}</span></td>`;
+                        html += `<td>${cpu.toFixed(0)}%</td>`;
                         html += `<td>${memory.toFixed(0)}%</td>`;
                         html += `<td>${disk.toFixed(0)}%</td>`;
                         html += `</tr>`;
@@ -114,7 +124,7 @@ Fetches server-rendered rows every 1s. Provides row selection, navigation functi
                     tbody.innerHTML = html;
                 }
             } else {
-                const noDataHtml = `<tr><td colspan="4" class="no-data">no agents connected</td></tr>`;
+                const noDataHtml = `<tr><td colspan="5" class="no-data">no agents connected</td></tr>`;
                 if (window.globalClock.pendingDomUpdates) {
                     window.globalClock.pendingDomUpdates.push(() => {
                         tbody.innerHTML = noDataHtml;
@@ -176,7 +186,7 @@ Fetches server-rendered rows every 1s. Provides row selection, navigation functi
         } catch (error) {
             console.error('Error:', error);
             const tbody = document.getElementById('agents-tbody');
-            tbody.innerHTML = `<tr><td colspan="4" class="no-data">error: ${error.message}</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="5" class="no-data">error: ${error.message}</td></tr>`;
             addLog(`error fetching entities: ${error.message}`, 'error');
         }
     }
