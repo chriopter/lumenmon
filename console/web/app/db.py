@@ -43,15 +43,25 @@ def table_exists(conn, table_name):
     return cursor.fetchone() is not None
 
 def init_host_settings_table():
-    """Create host_settings table if not exists."""
+    """Create host_settings table if not exists, with group support."""
     conn = get_db_connection()
     conn.execute('''
         CREATE TABLE IF NOT EXISTS host_settings (
             agent_id TEXT PRIMARY KEY,
             display_name TEXT,
+            group_name TEXT,
+            group_order INTEGER DEFAULT 0,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
+    # Add group columns if they don't exist (for upgrades)
+    cursor = conn.cursor()
+    cursor.execute("PRAGMA table_info(host_settings)")
+    columns = [row[1] for row in cursor.fetchall()]
+    if 'group_name' not in columns:
+        conn.execute('ALTER TABLE host_settings ADD COLUMN group_name TEXT')
+    if 'group_order' not in columns:
+        conn.execute('ALTER TABLE host_settings ADD COLUMN group_order INTEGER DEFAULT 0')
     conn.commit()
     conn.close()
 
@@ -94,6 +104,38 @@ def get_all_host_display_names():
         cursor = conn.cursor()
         cursor.execute("SELECT agent_id, display_name FROM host_settings WHERE display_name IS NOT NULL")
         result = {row['agent_id']: row['display_name'] for row in cursor.fetchall()}
+        conn.close()
+        return result
+    except Exception:
+        return {}
+
+def set_host_group(agent_id, group_name):
+    """Set the group for an agent. Pass None or empty string to remove from group."""
+    try:
+        init_host_settings_table()
+        conn = get_db_connection()
+        conn.execute('''
+            INSERT INTO host_settings (agent_id, group_name, updated_at)
+            VALUES (?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(agent_id) DO UPDATE SET
+                group_name = excluded.group_name,
+                updated_at = CURRENT_TIMESTAMP
+        ''', (agent_id, group_name if group_name else None))
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"Error setting group: {e}")
+        return False
+
+def get_all_host_groups():
+    """Get all agent groups as a dict {agent_id: group_name}."""
+    try:
+        init_host_settings_table()
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT agent_id, group_name FROM host_settings WHERE group_name IS NOT NULL")
+        result = {row['agent_id']: row['group_name'] for row in cursor.fetchall()}
         conn.close()
         return result
     except Exception:

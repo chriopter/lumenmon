@@ -79,6 +79,8 @@ class AgentState:
         self._tables_cache = {}
         # Mail-only agents (agents that only send mail, no metrics)
         self.mail_only_agents = set()
+        # Agent groups {agent_id: group_name}
+        self.agent_groups = {}
 
     def update_metric(self, agent_id, metric_name, value, data_type, interval, min_val, max_val):
         """Update metric in RAM (called from MQTT thread)."""
@@ -164,18 +166,40 @@ class AgentState:
             # Collect all known agent IDs
             all_agent_ids = set(self.agents.keys()) | set(mqtt_users.keys())
 
-            # First pass: find global max for each metric across all hosts
-            all_cpu_vals = []
-            all_mem_vals = []
-            all_disk_vals = []
+            # First pass: find max values per group for each metric
+            # Group None = ungrouped agents
+            group_cpu_vals = {}  # {group_name: [values]}
+            group_mem_vals = {}
+            group_disk_vals = {}
+
             for agent_id in all_agent_ids:
                 if not agent_id.startswith('id_'):
                     continue
                 agent_history = self.history.get(agent_id, {})
-                all_cpu_vals.extend([h['value'] for h in agent_history.get('generic_cpu', [])])
-                all_mem_vals.extend([h['value'] for h in agent_history.get('generic_memory', [])])
-                all_disk_vals.extend([h['value'] for h in agent_history.get('generic_disk', [])])
+                group = self.agent_groups.get(agent_id)  # None for ungrouped
 
+                if group not in group_cpu_vals:
+                    group_cpu_vals[group] = []
+                    group_mem_vals[group] = []
+                    group_disk_vals[group] = []
+
+                group_cpu_vals[group].extend([h['value'] for h in agent_history.get('generic_cpu', [])])
+                group_mem_vals[group].extend([h['value'] for h in agent_history.get('generic_memory', [])])
+                group_disk_vals[group].extend([h['value'] for h in agent_history.get('generic_disk', [])])
+
+            # Calculate max per group (100 as fallback for percentage metrics)
+            group_maxes = {}
+            for group in set(list(group_cpu_vals.keys()) + list(group_mem_vals.keys()) + list(group_disk_vals.keys())):
+                group_maxes[group] = {
+                    'cpu': max(group_cpu_vals.get(group, [100])) if group_cpu_vals.get(group) else 100,
+                    'mem': max(group_mem_vals.get(group, [100])) if group_mem_vals.get(group) else 100,
+                    'disk': max(group_disk_vals.get(group, [100])) if group_disk_vals.get(group) else 100,
+                }
+
+            # Also keep global max as fallback
+            all_cpu_vals = [v for vals in group_cpu_vals.values() for v in vals]
+            all_mem_vals = [v for vals in group_mem_vals.values() for v in vals]
+            all_disk_vals = [v for vals in group_disk_vals.values() for v in vals]
             global_cpu_max = max(all_cpu_vals) if all_cpu_vals else 100
             global_mem_max = max(all_mem_vals) if all_mem_vals else 100
             global_disk_max = max(all_disk_vals) if all_disk_vals else 100
@@ -190,6 +214,9 @@ class AgentState:
                 # Check if mail-only agent
                 is_mail_only = agent_id in self.mail_only_agents and not agent_data
 
+                # Get group for this agent
+                agent_group = self.agent_groups.get(agent_id)
+
                 # Build entity
                 display_name = self.display_names.get(agent_id)
                 entity = {
@@ -200,6 +227,7 @@ class AgentState:
                     'has_table': bool(agent_data),
                     'is_mail_only': is_mail_only,
                     'display_name': display_name,
+                    'group': agent_group,
                 }
 
                 if is_mail_only:
@@ -254,6 +282,12 @@ class AgentState:
                     mem_hist = list(agent_history.get('generic_memory', []))
                     disk_hist = list(agent_history.get('generic_disk', []))
 
+                    # Use group-specific max values for sparklines
+                    grp_max = group_maxes.get(agent_group, {})
+                    sparkline_cpu_max = grp_max.get('cpu', global_cpu_max)
+                    sparkline_mem_max = grp_max.get('mem', global_mem_max)
+                    sparkline_disk_max = grp_max.get('disk', global_disk_max)
+
                     original_hostname = hostname_data.get('value', '')
                     entity.update({
                         'cpu': cpu_data.get('value', 0),
@@ -272,9 +306,9 @@ class AgentState:
                         'cpuHistory': cpu_hist,
                         'memHistory': mem_hist,
                         'diskHistory': disk_hist,
-                        'cpuSparkline': generate_tui_sparkline([h['value'] for h in cpu_hist], global_max=global_cpu_max),
-                        'memSparkline': generate_tui_sparkline([h['value'] for h in mem_hist], global_max=global_mem_max),
-                        'diskSparkline': generate_tui_sparkline([h['value'] for h in disk_hist], global_max=global_disk_max),
+                        'cpuSparkline': generate_tui_sparkline([h['value'] for h in cpu_hist], global_max=sparkline_cpu_max),
+                        'memSparkline': generate_tui_sparkline([h['value'] for h in mem_hist], global_max=sparkline_mem_max),
+                        'diskSparkline': generate_tui_sparkline([h['value'] for h in disk_hist], global_max=sparkline_disk_max),
                         'agent_version': str(version_data.get('value', ''))
                     })
 
@@ -291,9 +325,13 @@ class AgentState:
                         'pending_invite': get_invite(user_id)
                     })
 
-            # Sort: online first, then by hostname/id
+            # Sort: by group (ungrouped last), then by status, then by hostname/id
             entities.sort(key=lambda e: (
+                # Groups alphabetically, ungrouped (None) at the end
+                (e.get('group') or '\xff'),  # \xff sorts after all normal chars
+                # Then by status
                 0 if e.get('status') == 'online' else (1 if e.get('status') == 'degraded' else 2),
+                # Then by hostname
                 (e.get('hostname') or e['id']).lower()
             ))
 
@@ -418,6 +456,16 @@ class AgentState:
             # Invalidate JSON cache so it gets rebuilt
             self._entities_json_time = 0
 
+    def update_agent_group(self, agent_id, group_name):
+        """Update agent group in RAM cache and invalidate JSON cache."""
+        with self.lock:
+            if group_name:
+                self.agent_groups[agent_id] = group_name
+            elif agent_id in self.agent_groups:
+                del self.agent_groups[agent_id]
+            # Invalidate JSON cache so it gets rebuilt
+            self._entities_json_time = 0
+
     def get_stats(self):
         """Get server statistics."""
         with self.lock:
@@ -529,7 +577,15 @@ class AgentState:
             except Exception:
                 pass  # host_settings table might not exist
 
-            print(f"[unified] Loaded {len(self.agents)} agents, {len(self.mail_only_agents)} mail senders, {len(self.display_names)} display names from SQLite", flush=True)
+            # Load agent groups
+            try:
+                cursor.execute("SELECT agent_id, group_name FROM host_settings WHERE group_name IS NOT NULL")
+                for agent_id, group_name in cursor.fetchall():
+                    self.agent_groups[agent_id] = group_name
+            except Exception:
+                pass  # host_settings table might not exist or no group_name column
+
+            print(f"[unified] Loaded {len(self.agents)} agents, {len(self.mail_only_agents)} mail senders, {len(self.display_names)} display names, {len(self.agent_groups)} groups from SQLite", flush=True)
         except Exception as e:
             print(f"[unified] Error loading from SQLite: {e}", flush=True)
 
@@ -753,6 +809,41 @@ def update_agent_name(agent_id):
             'success': False,
             'error': 'Failed to update display name'
         }), 500
+
+@app.route('/api/agents/<agent_id>/group', methods=['PUT', 'POST'])
+def update_agent_group_api(agent_id):
+    """Update the group for an agent."""
+    from db import set_host_group
+    data = request.get_json() or {}
+    group_name = data.get('group', '').strip()
+
+    # Update in database
+    if set_host_group(agent_id, group_name if group_name else None):
+        # Update RAM cache
+        STATE.update_agent_group(agent_id, group_name if group_name else None)
+        return jsonify({
+            'success': True,
+            'agent_id': agent_id,
+            'group': group_name if group_name else None
+        })
+    else:
+        return jsonify({
+            'success': False,
+            'error': 'Failed to update group'
+        }), 500
+
+@app.route('/api/groups')
+def get_groups():
+    """Get all groups with their agents."""
+    groups = {}
+    for agent_id, group_name in STATE.agent_groups.items():
+        if group_name not in groups:
+            groups[group_name] = []
+        groups[group_name].append(agent_id)
+    return jsonify({
+        'groups': groups,
+        'count': len(groups)
+    })
 
 # Import other blueprints for non-optimized endpoints
 sys.path.insert(0, '/app/web/app')

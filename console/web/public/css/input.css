@@ -1313,3 +1313,77 @@ footer {
   opacity: 1;
   color: var(--blue);
 }
+
+/* ============================================================
+   10. AGENT GROUPS & DRAG/DROP
+   ============================================================ */
+
+/* Group header row */
+.group-header {
+  background: var(--background1);
+  cursor: default;
+}
+
+.group-header td {
+  padding: 0.35rem 0.5rem !important;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  color: var(--accent1);
+  font-weight: bold;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--surface1);
+}
+
+.group-header .group-name {
+  padding: 0.1rem 0.3rem;
+  border-radius: 2px;
+  outline: none;
+  cursor: text;
+  display: inline-block;
+  min-width: 4rem;
+}
+
+.group-header .group-name:hover {
+  background: var(--surface0);
+}
+
+.group-header .group-name:focus {
+  background: var(--surface0);
+  box-shadow: 0 0 0 1px var(--accent1);
+}
+
+.group-header.ungrouped-header td {
+  padding: 0.15rem 0.5rem !important;
+  border-bottom: none;
+}
+
+/* Drag & drop states */
+.agent-row[draggable="true"] {
+  cursor: grab;
+}
+
+.agent-row[draggable="true"]:active {
+  cursor: grabbing;
+}
+
+.agent-row.dragging {
+  opacity: 0.4;
+  background: var(--surface0) !important;
+}
+
+.group-header.drag-over {
+  background: var(--accent1) !important;
+}
+
+.group-header.drag-over td {
+  color: var(--background0) !important;
+}
+
+.group-header.drag-over .group-name {
+  background: transparent;
+}
+
+.agent-row.drag-over-row {
+  background: var(--surface1) !important;
+  box-shadow: inset 0 0 0 2px var(--accent1);
+}
