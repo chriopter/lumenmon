@@ -922,7 +922,7 @@ footer {
 .tui-zfs-row {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 1rem;
   padding: 0.15rem 0;
 }
 .tui-storage-name,
@@ -936,10 +936,18 @@ footer {
 }
 .tui-storage-bar,
 .tui-zfs-bar {
-  width: 12ch;
-  min-width: 12ch;
+  width: 10ch;
+  min-width: 10ch;
   font-family: monospace;
   letter-spacing: -0.05em;
+}
+.tui-storage-pct,
+.tui-zfs-capacity {
+  width: 4ch;
+  min-width: 4ch;
+  text-align: right;
+  color: var(--foreground1);
+  font-size: 0.7rem;
 }
 .tui-storage-info {
   flex: 1;
@@ -952,12 +960,6 @@ footer {
   width: 12ch;
   min-width: 12ch;
   font-size: 0.7rem;
-}
-.tui-zfs-capacity {
-  width: 4ch;
-  min-width: 4ch;
-  text-align: right;
-  color: var(--foreground1);
 }
 
 /* ============================================================

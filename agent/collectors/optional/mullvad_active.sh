@@ -7,9 +7,9 @@ METRIC="mullvad_active"
 
 source "$LUMENMON_HOME/core/mqtt/publish.sh"
 
-# Load config for mullvad_required setting
+# Load config for required setting (mullvad_active_required)
 CONFIG="$LUMENMON_DATA/config"
-mullvad_required=0
+mullvad_active_required=0
 [[ -f "$CONFIG" ]] && source "$CONFIG"
 
 while true; do
@@ -27,7 +27,7 @@ while true; do
     fi
 
     # If required, set bounds so 0 = failure
-    if [[ "${mullvad_required:-0}" == "1" ]]; then
+    if [[ "${mullvad_active_required:-0}" == "1" ]]; then
         publish_metric "$METRIC" "$connected" "INTEGER" "$CYCLE" 1 1
     else
         publish_metric "$METRIC" "$connected" "INTEGER" "$CYCLE"

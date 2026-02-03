@@ -28,11 +28,11 @@ LumenmonWidget({
             return '<div class="tui-box"><h3>storage pools</h3><span class="no-data">No storage data</span></div>';
         }
 
-        // ASCII bar helper
-        const asciiBar = (percent, width = 12) => {
+        // ASCII bar helper (empty first, filled on right)
+        const asciiBar = (percent, width = 10) => {
             const filled = Math.round((percent / 100) * width);
             const empty = width - filled;
-            return '█'.repeat(filled) + '░'.repeat(empty);
+            return '░'.repeat(empty) + '█'.repeat(filled);
         };
 
         let html = '<div class="tui-box"><h3>storage pools</h3><div class="tui-storage-list">';
@@ -41,11 +41,13 @@ LumenmonWidget({
             const used = p.used || 0;
             const percent = total > 0 ? (used / total) * 100 : 0;
             const colorClass = percent > 90 ? 'tui-bar-critical' : percent > 70 ? 'tui-bar-warning' : 'tui-bar-ok';
+            const pctStr = Math.round(percent).toString().padStart(3, ' ');
 
             html += `<div class="tui-storage-row">
                 <span class="tui-storage-name">${name.replace(/_/g, '-')}</span>
                 <span class="tui-storage-bar ${colorClass}">${asciiBar(percent)}</span>
-                <span class="tui-storage-info">${used} / ${total} GB</span>
+                <span class="tui-storage-pct">${pctStr}%</span>
+                <span class="tui-storage-info">${used}/${total}GB</span>
             </div>`;
         });
         html += '</div></div>';

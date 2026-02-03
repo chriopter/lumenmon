@@ -29,11 +29,11 @@ LumenmonWidget({
             return '<div class="tui-box"><h3>zfs pools</h3><span class="no-data">No ZFS data</span></div>';
         }
 
-        // ASCII bar helper
+        // ASCII bar helper (empty first, filled on right)
         const asciiBar = (percent, width = 10) => {
             const filled = Math.round((percent / 100) * width);
             const empty = width - filled;
-            return '█'.repeat(filled) + '░'.repeat(empty);
+            return '░'.repeat(empty) + '█'.repeat(filled);
         };
 
         let html = '<div class="tui-box"><h3>zfs pools</h3><div class="tui-zfs-list">';
