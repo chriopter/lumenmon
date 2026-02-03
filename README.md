@@ -135,9 +135,36 @@ Emails are stored per-agent and displayed in the web dashboard. Only emails from
 </details>
 
 <details>
-<summary>Data Retention</summary>
+<summary>Data</summary>
 
-Metrics older than 24h are auto-deleted every 5 minutes. The most recent value per metric is always preserved so offline agents keep showing their last known status.
+All data stored in SQLite at `/data/metrics.db` (inside container).
+
+**Retention:** Metrics older than 24h auto-deleted every 5 minutes. Most recent value per metric always preserved so offline agents keep their last known status.
+
+**Metrics Table** (one per agent+metric, e.g. `id_abc123_generic_cpu`):
+
+| Column | Type | Description |
+|--------|------|-------------|
+| timestamp | INTEGER | Unix timestamp (primary key) |
+| value_real | REAL | Decimal values (CPU %, memory %) |
+| value_int | INTEGER | Whole numbers |
+| value_text | TEXT | Strings (hostname, version) |
+| interval | INTEGER | Expected update interval (seconds) |
+| min_value | REAL | Minimum valid value (optional) |
+| max_value | REAL | Maximum valid value (optional) |
+
+**Messages Table** (`messages`):
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | INTEGER | Auto-increment primary key |
+| agent_id | TEXT | Agent that received the email |
+| mail_from | TEXT | Sender address |
+| mail_to | TEXT | Recipient address |
+| subject | TEXT | Email subject |
+| body | TEXT | Email body |
+| received_at | TIMESTAMP | When received |
+| read | INTEGER | 0=unread, 1=read |
 
 </details>
 
