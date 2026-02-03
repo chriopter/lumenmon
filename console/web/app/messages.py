@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-Messages API blueprint for SMTP-received messages.
-Provides endpoints to list, read, and manage messages per agent.
+Messages blueprint - imported by unified_server.py.
+Provides /api/messages endpoints for SMTP-received mail.
+NOTE: Uses SQLite directly (not RAM) since messages are infrequent.
 """
 
 from flask import Blueprint, jsonify, request

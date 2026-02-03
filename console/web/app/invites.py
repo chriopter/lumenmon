@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-# Reads active invite information and provides invite creation endpoints.
-# Mirrors tui/readers/invites.sh functionality for web interface.
+# Invite management blueprint - imported by unified_server.py.
+# Provides /api/invites endpoints for creating agent invites.
 
 from flask import Blueprint, jsonify
 import subprocess

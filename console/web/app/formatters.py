@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-# Formatting utilities for TUI-style sparklines and human-readable timestamps.
-# Used by metrics module to format data for HTML templates.
+# Formatting utilities - imported by unified_server.py.
+# Provides sparkline generation and age formatting for dashboard display.
 
 def generate_tui_sparkline(values, max_chars=8, global_max=None):
     """Generate TUI-style sparkline using Unicode block characters.

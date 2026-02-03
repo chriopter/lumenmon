@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-# Agent management API endpoints.
-# Provides deletion endpoint for removing agents completely (tables, MQTT credentials).
+# Agent management blueprint - imported by unified_server.py.
+# Provides /api/agents/.../delete, display name, and MQTT credential management.
 
 from flask import Blueprint, jsonify
 import subprocess

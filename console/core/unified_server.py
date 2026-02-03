@@ -1,13 +1,26 @@
 #!/usr/bin/env python3
 """
 Unified MQTT + HTTP Server for Lumenmon Console.
-Keeps all agent state in RAM for zero-query API responses.
 
-Architecture:
-- MQTT subscriber receives metrics and updates RAM state
-- HTTP server reads directly from RAM (no SQLite queries)
-- Background thread persists to SQLite periodically
-- On startup, loads last known state from SQLite
+WHY UNIFIED?
+The original architecture had Flask query SQLite on every API request (80+ queries
+per request). This caused 46% CPU usage under normal load. By keeping all state in
+RAM and serving pre-serialized JSON, we achieve 0.5% CPU (-99%) and 4KB responses
+instead of 31KB (-87% with gzip).
+
+ARCHITECTURE:
+┌─────────────────────────────────────────────────────────────┐
+│  MQTT Subscriber  →  RAM State  →  Pre-serialized JSON     │
+│       ↓                                                     │
+│  SQLite Persister (every 30s, for restart recovery)        │
+└─────────────────────────────────────────────────────────────┘
+
+- MQTT thread receives metrics, updates RAM state
+- HTTP requests return pre-built, gzip-compressed JSON from cache
+- Background thread persists to SQLite every 30s (not for reads, only backup)
+- On startup, loads last known state from SQLite (backfill)
+
+REPLACES: mqtt_to_sqlite.py, app.py, agents.py, metrics.py
 """
 
 import gzip

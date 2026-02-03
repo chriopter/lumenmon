@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-# Database connection and utility functions.
-# Provides SQLite connection management and table existence checking.
+# Database helpers for Flask blueprints (messages.py, management.py).
+# NOTE: Main API endpoints (/api/entities, /api/agents) use unified_server.py
+# which keeps state in RAM. This module is only used by secondary blueprints.
 
 import sqlite3
 import time

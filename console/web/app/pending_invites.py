@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-# Manages pending invite storage (in-memory only).
-# Invites are shown once in WebUI and cleared when agent sends first data.
+# Pending invite storage - imported by unified_server.py and invites.py.
+# Keeps invites in RAM until agent connects (cleared on first MQTT message).
 
 # In-memory storage - lost on container restart (intentional security feature)
 _pending_invites = {}
