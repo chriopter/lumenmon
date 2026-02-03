@@ -52,8 +52,8 @@ case "${1:-}" in
         # Stop service
         $SUDO systemctl stop lumenmon-agent 2>/dev/null || true
 
-        # Fetch with tags
-        if ! $SUDO git -C "$GIT_ROOT" fetch origin --tags; then
+        # Fetch with tags (--force overwrites conflicting local tags)
+        if ! $SUDO git -C "$GIT_ROOT" fetch origin --tags --force; then
             $SUDO systemctl start lumenmon-agent
             echo "Fetch failed, service restarted"
             exit 1
