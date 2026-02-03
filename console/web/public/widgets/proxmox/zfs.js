@@ -2,67 +2,6 @@
  * Proxmox ZFS Widget - Shows ZFS pool health, drive counts, and capacity
  */
 
-// Sparkline overview of all ZFS pools
-LumenmonWidget({
-    name: 'zfs_sparkline',
-    title: 'ZFS',
-    category: 'proxmox',
-    metrics: ['proxmox_zfs_*'],
-    size: 'stat',
-    gridSize: 'xs',
-    expandable: false,
-    render: function(data, agent) {
-        // Group metrics by pool name
-        const pools = {};
-        Object.entries(data).forEach(([name, table]) => {
-            const match = name.match(/^proxmox_zfs_(.+)_(drives|online|capacity)$/);
-            if (match) {
-                const poolName = match[1];
-                const metric = match[2];
-                if (!pools[poolName]) pools[poolName] = {};
-                pools[poolName][metric] = table.columns?.value || 0;
-            }
-        });
-
-        const poolList = Object.entries(pools);
-        if (poolList.length === 0) {
-            return `
-                <div class="tui-metric-box">
-                    <div class="tui-metric-header">zfs</div>
-                    <div class="tui-metric-value">-</div>
-                </div>
-            `;
-        }
-
-        // Count total drives and online drives
-        let totalDrives = 0;
-        let onlineDrives = 0;
-        let degradedPools = [];
-
-        poolList.forEach(([name, p]) => {
-            totalDrives += p.drives || 0;
-            onlineDrives += p.online || 0;
-            if ((p.drives || 0) !== (p.online || 0)) {
-                degradedPools.push(name.replace(/_/g, '-'));
-            }
-        });
-
-        const healthy = totalDrives === onlineDrives;
-        const healthClass = healthy ? 'tui-health-ok' : 'tui-health-degraded';
-        const healthIcon = healthy ? '●' : '⚠';
-        const statusText = healthy ? 'healthy' : `${degradedPools.join(', ')} degraded`;
-
-        return `
-            <div class="tui-metric-box">
-                <div class="tui-metric-header">zfs</div>
-                <div class="tui-metric-value ${healthClass}">${healthIcon} ${onlineDrives}/${totalDrives}</div>
-                <div class="tui-metric-extra">${poolList.length} pools · ${statusText}</div>
-            </div>
-        `;
-    }
-});
-
-// Detailed TUI-style widget
 LumenmonWidget({
     name: 'proxmox_zfs',
     title: 'ZFS Pools',

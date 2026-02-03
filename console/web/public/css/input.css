@@ -5,81 +5,53 @@
 
 @import "tailwindcss";
 
-/* Catppuccin Mocha Theme Variables */
-@theme {
-  --color-rosewater: #f5e0dc;
-  --color-flamingo: #f2cdcd;
-  --color-pink: #f5c2e7;
-  --color-mauve: #cba6f7;
-  --color-red: #f38ba8;
-  --color-maroon: #eba0ac;
-  --color-peach: #fab387;
-  --color-yellow: #f9e2af;
-  --color-green: #a6e3a1;
-  --color-teal: #94e2d5;
-  --color-sky: #89dceb;
-  --color-sapphire: #74c7ec;
-  --color-blue: #89b4fa;
-  --color-lavender: #b4befe;
-  --color-text: #cdd6f4;
-  --color-subtext1: #bac2de;
-  --color-subtext0: #a6adc8;
-  --color-overlay2: #9399b2;
-  --color-overlay1: #7f849c;
-  --color-overlay0: #6c7086;
-  --color-surface2: #585b70;
-  --color-surface1: #45475a;
-  --color-surface0: #313244;
-  --color-base: #1e1e2e;
-  --color-mantle: #181825;
-  --color-crust: #11111b;
+/* Catppuccin Mocha - define on :root for global access */
+:root {
+  --rosewater: #f5e0dc;
+  --flamingo: #f2cdcd;
+  --pink: #f5c2e7;
+  --mauve: #cba6f7;
+  --red: #f38ba8;
+  --maroon: #eba0ac;
+  --peach: #fab387;
+  --yellow: #f9e2af;
+  --green: #a6e3a1;
+  --teal: #94e2d5;
+  --sky: #89dceb;
+  --sapphire: #74c7ec;
+  --blue: #89b4fa;
+  --lavender: #b4befe;
+  --text: #cdd6f4;
+  --subtext1: #bac2de;
+  --subtext0: #a6adc8;
+  --overlay2: #9399b2;
+  --overlay1: #7f849c;
+  --overlay0: #6c7086;
+  --surface2: #585b70;
+  --surface1: #45475a;
+  --surface0: #313244;
+  --base: #1e1e2e;
+  --mantle: #181825;
+  --crust: #11111b;
+
+  /* Semantic colors */
+  --background0: #1e1e2e;
+  --background1: #313244;
+  --background2: #45475a;
+  --background3: #585b70;
+  --foreground0: #cdd6f4;
+  --foreground1: #bac2de;
+  --foreground2: #9399b2;
+
+  /* Accent colors */
+  --accent1: #b4befe;  /* lavender - blue-purple */
+  --accent2: #89b4fa;  /* blue */
+  --accent3: #a6e3a1;  /* green */
+  --accent4: #f38ba8;  /* red */
+  --accent5: #94e2d5;  /* teal */
 }
 
 @layer base {
-  [data-webtui-theme="catppuccin"],
-  [data-webtui-theme="catppuccin-mocha"] {
-    --rosewater: #f5e0dc;
-    --flamingo: #f2cdcd;
-    --pink: #f5c2e7;
-    --mauve: #cba6f7;
-    --red: #f38ba8;
-    --maroon: #eba0ac;
-    --peach: #fab387;
-    --yellow: #f9e2af;
-    --green: #a6e3a1;
-    --teal: #94e2d5;
-    --sky: #89dceb;
-    --sapphire: #74c7ec;
-    --blue: #89b4fa;
-    --lavender: #b4befe;
-    --text: #cdd6f4;
-    --subtext1: #bac2de;
-    --subtext0: #a6adc8;
-    --overlay2: #9399b2;
-    --overlay1: #7f849c;
-    --overlay0: #6c7086;
-    --surface2: #585b70;
-    --surface1: #45475a;
-    --surface0: #313244;
-    --base: #1e1e2e;
-    --mantle: #181825;
-    --crust: #11111b;
-
-    --background0: var(--base);
-    --background1: var(--surface0);
-    --background2: var(--surface1);
-    --background3: var(--surface2);
-    --foreground0: var(--text);
-    --foreground1: var(--subtext1);
-    --foreground2: var(--overlay2);
-
-    --accent1: var(--mauve);
-    --accent2: var(--blue);
-    --accent3: var(--green);
-    --accent4: var(--red);
-    --accent5: var(--teal);
-  }
-
   body, html {
     background-color: var(--background0);
     color: var(--foreground0);
@@ -251,7 +223,7 @@ body {
 /* --- Log Box --- */
 .log-box {
   padding: 0.5rem;
-  border: 1px solid #cba6f7;
+  border: 1px solid var(--accent1);
   border-radius: 6px;
   background: var(--background1);
   height: 180px;
@@ -356,12 +328,22 @@ body {
 .messages-box.focused { border-color: var(--mauve); }
 .agents-section.focused { border-color: var(--mauve); }
 
-.widget-messages { min-height: 80px; }
+.widget-messages {
+  display: flex;
+  flex-direction: column;
+}
+.widget-messages .widget-messages-list {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
 .widget-messages-empty {
   color: var(--subtext0);
   font-size: 0.75rem;
-  padding: 0.5rem;
-  text-align: center;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .widget-messages-list { font-size: 0.7rem; }
 .widget-msg-row {
@@ -778,11 +760,13 @@ footer {
   display: flex;
   width: 100%;
   min-width: 0;
+  min-height: 120px;
 }
 .widget > .tui-metric-box,
 .widget > .tui-box {
   flex: 1 1 100% !important;
   width: 100% !important;
+  height: 100%;
 }
 
 /* ============================================================
@@ -856,46 +840,34 @@ footer {
   white-space: nowrap;
 }
 
-.tui-expand-hint {
-  position: absolute;
-  bottom: 0.25rem;
-  right: 0.5rem;
-  font-size: 0.6rem;
-  color: var(--foreground2);
-  opacity: 0;
-  transition: opacity 0.15s;
-}
-.tui-metric-box:hover .tui-expand-hint,
-.tui-metric-box:focus .tui-expand-hint { opacity: 1; }
-
-/* Expanded Widget */
-.widget-expanded { grid-column: span 2 !important; min-height: 200px; }
-.widget-expanded .tui-metric-box { display: flex; flex-direction: column; }
-.widget-expanded .widget-chart-container { flex: 1; min-height: 150px; margin-top: 0.5rem; }
-.widget-expanded .widget-chart-container canvas { width: 100% !important; height: 100% !important; }
-
-.tui-collapse-btn {
-  position: absolute;
-  top: 0.25rem;
-  right: 0.5rem;
-  font-size: 0.7rem;
-  color: var(--foreground2);
-  cursor: pointer;
-  padding: 0.1rem 0.3rem;
-  border-radius: 2px;
-}
-.tui-collapse-btn:hover { color: var(--accent1); background: var(--background1); }
-
-.widget-expanded-stats {
+/* Inline Chart Widget */
+.tui-chart-widget {
   display: flex;
-  gap: 1.5rem;
-  font-size: 0.75rem;
-  color: var(--foreground2);
-  margin-bottom: 0.5rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid var(--foreground2);
+  flex-direction: column;
+  padding: 0.5rem 0.75rem;
 }
-.widget-expanded-stats strong { color: var(--accent1); }
+.tui-chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 0.25rem;
+}
+.tui-chart-header .tui-metric-header {
+  margin-bottom: 0;
+}
+.tui-chart-header .tui-metric-value {
+  font-size: 1.1rem;
+  margin-bottom: 0;
+}
+.tui-chart-container {
+  flex: 1;
+  min-height: 50px;
+  max-height: 60px;
+}
+.tui-chart-container canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
 
 /* Info/Stat Rows */
 .tui-info-row {
@@ -1090,7 +1062,6 @@ footer {
   .grid-sm { grid-column: span 1; }
   .grid-md { grid-column: span 2; }
   .grid-lg { grid-column: span 2; }
-  .widget-expanded { grid-column: span 2 !important; }
 }
 
 @media (max-width: 900px) {
@@ -1101,7 +1072,6 @@ footer {
 @media (max-width: 600px) {
   .widget-grid { grid-template-columns: 1fr; }
   .grid-xs, .grid-sm, .grid-md, .grid-lg { grid-column: span 1; }
-  .widget-expanded { grid-column: span 1 !important; }
 }
 
 @media (max-width: 500px) {

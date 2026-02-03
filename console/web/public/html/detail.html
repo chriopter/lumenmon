@@ -367,7 +367,7 @@ Widgets auto-load based on available metrics. Functions: openDetailView(), close
                 html += `<td class="${isOverdue ? 'overdue-text' : ''}">${nextUpdateText}</td>`;
                 html += `<td>${metadata.data_span || '-'}</td>`;
                 html += `<td>${metadata.line_count || '-'}</td>`;
-                html += `<td class="metric-delete" data-agent="${agent.id}" data-metric="${metricName}" title="Delete metric">×</td>`;
+                html += `<td class="metric-delete" data-agent="${agentId}" data-metric="${metricName}" title="Delete metric">×</td>`;
                 html += `</tr>`;
             });
 

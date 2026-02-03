@@ -1,55 +1,78 @@
 /**
- * Memory Widget - Shows current memory usage with bar, expandable to full chart
+ * Memory Widget - Shows current memory usage with inline chart
  */
 
 LumenmonWidget({
-    name: 'memory_bar',
+    name: 'memory_chart',
     title: 'Memory',
     category: 'generic',
     metrics: ['generic_memory'],
-    size: 'sparkline',
+    size: 'chart',
+    gridSize: 'sm',
     priority: 11,
-    expandable: true,
+    expandable: false,
     render: function(data, agent) {
-        // Use current value from entities API or tables API
         const current = agent.memory ?? data['generic_memory']?.columns?.value ?? 0;
-        const free = 100 - current;
-
-        // ASCII bar (fills widget width)
-        const barWidth = 12;
-        const filled = Math.round((current / 100) * barWidth);
-        const empty = barWidth - filled;
-        const bar = '█'.repeat(filled) + '░'.repeat(empty);
-        const barClass = current > 90 ? 'tui-bar-critical' : current > 70 ? 'tui-bar-warning' : 'tui-bar-ok';
+        const chartId = `chart-mem-${agent.id || 'default'}`;
 
         return `
-            <div class="tui-metric-box">
-                <div class="tui-metric-header">mem</div>
-                <div class="tui-metric-value">${Number(current).toFixed(0)}<span class="tui-unit">%</span></div>
-                <div class="tui-metric-bar ${barClass}">${bar}</div>
-                <div class="tui-metric-extra">free ${Number(free).toFixed(0)}%</div>
-                <span class="tui-expand-hint">enter</span>
-            </div>
-        `;
-    },
-    renderExpanded: function(data, agent) {
-        const current = agent.memory ?? data['generic_memory']?.columns?.value ?? 0;
-        const tableData = data['generic_memory'];
-        const min = tableData?.columns?.min_value ?? 0;
-        const max = tableData?.columns?.max_value ?? 100;
-        const free = 100 - current;
-
-        return `
-            <div class="tui-metric-box">
-                <div class="tui-metric-header">memory</div>
-                <span class="tui-collapse-btn" title="collapse">esc ×</span>
-                <div class="widget-expanded-stats">
-                    <span>used: <strong>${Number(current).toFixed(1)}%</strong></span>
-                    <span>free: <strong>${Number(free).toFixed(1)}%</strong></span>
-                    <span>min: <strong>${min}</strong></span>
-                    <span>max: <strong>${max}</strong></span>
+            <div class="tui-metric-box tui-chart-widget">
+                <div class="tui-chart-header">
+                    <span class="tui-metric-header">mem</span>
+                    <span class="tui-metric-value">${Number(current).toFixed(0)}<span class="tui-unit">%</span></span>
+                </div>
+                <div class="tui-chart-container">
+                    <canvas id="${chartId}"></canvas>
                 </div>
             </div>
         `;
+    },
+    init: function(el, data, agent) {
+        const chartId = `chart-mem-${agent.id || 'default'}`;
+        const history = agent.memHistory || [];
+        const values = history.map(h => h.value);
+        const labels = history.map((_, i) => '');
+
+        const ctx = document.getElementById(chartId);
+        if (!ctx) return;
+
+        if (window.app.charts[chartId]) {
+            window.app.charts[chartId].destroy();
+        }
+
+        window.app.charts[chartId] = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: values,
+                    borderColor: getComputedStyle(document.documentElement).getPropertyValue('--blue').trim(),
+                    backgroundColor: 'transparent',
+                    borderWidth: 1.5,
+                    tension: 0.3,
+                    pointRadius: 0,
+                    fill: false
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: false,
+                scales: {
+                    y: {
+                        min: 0,
+                        max: 100,
+                        display: false
+                    },
+                    x: {
+                        display: false
+                    }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { enabled: false }
+                }
+            }
+        });
     }
 });
