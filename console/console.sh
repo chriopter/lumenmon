@@ -38,14 +38,14 @@ echo "[console] Starting Caddy web server..."
 caddy start --config /etc/caddy/Caddyfile 2>&1 | sed 's/^/[caddy] /' &
 
 # Start SMTP receiver (optional - skipped if port 25 in use)
-if ! ss -tln | grep -q ':25 '; then
+if ! ss -tln 2>/dev/null | grep -qE ':25\s'; then
     echo "[console] Starting SMTP receiver..."
     python3 /app/core/smtp/smtp_receiver.py 2>&1 | sed 's/^/[smtp] /' &
     sleep 1
     SMTP_STATUS="Port 25"
 else
     echo "[console] SMTP skipped (port 25 in use by host)"
-    SMTP_STATUS="Disabled (port 25 in use)"
+    SMTP_STATUS="Skipped (port in use)"
 fi
 
 # Display console info
