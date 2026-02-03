@@ -162,12 +162,6 @@ case "${1:-}" in
                 else
                     CURRENT["$name"]="1"
                     echo "Enabled: $name"
-                    echo -n "Alert when check fails? (y/N): "
-                    read -r alert_choice
-                    if [[ "$alert_choice" == "y" || "$alert_choice" == "Y" ]]; then
-                        CURRENT["${name}_required"]="1"
-                        echo "Alert enabled"
-                    fi
                 fi
 
                 save_config
