@@ -120,14 +120,14 @@ Widgets auto-load based on available metrics. Functions: openDetailView(), close
                 <div class="detail-header">
                     <h2><span class="status-dot ${agent.status}"></span>${agent.hostname || agent.id}</h2>
                     <div class="detail-header-right">
+                        <button id="toggle-view-btn" class="view-toggle-btn" onclick="toggleDetailView()">all values</button>
                         <span class="detail-status">${agent.id}</span>
                         <span class="status-warnings" id="status-warnings"></span>
                     </div>
                 </div>
                 <div class="detail-content">
                     <div id="widgets-container"></div>
-                    <div class="metrics-section">
-                        <h3>All Values</h3>
+                    <div id="metrics-section" class="metrics-section" style="display: none;">
                         <div id="metrics-list" class="metrics-list">
                             <span class="loading-text">Loading metrics...</span>
                         </div>
@@ -170,6 +170,28 @@ Widgets auto-load based on available metrics. Functions: openDetailView(), close
             await loadMetrics(agent.id);
         } catch (error) {
             console.error('Error refreshing detail view:', error);
+        }
+    }
+
+    function toggleDetailView() {
+        const widgetsContainer = document.getElementById('widgets-container');
+        const metricsSection = document.getElementById('metrics-section');
+        const toggleBtn = document.getElementById('toggle-view-btn');
+
+        if (!widgetsContainer || !metricsSection || !toggleBtn) return;
+
+        const showingWidgets = widgetsContainer.style.display !== 'none';
+
+        if (showingWidgets) {
+            // Switch to all values view
+            widgetsContainer.style.display = 'none';
+            metricsSection.style.display = 'block';
+            toggleBtn.textContent = 'dashboard';
+        } else {
+            // Switch to dashboard view
+            widgetsContainer.style.display = 'block';
+            metricsSection.style.display = 'none';
+            toggleBtn.textContent = 'all values';
         }
     }
 
