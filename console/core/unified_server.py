@@ -454,7 +454,7 @@ class AgentState:
                             self.agents[agent_id][metric_name] = {
                                 'value': value,
                                 'timestamp': timestamp,
-                                'interval': interval or 60,
+                                'interval': interval if interval is not None else 60,
                                 'min': min_val,
                                 'max': max_val,
                                 'type': data_type
