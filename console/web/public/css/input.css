@@ -616,6 +616,16 @@ body {
 .detail-header-right { display: flex; align-items: center; gap: 0.75rem; }
 .detail-status { font-size: 0.75rem; color: var(--foreground2); }
 .detail-id { opacity: 0.6; font-size: 0.7rem; }
+.view-toggle-btn {
+  background: var(--background2);
+  border: 1px solid var(--foreground2);
+  color: var(--foreground);
+  padding: 0.25rem 0.5rem;
+  font-size: 0.7rem;
+  cursor: pointer;
+  font-family: inherit;
+}
+.view-toggle-btn:hover { background: var(--background3); }
 
 .detail-content { display: flex; flex-direction: column; gap: 0.75rem; }
 
