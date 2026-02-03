@@ -388,8 +388,9 @@ GitHub Actions only builds Docker images on version tags (`v*`), not on every co
 1. Develop and test using `./dev/deploy-test`
 2. When ready for release: `./dev/release` creates a version tag
 3. Push the tag → GitHub Actions builds and publishes to ghcr.io
-4. Create GitHub Release with release notes: `gh release create vX.X --notes "..."`
-5. Users update via `lumenmon update` / `lumenmon-agent update`
+4. Wait for build to complete: `gh run list --limit 1`
+5. Update test server: `ssh $LUMENMON_TEST_HOST "lumenmon update"`
+6. Add release notes describing what changed: `gh release edit vX.X --notes "## What's Changed ..."`
 
 **Version detection:** Agent version is determined by `git describe --tags` in `collectors/generic/version.sh`. Console fetches latest version from GitHub API (cached 1 hour). After creating a new release, restart the test console to clear version cache.
 
