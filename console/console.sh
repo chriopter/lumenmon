@@ -37,10 +37,16 @@ sleep 1
 echo "[console] Starting Caddy web server..."
 caddy start --config /etc/caddy/Caddyfile 2>&1 | sed 's/^/[caddy] /' &
 
-# Start SMTP receiver
-echo "[console] Starting SMTP receiver..."
-python3 /app/core/smtp/smtp_receiver.py 2>&1 | sed 's/^/[smtp] /' &
-sleep 1
+# Start SMTP receiver (optional - skipped if port 25 in use)
+if ! ss -tln | grep -q ':25 '; then
+    echo "[console] Starting SMTP receiver..."
+    python3 /app/core/smtp/smtp_receiver.py 2>&1 | sed 's/^/[smtp] /' &
+    sleep 1
+    SMTP_STATUS="Port 25"
+else
+    echo "[console] SMTP skipped (port 25 in use by host)"
+    SMTP_STATUS="Disabled (port 25 in use)"
+fi
 
 # Display console info
 echo "[console] ======================================"
@@ -49,7 +55,7 @@ echo "[console] ======================================"
 echo "[console] Console Host: ${CONSOLE_HOST:-localhost}"
 echo "[console] MQTT Broker: lumenmon-console:8884 (TLS)"
 echo "[console] MQTT Internal: localhost:1883"
-echo "[console] SMTP Receiver: Port 25"
+echo "[console] SMTP Receiver: ${SMTP_STATUS:-Port 25}"
 echo "[console] Web Interface: Port 8080 (HTTP), 8443 (HTTPS)"
 echo "[console] Database: /data/metrics.db"
 echo "[console] Mail: Via SMTP (port 25) or MQTT (agent spool reader)"
