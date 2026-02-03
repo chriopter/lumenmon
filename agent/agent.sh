@@ -2,6 +2,7 @@
 # Main agent entry point that starts metric collectors publishing to MQTT.
 # Checks for credentials, starts collectors. Requires registration via invite URL first.
 set -euo pipefail
+export LC_ALL=C  # Consistent decimal/text output across locales
 
 # Resolve paths
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
