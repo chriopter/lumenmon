@@ -23,15 +23,10 @@ fi
 mosquitto -c /app/config/mosquitto.conf 2>&1 | sed 's/^/[mosquitto] /' &
 sleep 2
 
-# Start MQTT-to-SQLite bridge
-echo "[console] Starting MQTT-to-SQLite bridge..."
-python3 /app/core/mqtt/mqtt_to_sqlite.py 2>&1 | sed 's/^/[mqtt-sqlite] /' &
-sleep 1
-
-# Start Flask API server
-echo "[console] Starting Flask API server..."
-cd /app/web/app && python3 app.py 2>&1 | sed 's/^/[flask] /' &
-sleep 1
+# Start Unified Server (MQTT + HTTP in one process, RAM-based state)
+echo "[console] Starting Unified Server (RAM-based)..."
+cd /app && python3 /app/core/unified_server.py 2>&1 | sed 's/^/[unified] /' &
+sleep 2
 
 # Start Caddy web server
 echo "[console] Starting Caddy web server..."
