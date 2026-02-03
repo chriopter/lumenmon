@@ -1,6 +1,10 @@
 /**
  * Messages Widget - Shows emails for this host
+ * Keyboard navigation: ↑↓ to navigate, Enter to open, Esc to close
  */
+
+// Track widget state per agent
+const mailWidgetState = {};
 
 LumenmonWidget({
     name: 'messages',
@@ -8,20 +12,26 @@ LumenmonWidget({
     category: 'generic',
     metrics: [],  // No metrics, fetches from messages API
     size: 'stat',
-    gridSize: 'sm',  // 1/2 width
-    priority: 1,  // First widget (top left)
+    gridSize: 'lg',  // Full width for more breathing room
+    priority: 99,  // Last widget, right before ALL VALUES
     expandable: false,
     render: function(data, agent) {
         // Initial loading state - init() will populate
         return `
-            <div class="tui-metric-box widget-messages" data-agent-id="${agent.id}">
+            <div class="tui-metric-box widget-messages" data-agent-id="${agent.id}" tabindex="0">
                 <div class="tui-metric-header">mail</div>
                 <div class="widget-messages-list"></div>
+                <div class="widget-messages-expand"></div>
             </div>
         `;
     },
     init: async function(el, data, agent) {
+        // Initialize state for this agent
+        if (!mailWidgetState[agent.id]) {
+            mailWidgetState[agent.id] = { selectedIndex: -1, messages: [], expandedId: null };
+        }
         await loadMessagesWidget(el, agent.id);
+        setupMailKeyboardNav(el, agent.id);
     },
     update: async function(el, data, agent) {
         await loadMessagesWidget(el, agent.id);
@@ -50,9 +60,15 @@ async function loadMessagesWidget(el, agentId) {
     if (!container) return;
 
     try {
-        const response = await fetch(`/api/agents/${agentId}/messages?limit=5`);
+        const response = await fetch(`/api/agents/${agentId}/messages?limit=10`);
         const result = await response.json();
         const messages = result.messages || [];
+
+        // Store messages for keyboard nav
+        if (!mailWidgetState[agentId]) {
+            mailWidgetState[agentId] = { selectedIndex: -1, messages: [], expandedId: null };
+        }
+        mailWidgetState[agentId].messages = messages;
 
         if (messages.length === 0) {
             container.innerHTML = '<div class="widget-messages-empty">no mail</div>';
@@ -62,14 +78,17 @@ async function loadMessagesWidget(el, agentId) {
             return;
         }
 
+        const state = mailWidgetState[agentId];
         let rows = '';
         messages.forEach((msg, i) => {
             const icon = msg.read ? '○' : '●';
             const readClass = msg.read ? 'mail-read' : 'mail-unread';
-            const from = msg.mail_from.split('@')[0].substring(0, 8);
-            const subject = msg.subject.substring(0, 14) + (msg.subject.length > 14 ? '…' : '');
+            const selectedClass = state.selectedIndex === i ? 'widget-msg-selected' : '';
+            const from = msg.mail_from.split('@')[0].substring(0, 10);
+            // Show full subject - no truncation for better visibility
+            const subject = msg.subject || '(no subject)';
             const time = formatMsgTime(msg.received_at);
-            rows += `<div class="widget-msg-row ${readClass}" onclick="openMsgInWidget(${msg.id}, '${agentId}')">
+            rows += `<div class="widget-msg-row ${readClass} ${selectedClass}" data-msg-index="${i}" data-msg-id="${msg.id}" onclick="selectMailRow('${agentId}', ${i})">
                 <span class="widget-msg-icon">${icon}</span>
                 <span class="widget-msg-from">${from}</span>
                 <span class="widget-msg-subject">${subject}</span>
@@ -79,7 +98,7 @@ async function loadMessagesWidget(el, agentId) {
 
         container.innerHTML = rows;
 
-        // Update header with badge
+        // Update header with badge and hint
         const unreadCount = messages.filter(m => !m.read).length;
         const badge = unreadCount > 0 ? `<span class="widget-msg-badge">${unreadCount}</span>` : '';
         const header = el.querySelector('.tui-metric-header');
@@ -89,43 +108,163 @@ async function loadMessagesWidget(el, agentId) {
     }
 }
 
-// Open message detail in a simple view
-async function openMsgInWidget(messageId, agentId) {
+// Select a mail row (via click or keyboard)
+function selectMailRow(agentId, index) {
+    const state = mailWidgetState[agentId];
+    if (!state) return;
+
+    state.selectedIndex = index;
+
+    // Update UI to show selection
+    const widget = document.querySelector(`.widget-messages[data-agent-id="${agentId}"]`);
+    if (!widget) return;
+
+    widget.querySelectorAll('.widget-msg-row').forEach((row, i) => {
+        row.classList.toggle('widget-msg-selected', i === index);
+    });
+}
+
+// Setup keyboard navigation for mail widget
+function setupMailKeyboardNav(el, agentId) {
+    const widget = el.querySelector('.widget-messages');
+    if (!widget) return;
+
+    widget.addEventListener('keydown', async (e) => {
+        const state = mailWidgetState[agentId];
+        if (!state || state.messages.length === 0) return;
+
+        switch (e.key) {
+            case 'ArrowDown':
+            case 'j':
+                e.preventDefault();
+                if (state.selectedIndex < state.messages.length - 1) {
+                    selectMailRow(agentId, state.selectedIndex + 1);
+                } else if (state.selectedIndex === -1) {
+                    selectMailRow(agentId, 0);
+                }
+                break;
+
+            case 'ArrowUp':
+            case 'k':
+                e.preventDefault();
+                if (state.selectedIndex > 0) {
+                    selectMailRow(agentId, state.selectedIndex - 1);
+                } else if (state.selectedIndex === -1 && state.messages.length > 0) {
+                    selectMailRow(agentId, state.messages.length - 1);
+                }
+                break;
+
+            case 'Enter':
+                e.preventDefault();
+                if (state.selectedIndex >= 0 && state.selectedIndex < state.messages.length) {
+                    const msg = state.messages[state.selectedIndex];
+                    await expandMailInline(agentId, msg.id);
+                }
+                break;
+
+            case 'Escape':
+                e.preventDefault();
+                closeMailExpand(agentId);
+                break;
+        }
+    });
+
+    // Focus widget on click
+    widget.addEventListener('click', () => widget.focus());
+}
+
+// Expand mail inline below the widget (TUI style)
+async function expandMailInline(agentId, messageId) {
+    const widget = document.querySelector(`.widget-messages[data-agent-id="${agentId}"]`);
+    if (!widget) return;
+
+    const expandArea = widget.querySelector('.widget-messages-expand');
+    if (!expandArea) return;
+
+    const state = mailWidgetState[agentId];
+
+    // Toggle off if same message
+    if (state.expandedId === messageId) {
+        closeMailExpand(agentId);
+        return;
+    }
+
     try {
         const response = await fetch(`/api/messages/${messageId}`);
         const msg = await response.json();
 
         const date = new Date(msg.received_at).toLocaleString();
 
-        // Create a simple popup or replace widget content
-        const overlay = document.createElement('div');
-        overlay.className = 'msg-overlay';
-        overlay.innerHTML = `
-            <div class="msg-overlay-content tui-box">
-                <div class="msg-overlay-header">
-                    <span>${msg.subject || '(no subject)'}</span>
-                    <span class="msg-overlay-close" onclick="this.parentElement.parentElement.parentElement.remove()">×</span>
+        state.expandedId = messageId;
+
+        expandArea.innerHTML = `
+            <div class="mail-expand-content">
+                <div class="mail-expand-header">
+                    <span class="mail-expand-subject">${msg.subject || '(no subject)'}</span>
                 </div>
-                <div class="msg-overlay-meta">
-                    <div>FROM: ${msg.mail_from}</div>
-                    <div>DATE: ${date}</div>
+                <div class="mail-expand-meta">
+                    <div><span class="mail-meta-label">FROM</span> ${msg.mail_from}</div>
+                    <div><span class="mail-meta-label">DATE</span> ${date}</div>
                 </div>
-                <div class="msg-overlay-body"><pre>${msg.body || '(empty)'}</pre></div>
-                <div class="msg-overlay-actions">
-                    <button onclick="deleteMsgFromWidget(${msg.id}, '${agentId}')" class="btn-tui btn-danger">delete</button>
-                    <button onclick="this.closest('.msg-overlay').remove()" class="btn-tui">close</button>
+                <div class="mail-expand-body"><pre>${msg.body || '(empty)'}</pre></div>
+                <div class="mail-expand-actions">
+                    <span class="mail-action" onclick="deleteMsgFromExpand(${msg.id}, '${agentId}')">delete</span>
+                    <span class="mail-action" onclick="closeMailExpand('${agentId}')">close (esc)</span>
                 </div>
             </div>
         `;
-        document.body.appendChild(overlay);
+        expandArea.classList.add('open');
 
-        // Refresh widgets to update read status
-        if (typeof refreshDetailView === 'function') {
-            setTimeout(refreshDetailView, 100);
+        // Refresh to update read status
+        await loadMessagesWidget(widget.parentElement, agentId);
+
+        // Restore selection
+        const idx = state.messages.findIndex(m => m.id === messageId);
+        if (idx >= 0) selectMailRow(agentId, idx);
+
+        // Keep expanded
+        state.expandedId = messageId;
+        expandArea.querySelector('.mail-expand-content') && (expandArea.innerHTML = expandArea.innerHTML);
+
+    } catch (e) {
+        expandArea.innerHTML = '<div class="mail-expand-error">error loading message</div>';
+    }
+}
+
+// Close expanded mail view
+function closeMailExpand(agentId) {
+    const widget = document.querySelector(`.widget-messages[data-agent-id="${agentId}"]`);
+    if (!widget) return;
+
+    const expandArea = widget.querySelector('.widget-messages-expand');
+    if (expandArea) {
+        expandArea.innerHTML = '';
+        expandArea.classList.remove('open');
+    }
+
+    const state = mailWidgetState[agentId];
+    if (state) state.expandedId = null;
+}
+
+// Delete from expanded view
+async function deleteMsgFromExpand(messageId, agentId) {
+    try {
+        await fetch(`/api/messages/${messageId}`, { method: 'DELETE' });
+        closeMailExpand(agentId);
+        addLog('message deleted', 'success');
+
+        const widget = document.querySelector(`.widget-messages[data-agent-id="${agentId}"]`);
+        if (widget) {
+            await loadMessagesWidget(widget.parentElement, agentId);
         }
     } catch (e) {
         addLog(`Error: ${e.message}`, 'error');
     }
+}
+
+// Open message detail - now uses inline expand
+async function openMsgInWidget(messageId, agentId) {
+    await expandMailInline(agentId, messageId);
 }
 
 async function deleteMsgFromWidget(messageId, agentId) {

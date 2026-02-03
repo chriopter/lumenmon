@@ -331,9 +331,12 @@ body {
 .widget-messages {
   display: flex;
   flex-direction: column;
+  outline: none;
+}
+.widget-messages:focus {
+  border-color: var(--mauve);
 }
 .widget-messages .widget-messages-list {
-  flex: 1;
   display: flex;
   flex-direction: column;
 }
@@ -352,10 +355,19 @@ body {
   cursor: pointer;
 }
 .widget-msg-row:hover { background: var(--surface0); }
-.widget-msg-icon { width: 1rem; }
-.widget-msg-from { width: 4rem; color: var(--subtext1); margin-right: 0.5rem; }
+.widget-msg-row.widget-msg-selected {
+  background: var(--surface1);
+}
+.widget-msg-row.widget-msg-selected::before {
+  content: '>';
+  margin-right: 0.3rem;
+  color: var(--mauve);
+  font-weight: bold;
+}
+.widget-msg-icon { width: 1rem; flex-shrink: 0; }
+.widget-msg-from { width: 6rem; flex-shrink: 0; color: var(--subtext1); margin-right: 0.5rem; overflow: hidden; text-overflow: ellipsis; }
 .widget-msg-subject { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.widget-msg-time { width: 2.5rem; text-align: right; color: var(--subtext0); font-size: 0.85em; }
+.widget-msg-time { width: 3rem; flex-shrink: 0; text-align: right; color: var(--subtext0); font-size: 0.85em; }
 .mail-unread .widget-msg-icon { color: var(--mauve); }
 .mail-unread .widget-msg-subject { color: var(--text); }
 .widget-msg-badge {
@@ -365,6 +377,75 @@ body {
   padding: 0.1rem 0.3rem;
   border-radius: 3px;
   margin-left: 0.3rem;
+}
+
+/* Mail inline expand (TUI style) */
+.widget-messages-expand {
+  display: none;
+}
+.widget-messages-expand.open {
+  display: block;
+  margin-top: 0.5rem;
+  border-top: 1px solid var(--surface1);
+  padding-top: 0.5rem;
+}
+.mail-expand-content {
+  font-size: 0.75rem;
+}
+.mail-expand-header {
+  margin-bottom: 0.3rem;
+}
+.mail-expand-subject {
+  color: var(--text);
+  font-weight: bold;
+}
+.mail-expand-meta {
+  color: var(--subtext0);
+  font-size: 0.7rem;
+  margin-bottom: 0.5rem;
+  font-family: monospace;
+}
+.mail-expand-meta div {
+  padding: 0.1rem 0;
+}
+.mail-meta-label {
+  color: var(--overlay0);
+  margin-right: 0.5rem;
+  display: inline-block;
+  width: 3rem;
+}
+.mail-expand-body {
+  background: var(--mantle);
+  border-radius: 3px;
+  padding: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+.mail-expand-body pre {
+  margin: 0;
+  font-size: 0.7rem;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-family: monospace;
+  color: var(--text);
+}
+.mail-expand-actions {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.7rem;
+}
+.mail-action {
+  color: var(--subtext0);
+  cursor: pointer;
+}
+.mail-action:hover {
+  color: var(--text);
+}
+.mail-action:first-child:hover {
+  color: var(--red);
+}
+.mail-expand-error {
+  color: var(--red);
+  font-size: 0.7rem;
 }
 
 /* Message overlay popup */
