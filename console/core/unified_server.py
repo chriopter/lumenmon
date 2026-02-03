@@ -256,9 +256,9 @@ class AgentState:
                         'cpuHistory': cpu_hist,
                         'memHistory': mem_hist,
                         'diskHistory': disk_hist,
-                        'cpuSparkline': generate_tui_sparkline([h['value'] for h in cpu_hist]),
-                        'memSparkline': generate_tui_sparkline([h['value'] for h in mem_hist]),
-                        'diskSparkline': generate_tui_sparkline([h['value'] for h in disk_hist]),
+                        'cpuSparkline': generate_tui_sparkline([h['value'] for h in cpu_hist], global_max=100),
+                        'memSparkline': generate_tui_sparkline([h['value'] for h in mem_hist], global_max=100),
+                        'diskSparkline': generate_tui_sparkline([h['value'] for h in disk_hist], global_max=100),
                         'agent_version': str(version_data.get('value', ''))
                     })
 
