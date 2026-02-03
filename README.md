@@ -122,15 +122,22 @@ Pure bash scripts that collect metrics and publish via `mosquitto_pub` over TLS.
 </details>
 
 <details>
-<summary>Email Receiving</summary>
+<summary>Mail Forwarding</summary>
 
-The console runs an SMTP server (port 25) that accepts emails from monitored hosts. Each agent gets a unique email address (`id_xxx@your-console-host`) that can be used for:
+Agents automatically forward local system mail (`/var/mail/root`) to the console via MQTT. This captures:
 
-- Receiving cron job output and alerts
-- Collecting automated reports from services
-- Forwarding system notifications
+- Cron job output and errors
+- System alerts and notifications
+- Automated reports from services (Proxmox, PBS, ZFS, etc.)
 
-Emails are stored per-agent and displayed in the web dashboard. Only emails from known agent IDs are accepted.
+**How it works:**
+```
+/var/mail/root → agent (parse mbox) → MQTT → console → messages table → UI
+```
+
+**Requirements:** Any local MTA that delivers to `/var/mail/root` (postfix, sendmail, exim, nullmailer, etc.). Most systems have this by default.
+
+**No SMTP port needed** - mail is forwarded via the existing MQTT connection (port 8884).
 
 </details>
 
