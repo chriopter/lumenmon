@@ -11,10 +11,8 @@ import email
 import os
 import sys
 import signal
-from datetime import datetime
 from email.policy import default as default_policy
 from aiosmtpd.controller import Controller
-from aiosmtpd.smtp import SMTP
 
 DB_PATH = os.environ.get('LUMENMON_DB', '/data/metrics.db')
 SMTP_PORT = int(os.environ.get('SMTP_PORT', 25))

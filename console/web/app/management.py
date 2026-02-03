@@ -6,9 +6,11 @@ from flask import Blueprint, jsonify
 import subprocess
 import re
 import os
-import shutil
 from datetime import datetime
 from db import get_db_connection
+import logging
+
+logger = logging.getLogger(__name__)
 
 management_bp = Blueprint('management', __name__)
 
@@ -121,9 +123,10 @@ def delete_agent(agent_id):
 
     except Exception as e:
         log_message(f"ERROR during deletion of {agent_id}: {str(e)}")
+        logger.exception("Agent deletion failed")
         return jsonify({
             'success': False,
-            'message': f'Deletion failed: {str(e)}'
+            'message': 'Deletion failed due to internal error'
         }), 500
 
 
@@ -168,4 +171,5 @@ def delete_metric(agent_id, metric_name):
 
     except Exception as e:
         log_message(f"ERROR deleting metric {table_name}: {str(e)}")
-        return jsonify({'success': False, 'message': str(e)}), 500
+        logger.exception("Metric deletion failed")
+        return jsonify({'success': False, 'message': 'Failed to delete metric'}), 500

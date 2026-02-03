@@ -3,7 +3,6 @@
 # Reads metrics from SQLite database and generates formatted metrics for agents.
 
 import time
-import re
 from db import get_db_connection, table_exists
 from formatters import generate_tui_sparkline, format_age
 

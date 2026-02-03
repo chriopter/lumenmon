@@ -46,7 +46,7 @@ class MQTTBridge:
         try:
             if self.db_conn:
                 self.db_conn.close()
-        except:
+        except Exception:
             pass
         self.connect_db()
 
@@ -220,14 +220,14 @@ class MQTTBridge:
         try:
             if self.mqtt_client:
                 self.mqtt_client.disconnect()
-        except:
+        except Exception:
             pass
 
         try:
             if self.db_conn:
                 self.db_conn.close()
                 log('db', 'Database connection closed')
-        except:
+        except Exception:
             pass
 
 def main():

@@ -4,9 +4,8 @@
 
 from flask import Blueprint, jsonify
 import subprocess
-import glob
 import os
-from pending_invites import store_invite, get_invite, clear_invite
+from pending_invites import store_invite
 
 invites_bp = Blueprint('invites', __name__)
 
@@ -65,7 +64,7 @@ def create_invite():
             # SECURITY: Immediately delete temp file containing password
             try:
                 os.remove('/tmp/last_invite.json')
-            except:
+            except OSError:
                 pass  # Best effort cleanup
 
             # Generate install command
@@ -98,10 +97,10 @@ def create_invite():
             'success': False,
             'error': 'Invite creation timed out'
         }), 500
-    except Exception as e:
+    except Exception:
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': 'Failed to create invite'
         }), 500
 
 @invites_bp.route('/api/invites/create/full', methods=['POST'])
@@ -128,7 +127,7 @@ def create_invite_full():
             # SECURITY: Immediately delete temp file containing password
             try:
                 os.remove('/tmp/last_invite.json')
-            except:
+            except OSError:
                 pass  # Best effort cleanup
 
             # Generate full install command
@@ -164,10 +163,10 @@ def create_invite_full():
             'success': False,
             'error': 'Invite creation timed out'
         }), 500
-    except Exception as e:
+    except Exception:
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': 'Failed to create invite'
         }), 500
 
 # SECURITY: No endpoint to retrieve invite URLs after creation

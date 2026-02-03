@@ -96,8 +96,8 @@ def agent_sync():
         ], check=True)
         subprocess.run(['pkill', '-HUP', 'mosquitto'], check=False)
         return jsonify({'status': 'ok', 'agent': agent_id})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    except Exception:
+        return jsonify({'error': 'Failed to sync agent'}), 500
 
 @app.route('/api/version/latest', methods=['GET'])
 def latest_version():

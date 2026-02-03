@@ -61,7 +61,7 @@ def list_all_messages():
 
         return jsonify({'messages': messages})
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal server error'}), 500
     finally:
         conn.close()
 
@@ -86,7 +86,7 @@ def unread_counts():
 
         return jsonify({'counts': counts})
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal server error'}), 500
     finally:
         conn.close()
 
@@ -120,7 +120,7 @@ def get_message(message_id):
             'read': True
         })
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal server error'}), 500
     finally:
         conn.close()
 
@@ -134,7 +134,7 @@ def mark_read(message_id):
         conn.commit()
         return jsonify({'success': True})
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal server error'}), 500
     finally:
         conn.close()
 
@@ -148,7 +148,7 @@ def delete_message(message_id):
         conn.commit()
         return jsonify({'success': True})
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal server error'}), 500
     finally:
         conn.close()
 
@@ -187,7 +187,7 @@ def agent_messages(agent_id):
 
         return jsonify({'messages': messages})
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal server error'}), 500
     finally:
         conn.close()
 
@@ -228,6 +228,6 @@ def mark_all_read():
         conn.commit()
         return jsonify({'success': True})
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal server error'}), 500
     finally:
         conn.close()
