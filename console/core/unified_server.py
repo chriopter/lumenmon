@@ -164,6 +164,22 @@ class AgentState:
             # Collect all known agent IDs
             all_agent_ids = set(self.agents.keys()) | set(mqtt_users.keys())
 
+            # First pass: find global max for each metric across all hosts
+            all_cpu_vals = []
+            all_mem_vals = []
+            all_disk_vals = []
+            for agent_id in all_agent_ids:
+                if not agent_id.startswith('id_'):
+                    continue
+                agent_history = self.history.get(agent_id, {})
+                all_cpu_vals.extend([h['value'] for h in agent_history.get('generic_cpu', [])])
+                all_mem_vals.extend([h['value'] for h in agent_history.get('generic_memory', [])])
+                all_disk_vals.extend([h['value'] for h in agent_history.get('generic_disk', [])])
+
+            global_cpu_max = max(all_cpu_vals) if all_cpu_vals else 100
+            global_mem_max = max(all_mem_vals) if all_mem_vals else 100
+            global_disk_max = max(all_disk_vals) if all_disk_vals else 100
+
             for agent_id in all_agent_ids:
                 if not agent_id.startswith('id_'):
                     continue
@@ -256,9 +272,9 @@ class AgentState:
                         'cpuHistory': cpu_hist,
                         'memHistory': mem_hist,
                         'diskHistory': disk_hist,
-                        'cpuSparkline': generate_tui_sparkline([h['value'] for h in cpu_hist], global_max=100),
-                        'memSparkline': generate_tui_sparkline([h['value'] for h in mem_hist], global_max=100),
-                        'diskSparkline': generate_tui_sparkline([h['value'] for h in disk_hist], global_max=100),
+                        'cpuSparkline': generate_tui_sparkline([h['value'] for h in cpu_hist], global_max=global_cpu_max),
+                        'memSparkline': generate_tui_sparkline([h['value'] for h in mem_hist], global_max=global_mem_max),
+                        'diskSparkline': generate_tui_sparkline([h['value'] for h in disk_hist], global_max=global_disk_max),
                         'agent_version': str(version_data.get('value', ''))
                     })
 
