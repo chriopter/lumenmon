@@ -26,7 +26,7 @@ prompt: |
 
   Start now - fetch all open security alerts.
 
-condition_script: |
+condition: |
   #!/bin/bash
   # Check if there are open CodeQL security alerts
   # Exit 0 = alerts found (run the job)
