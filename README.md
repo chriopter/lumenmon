@@ -25,12 +25,43 @@ lumenmon-agent register '<invite-url>'
 lumenmon-agent start
 ```
 
-## Supported Agent Systems
+## Collectors
 
-| OS | Components |
-|----|------------|
-| Debian/Ubuntu | **generic**: cpu, memory, disk, heartbeat, hostname |
-| Proxmox VE | **generic** + **proxmox**: vms, containers, storage, ZFS |
+All collectors are pure bash scripts that run at fixed intervals.
+
+### Generic (all Linux systems)
+
+| Collector | Interval | Details |
+|-----------|----------|---------|
+| `cpu` | 1s (PULSE) | CPU usage % from `/proc/stat` |
+| `memory` | 60s (BREATHE) | Memory usage % from `/proc/meminfo` |
+| `disk` | 60s (BREATHE) | Root filesystem usage % via `df` |
+| `heartbeat` | 1s (PULSE) | Connectivity check (always 1) |
+| `hostname` | 1h (REPORT) | System hostname |
+| `lumenmon` | 1h (REPORT) | OS, kernel, uptime |
+| `version` | 1h (REPORT) | Agent version (git tag/commit) |
+| `mail` | 5m (CYCLE) | Forwards local mail from `/var/mail/root` |
+
+### Debian/Ubuntu
+
+| Collector | Interval | Details |
+|-----------|----------|---------|
+| `updates` | 1h (REPORT) | Available apt updates (total, security, release) |
+
+### Proxmox VE
+
+| Collector | Interval | Details |
+|-----------|----------|---------|
+| `vms` | 5m (CYCLE) | VM counts (running/stopped) via `qm list` |
+| `containers` | 5m (CYCLE) | LXC counts (running/stopped) via `pct list` |
+| `storage` | 5m (CYCLE) | Storage pool usage (GB) via `pvesh` API |
+| `zfs` | 5m (CYCLE) | Pool health: drive counts, online status, capacity |
+
+### Optional
+
+| Collector | Interval | Details |
+|-----------|----------|---------|
+| `mullvad_active` | – | VPN status: 1 if traffic exits via Mullvad, 0 if not |
 
 ## Architecture
 
