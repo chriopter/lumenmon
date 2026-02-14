@@ -306,3 +306,7 @@ export LUMENMON_TEST_HOST="root@your-test-server"
 GitHub Actions only builds Docker images on version tags (`v*`), not on every commit. This keeps the dev loop fast.
 
 </details>
+
+---
+
+*Made with 🔆 by [chriopter](https://github.com/chriopter)*
