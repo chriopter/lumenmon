@@ -84,12 +84,19 @@ Read this section as:
 | `containers` | `proxmox_containers_*` | 5m (`CYCLE`) | stale only |
 | `storage` | `proxmox_storage_*` | 5m (`CYCLE`) | stale + bounds if configured |
 | `zfs` | `proxmox_zfs_*` | 5m (`CYCLE`) | stale + bounds (online drives vs total) |
+| `zpool_health` | `proxmox_zpool_*` | 5m (`CYCLE`) | degraded and upgrade-needed flags (`max=0`) |
 
 #### Optional
 
 | Collector | Publishes | Interval | Failure behavior |
 |-----------|-----------|----------|------------------|
 | `mullvad_active` | `optional_mullvad_active` | opt-in | stale/bounds depend on local config |
+| `pbs_mega_check` | `optional_pbs_*` | 5m (`CYCLE`) | detects PBS task/log staleness and failures |
+| `zpool_status` | `optional_zpool_*` | 5m (`CYCLE`) | fails when any pool state != ONLINE |
+| `storage_smart` | `optional_smart_*`, `optional_samsung_*` | 5m (`CYCLE`) | fails on SMART health/temp/wear bounds |
+| `truenas_alerts` | `optional_truenas_*` | 5m (`CYCLE`) | fails on critical/SMART alerts or stale scrubs |
+| `hardware_sensors` | `optional_temp_*`, `optional_pcie_*`, `optional_intel_gpu_*`, `optional_gpu_vram_*` | 5m (`CYCLE`) | fails on temp/PCIe/gpu bounds |
+| `services_watch` | `optional_gickup_*`, `optional_mount_*` | 5m (`CYCLE`) | fails when watched services/mounts are unhealthy |
 
 #### Quick policy note
 
@@ -98,6 +105,27 @@ Collector health is computed from:
 - min/max bounds violations (`min_value`, `max_value`).
 
 Entity (host) health rolls up from metric health. If any metric fails, entity status becomes degraded.
+
+### Full Check Catalog
+
+This is the complete check map currently implemented in repo (base + opt-in).
+
+| Domain | Check | Source | Metric Prefix |
+|--------|-------|--------|---------------|
+| Core | CPU/Memory/Disk/Heartbeat | generic collectors | `generic_*` |
+| Core | Host identity and runtime info | generic collectors | `generic_hostname`, `generic_sys_*`, `generic_agent_version` |
+| Core | Debian updates | debian collector | `debian_updates_*` |
+| Core | Proxmox VM/LXC/storage/ZFS | proxmox collectors | `proxmox_*` |
+| Core | Proxmox zpool degraded/upgrade-needed | proxmox collector | `proxmox_zpool_*` |
+| Mail | Mail ingest and per-agent mailbox | generic mail + SMTP receiver | `mail_message` |
+| Mail | Mail staleness (>7d) | server-side messages API | `/api/messages/staleness` |
+| Storage (opt-in) | PBS mega-check (task failures + backup/verify/sync/GC age + datastore count) | optional collector | `optional_pbs_*` |
+| Storage (opt-in) | Generic zpool status summary | optional collector | `optional_zpool_*` |
+| Storage (opt-in) | SMART health/temp/wear/powercycles/firmware | optional collector | `optional_smart_*`, `optional_samsung_*` |
+| TrueNAS (opt-in) | Alerts, SMART alerts, scrub age | optional collector | `optional_truenas_*` |
+| Hardware (opt-in) | CPU/NVMe temps, PCIe errors, Intel GPU busy, VRAM usage | optional collector | `optional_temp_*`, `optional_pcie_*`, `optional_intel_gpu_*`, `optional_gpu_vram_*` |
+| Services (opt-in) | Gickup status + mount surveillance | optional collector | `optional_gickup_*`, `optional_mount_*` |
+| Alerting | Webhook config status in GUI/API | console alert status endpoint | `/api/alerts/status` |
 
 ## Commands
 
@@ -294,7 +322,75 @@ publish_metric "hostname" "$host" "TEXT" 0
 ./dev/auto         # Full reset and setup with virtual agent
 ./dev/add3         # Spawn 3 test agents
 ./dev/check-collectors  # Validate collector contract assumptions
+./dev/sensor-inventory  # List current remote sensors and failed checks
+./dev/sandboxer-maintain --once  # Run one auto-maintenance pass
+./dev/lumenmon-diagnose  # End-to-end health/data-flow diagnosis
 ```
+
+### Operational Checks (Current)
+
+Use these commands as a complete fast-check list during development and direct deploy.
+
+```bash
+# Local script sanity
+find . -name "*.sh" -type f -exec bash -n {} \;
+./dev/check-collectors
+
+# Console image sanity
+docker build -t test-console:ci ./console
+
+# E2E tests
+cd dev/tests && npm test
+cd dev/tests && npx playwright test lumenmon.spec.ts -g "Page Load & Initial State"
+
+# Runtime status (local or remote)
+lumenmon
+lumenmon-agent
+
+# Direct deploy + smoke checks
+./dev/deploy-test agent
+./dev/deploy-test console
+./dev/deploy-test status
+./dev/deploy-test check
+```
+
+### Optional Collector Config
+
+Optional collectors are enabled via keys in `agent/data/config` (or `/opt/lumenmon/data/config` on host):
+
+```ini
+mullvad_active=1
+pbs_mega_check=1
+zpool_status=1
+storage_smart=1
+truenas_alerts=1
+hardware_sensors=1
+services_watch=1
+
+# services_watch settings
+watch_mounts=/mnt/storage,/mnt/backups
+
+# truenas_alerts settings
+truenas_url=https://truenas.local
+truenas_api_key=replace_me
+```
+
+### Alerting (Webhook Status Only)
+
+Console exposes webhook alert configuration status in GUI and API:
+
+- API: `GET /api/alerts/status`
+- GUI footer: `alerts: not configured` / `alerts: webhook dry-run` / `alerts: active`
+
+Current behavior is status-only scaffolding (no outbound webhook delivery yet).
+
+### Mail Staleness (Server-side)
+
+Mail staleness is evaluated in console backend from `messages.received_at`:
+
+- API: `GET /api/messages/staleness?hours=168`
+- Used by UI status warnings (`MAIL STALE > 7D`)
+- This avoids agent-local spool heuristics and works for SMTP-only senders.
 
 ### CSS (Tailwind)
 ```bash
@@ -306,11 +402,15 @@ cd console && npm run build # One-time build
 ### Remote Test Server
 Deploy directly to a test server via SSH (bypasses GitHub Actions):
 ```bash
-export LUMENMON_TEST_HOST="root@your-test-server"
+cp .env.example .env
+# set LUMENMON_TEST_HOST in .env (gitignored)
+
+export LUMENMON_TEST_HOST="root@your-test-server"  # optional shell override
 ./dev/deploy-test web      # Build CSS + hot reload frontend (~3s)
 ./dev/deploy-test agent    # Deploy agent + restart (~1s)
 ./dev/deploy-test console  # Full console + restart (~5s)
 ./dev/deploy-test status   # Check remote status
+./dev/deploy-test check    # API/runtime smoke checks
 ```
 
 ### Releases

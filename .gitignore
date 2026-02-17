@@ -78,6 +78,7 @@ docker-compose.override.yml
 __pycache__/
 
 dev/data/
+dev/sandboxer.conf
 
 # Dev reset trigger file
 .reset

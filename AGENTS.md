@@ -14,6 +14,9 @@ Focus: build/lint/test commands and practical code conventions.
 - `./dev/auto` - full local reset + console + dev agent + virtual agent.
 - `./dev/add3` - spawn extra test agents.
 - `./dev/check-collectors` - validate collector script contract assumptions.
+- `./dev/sensor-inventory` - list current sensor coverage/failures on target host.
+- `./dev/sandboxer-maintain --once` - run one local auto-maintenance pass.
+- `./dev/lumenmon-diagnose` - end-to-end runtime and health propagation checks.
 - `./dev/updatedeps` - refresh vendored frontend dependencies.
 - `./dev/release` - create release tag workflow.
 
@@ -75,6 +78,7 @@ Deploy commands:
 - `./dev/deploy-test console`
 - `./dev/deploy-test all`
 - `./dev/deploy-test status`
+- `./dev/deploy-test check`
 Use the narrowest target matching changed files.
 
 ## Code Style Guidelines
@@ -133,6 +137,7 @@ Use the narrowest target matching changed files.
 - Use `min`/`max` when a metric should drive health-state detection.
 - Agent ID pattern used by APIs: `id_<hex...>`.
 - SQLite metric table naming: `<agent_id>_<metric_name>`.
+- Mail staleness is server-side (`/api/messages/staleness`), not agent spool-state based.
 
 ### Error handling and logging
 - Shell: emit actionable warnings to stderr; keep non-critical failures non-fatal when possible.
@@ -164,5 +169,5 @@ Result: none of these files currently exist in this repo.
   - `./dev/deploy-test agent` for agent/runtime script changes.
   - `./dev/deploy-test web` for frontend/public asset changes.
   - `./dev/deploy-test console` for backend/console app changes.
-- Verify with `./dev/deploy-test status` plus `lumenmon` and `lumenmon-agent` checks.
+- Verify with `./dev/deploy-test status` / `./dev/deploy-test check` plus `lumenmon` and `lumenmon-agent` checks.
 - After successful real-server validation, commit and promote via normal release flow.
