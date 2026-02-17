@@ -1,6 +1,6 @@
 #!/bin/bash
-# Collects Intel GPU busy percentage and VRAM usage when available.
-# Exits cleanly on hosts without Intel GPU tooling or sysfs counters.
+# Collects Intel GPU busy percentage when available.
+# Exits cleanly on hosts without Intel GPU tooling.
 
 RHYTHM="CYCLE"
 
@@ -33,13 +33,6 @@ PY
         if [ -n "$gpu_busy" ]; then
             publish_metric "hardware_intel_gpu_busy_pct" "$gpu_busy" "INTEGER" "$CYCLE" 0 100
         fi
-    fi
-
-    vram_total=$(grep -hs . /sys/class/drm/card*/device/mem_info_vram_total 2>/dev/null | head -n1 || true)
-    vram_used=$(grep -hs . /sys/class/drm/card*/device/mem_info_vram_used 2>/dev/null | head -n1 || true)
-    if [ -n "$vram_total" ] && [ -n "$vram_used" ] && [ "$vram_total" -gt 0 ] 2>/dev/null; then
-        vram_pct=$((vram_used * 100 / vram_total))
-        publish_metric "hardware_gpu_vram_used_pct" "$vram_pct" "INTEGER" "$CYCLE" 0 95
     fi
 
     [ "${LUMENMON_TEST_MODE:-}" = "1" ] && exit 0

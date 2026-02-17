@@ -1,5 +1,5 @@
 #!/bin/bash
-# Collects disk SMART health, temperature, wear, power cycles, and firmware.
+# Collects disk SMART health, temperature, wear, and power cycles.
 # Supports SATA/SAS via smartctl and NVMe via nvme-cli when available.
 
 RHYTHM="CYCLE"
@@ -61,13 +61,6 @@ while true; do
             publish_metric "hardware_smart_${disk_key}_power_cycles" "$cycles" "INTEGER" "$CYCLE" 0
         fi
 
-        firmware=$(smartctl -i "$dev" 2>/dev/null | awk -F: '/Firmware Version/ {gsub(/^ +/,"",$2); print $2; exit}')
-        if [ -n "$firmware" ]; then
-            publish_metric "hardware_smart_${disk_key}_firmware" "$firmware" "TEXT" "$CYCLE"
-            if echo "$firmware" | grep -Eq '^[A-Z0-9]+'; then
-                publish_metric "hardware_samsung_firmware_detected" "1" "INTEGER" "$CYCLE" 1 1
-            fi
-        fi
     done < <(lsblk -dn -o NAME,TYPE | awk '$2=="disk" {print $1}')
 
     [ "${LUMENMON_TEST_MODE:-}" = "1" ] && exit 0

@@ -21,7 +21,7 @@ echo "[agent] Hardware collectors enabled"
 
 COLLECTOR_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-for collector in temp pcie_errors intel_gpu smart_values; do
+for collector in temp pcie_errors intel_gpu vram smart_values ssd_samsung; do
     if [ -f "$COLLECTOR_DIR/${collector}.sh" ]; then
         run_collector "hardware_${collector}" "$COLLECTOR_DIR/${collector}.sh"
     fi

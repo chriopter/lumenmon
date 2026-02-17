@@ -104,14 +104,10 @@ Read this section as:
 |-----------|-----------|----------|------------------|
 | `temp` | `hardware_temp_*` | 5m (`CYCLE`) | fails on temperature thresholds |
 | `pcie_errors` | `hardware_pcie_*` | 5m (`CYCLE`) | fails on PCIe/AER errors |
-| `intel_gpu` | `hardware_intel_gpu_*`, `hardware_gpu_vram_*` | 5m (`CYCLE`) | fails on Intel GPU/VRAM thresholds |
-| `smart_values` | `hardware_smart_*`, `hardware_samsung_*` | 5m (`CYCLE`) | fails on SMART health/temp/wear thresholds |
-
-#### Services
-
-| Collector | Publishes | Interval | Failure behavior |
-|-----------|-----------|----------|------------------|
-| `watch` | `services_gickup_*`, `services_mount_*` | 5m (`CYCLE`) | fails on service inactive or mount issues |
+| `intel_gpu` | `hardware_intel_gpu_*` | 5m (`CYCLE`) | fails on Intel GPU utilization thresholds |
+| `vram` | `hardware_gpu_vram_*` | 5m (`CYCLE`) | fails on VRAM usage thresholds |
+| `smart_values` | `hardware_smart_*` | 5m (`CYCLE`) | fails on SMART health/temp/wear thresholds |
+| `ssd_samsung` | `hardware_samsung_*` | 5m (`CYCLE`) | inventory/firmware visibility for Samsung SSDs |
 
 #### Optional
 
@@ -142,9 +138,9 @@ This is the complete check map currently implemented in repo (base + opt-in).
 | Mail | Mail staleness (>7d) | server-side messages API | `/api/messages/staleness` |
 | PBS | Datastore/task/backup/verify/sync/gc freshness checks | pbs collectors | `pbs_*` |
 | Storage | Generic zpool status summary (non-Proxmox) | generic collector | `generic_zpool_*` |
-| Hardware | SMART health/temp/wear/powercycles/firmware | hardware collector | `hardware_smart_*`, `hardware_samsung_*` |
+| Hardware | SMART health/temp/wear/powercycles | hardware collector | `hardware_smart_*` |
+| Hardware | Samsung SSD inventory and firmware | hardware collector | `hardware_samsung_*` |
 | Hardware | CPU/NVMe temps, PCIe errors, Intel GPU busy, VRAM usage | hardware collector | `hardware_temp_*`, `hardware_pcie_*`, `hardware_intel_gpu_*`, `hardware_gpu_vram_*` |
-| Services | Gickup status + mount surveillance | services collector | `services_gickup_*`, `services_mount_*` |
 | Alerting | Webhook config status in GUI/API | console alert status endpoint | `/api/alerts/status` |
 
 ## Commands
@@ -333,7 +329,6 @@ publish_metric "hostname" "$host" "TEXT" 0
 | `collectors/proxmox/` | `proxmox_` | Proxmox (VMs, containers, ZFS) |
 | `collectors/pbs/` | `pbs_` | Proxmox Backup Server checks |
 | `collectors/hardware/` | `hardware_` | Real-hardware telemetry |
-| `collectors/services/` | `services_` | Host service and mount health |
 | `collectors/optional/` | `optional_` | Explicitly opt-in checks |
 
 </details>
@@ -384,9 +379,6 @@ Optional collectors are enabled via keys in `agent/data/config` (or `/opt/lumenm
 
 ```ini
 mullvad_active=1
-
-# services/watch.sh settings
-watch_mounts=/mnt/storage,/mnt/backups
 
 # hardware collectors on virtual hosts (optional override)
 hardware_force=0
