@@ -9,6 +9,7 @@ from flask import Blueprint, jsonify, request
 from db import get_db_connection
 import secrets
 import string
+from datetime import datetime, timezone
 
 messages_bp = Blueprint('messages', __name__)
 
@@ -21,6 +22,31 @@ def parse_limit_param(raw_value, default_value, max_value):
     if value < 1:
         raise ValueError('limit must be >= 1')
     return min(value, max_value)
+
+
+def parse_hours_param(raw_value, default_value, max_value):
+    """Parse staleness threshold hours query parameter."""
+    if raw_value is None or raw_value == '':
+        return default_value
+    value = int(raw_value)
+    if value < 1:
+        raise ValueError('hours must be >= 1')
+    return min(value, max_value)
+
+
+def parse_sqlite_timestamp(ts_value):
+    """Parse SQLite timestamp strings into UTC-aware datetimes."""
+    if not ts_value:
+        return None
+    try:
+        if ts_value.endswith('Z'):
+            return datetime.fromisoformat(ts_value.replace('Z', '+00:00')).astimezone(timezone.utc)
+        parsed = datetime.fromisoformat(ts_value)
+        if parsed.tzinfo is None:
+            return parsed.replace(tzinfo=timezone.utc)
+        return parsed.astimezone(timezone.utc)
+    except Exception:
+        return None
 
 
 def generate_mail_token(length=16):
@@ -104,6 +130,68 @@ def unread_counts():
 
         return jsonify({'counts': counts})
     except Exception as e:
+        return jsonify({'error': 'Internal server error'}), 500
+    finally:
+        conn.close()
+
+
+@messages_bp.route('/api/messages/staleness', methods=['GET'])
+def messages_staleness():
+    """Server-side mail staleness report using messages.received_at."""
+    conn = get_db_connection()
+    try:
+        threshold_hours = parse_hours_param(request.args.get('hours'), 168, 8760)
+        now = datetime.now(timezone.utc)
+
+        cursor = conn.execute('''
+            SELECT COALESCE(agent_id, 'unknown') as agent_id, MAX(received_at) as last_received
+            FROM messages
+            GROUP BY COALESCE(agent_id, 'unknown')
+        ''')
+
+        per_agent = []
+        stale_agents = 0
+        for row in cursor.fetchall():
+            agent_id = row[0]
+            last_received = row[1]
+            parsed = parse_sqlite_timestamp(last_received)
+            if parsed is None:
+                age_hours = None
+                is_stale = True
+            else:
+                age_hours = int((now - parsed).total_seconds() // 3600)
+                is_stale = age_hours > threshold_hours
+
+            if is_stale:
+                stale_agents += 1
+
+            per_agent.append({
+                'agent_id': agent_id,
+                'last_received': last_received,
+                'age_hours': age_hours,
+                'is_stale': is_stale,
+            })
+
+        global_last = max((a['last_received'] for a in per_agent if a['last_received']), default=None)
+        global_parsed = parse_sqlite_timestamp(global_last) if global_last else None
+        global_age_hours = int((now - global_parsed).total_seconds() // 3600) if global_parsed else None
+
+        return jsonify({
+            'threshold_hours': threshold_hours,
+            'global': {
+                'last_received': global_last,
+                'age_hours': global_age_hours,
+                'is_stale': global_age_hours is None or global_age_hours > threshold_hours,
+            },
+            'summary': {
+                'agents_with_mail': len(per_agent),
+                'stale_agents': stale_agents,
+            },
+            'per_agent': per_agent,
+        })
+    except ValueError:
+        return jsonify({'error': 'Invalid hours parameter'}), 400
+    except Exception:
         return jsonify({'error': 'Internal server error'}), 500
     finally:
         conn.close()

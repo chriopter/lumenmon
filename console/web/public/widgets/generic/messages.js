@@ -60,9 +60,15 @@ async function loadMessagesWidget(el, agentId) {
     if (!container) return;
 
     try {
-        const response = await fetch(`/api/agents/${agentId}/messages?limit=10`);
-        const result = await response.json();
+        const [messagesResponse, stalenessResponse] = await Promise.all([
+            fetch(`/api/agents/${agentId}/messages?limit=10`),
+            fetch('/api/messages/staleness?hours=168')
+        ]);
+        const result = await messagesResponse.json();
+        const staleness = stalenessResponse.ok ? await stalenessResponse.json() : { per_agent: [] };
         const messages = result.messages || [];
+        const staleEntry = (staleness.per_agent || []).find(a => a.agent_id === agentId);
+        const staleBadge = staleEntry && staleEntry.is_stale ? '<span class="widget-msg-badge" title="no mail for more than 7 days">stale</span>' : '';
 
         // Store messages for keyboard nav
         if (!mailWidgetState[agentId]) {
@@ -74,7 +80,7 @@ async function loadMessagesWidget(el, agentId) {
             container.innerHTML = '<div class="widget-messages-empty">no mail</div>';
             // Update header (no badge)
             const header = el.querySelector('.tui-metric-header');
-            if (header) header.innerHTML = 'mail';
+            if (header) header.innerHTML = `mail ${staleBadge}`;
             return;
         }
 
@@ -102,7 +108,7 @@ async function loadMessagesWidget(el, agentId) {
         const unreadCount = messages.filter(m => !m.read).length;
         const badge = unreadCount > 0 ? `<span class="widget-msg-badge">${unreadCount}</span>` : '';
         const header = el.querySelector('.tui-metric-header');
-        if (header) header.innerHTML = `mail ${badge}`;
+        if (header) header.innerHTML = `mail ${badge}${staleBadge}`;
     } catch (e) {
         container.innerHTML = '<div class="widget-messages-empty">error</div>';
     }

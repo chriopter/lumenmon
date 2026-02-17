@@ -904,9 +904,11 @@ sys.path.insert(0, '/app/web/app')
 from invites import invites_bp
 from management import management_bp
 from messages import messages_bp
+from alerts import alerts_bp
 app.register_blueprint(invites_bp)
 app.register_blueprint(management_bp)
 app.register_blueprint(messages_bp)
+app.register_blueprint(alerts_bp)
 
 # =============================================================================
 # MAIN

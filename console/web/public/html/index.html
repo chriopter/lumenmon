@@ -94,6 +94,39 @@ Loads CSS, Chart.js vendor library, and initializes components. Served by Flask 
                 window.app.data.latestVersion = data.version;
             })
             .catch(() => {});
+
+        window.refreshAlertStatus = async function() {
+            const el = document.getElementById('alert-status');
+            if (!el) return;
+            try {
+                const response = await fetch('/api/alerts/status');
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+
+                if (!data.configured) {
+                    el.textContent = 'alerts: not configured';
+                    el.className = 'status-compact warning';
+                    return;
+                }
+
+                if (data.enabled && data.mode === 'active') {
+                    el.textContent = 'alerts: active';
+                    el.className = 'status-compact';
+                    return;
+                }
+
+                el.textContent = 'alerts: webhook dry-run';
+                el.className = 'status-compact warning';
+            } catch (error) {
+                el.textContent = 'alerts: unavailable';
+                el.className = 'status-compact warning';
+            }
+        };
+
+        window.addEventListener('DOMContentLoaded', () => {
+            window.refreshAlertStatus();
+            setInterval(window.refreshAlertStatus, 60000);
+        });
     </script>
 </head>
 <body>
@@ -115,6 +148,7 @@ Loads CSS, Chart.js vendor library, and initializes components. Served by Flask 
         </div>
         <div class="footer-right">
             <span class="status-compact" data-tooltip="https: 8443 · http: 8080 · mqtt: 8884 · smtp: 25">console: online</span>
+            <span id="alert-status" class="status-compact warning">alerts: loading...</span>
         </div>
     </footer>
 
