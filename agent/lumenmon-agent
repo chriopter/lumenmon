@@ -55,6 +55,18 @@ case "${1:-}" in
         # Stop service
         $SUDO systemctl stop lumenmon-agent 2>/dev/null || true
 
+        # Auto-stash local changes so checkout can succeed on drifted hosts.
+        UPDATE_STASH=""
+        if ! $SUDO git -C "$GIT_ROOT" diff --quiet || ! $SUDO git -C "$GIT_ROOT" diff --cached --quiet || [ -n "$($SUDO git -C "$GIT_ROOT" ls-files --others --exclude-standard)" ]; then
+            UPDATE_STASH="lumenmon-agent update auto-stash $(date +%Y%m%d-%H%M%S)"
+            if ! $SUDO git -C "$GIT_ROOT" stash push -u -m "$UPDATE_STASH" >/dev/null; then
+                $SUDO systemctl start lumenmon-agent
+                echo "Could not stash local changes, service restarted"
+                exit 1
+            fi
+            echo "Local changes stashed as: $UPDATE_STASH"
+        fi
+
         # Fetch branch tip first (this is enough to run updated scripts).
         if ! $SUDO git -C "$GIT_ROOT" fetch origin main; then
             $SUDO systemctl start lumenmon-agent
@@ -76,9 +88,12 @@ case "${1:-}" in
         # Get latest tag and checkout
         if [ -n "$LATEST_TAG" ]; then
             CURRENT=$($SUDO git -C "$GIT_ROOT" describe --tags --always 2>/dev/null || echo "unknown")
-            if $SUDO git -C "$GIT_ROOT" checkout "$LATEST_TAG" 2>/dev/null; then
+            if $SUDO git -C "$GIT_ROOT" checkout -f "$LATEST_TAG" 2>/dev/null; then
                 $SUDO systemctl start lumenmon-agent
                 echo "Updated: $CURRENT → $LATEST_TAG"
+                if [ -n "$UPDATE_STASH" ]; then
+                    echo "Local changes were stashed. Review with: git -C $GIT_ROOT stash list"
+                fi
             else
                 $SUDO systemctl start lumenmon-agent
                 echo "Local repository state:"
@@ -91,6 +106,9 @@ case "${1:-}" in
             $SUDO git -C "$GIT_ROOT" checkout -B main origin/main
             $SUDO systemctl start lumenmon-agent
             echo "Updated to main"
+            if [ -n "$UPDATE_STASH" ]; then
+                echo "Local changes were stashed. Review with: git -C $GIT_ROOT stash list"
+            fi
         fi
         ;;
     optional|o)
