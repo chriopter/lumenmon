@@ -1,6 +1,6 @@
 #!/bin/bash
 # Lumenmon agent CLI - manages the monitoring agent service.
-# Commands: status, register, start, stop, restart, logs, uninstall
+# Commands: status, debug, register, start, stop, restart, logs, uninstall
 
 # Resolve symlinks to get real script location
 SCRIPT_PATH="${BASH_SOURCE[0]}"
@@ -27,6 +27,9 @@ case "${1:-}" in
         ;;
     status|s|"")
         "$LUMENMON_HOME/core/status.sh"
+        ;;
+    debug|dbg)
+        "$LUMENMON_HOME/core/debug.sh"
         ;;
     start)
         $SUDO systemctl start lumenmon-agent
@@ -68,6 +71,8 @@ case "${1:-}" in
                 echo "Updated: $CURRENT → $LATEST_TAG"
             else
                 $SUDO systemctl start lumenmon-agent
+                echo "Local repository state:"
+                $SUDO git -C "$GIT_ROOT" status --short --branch || true
                 echo "Checkout failed, service restarted"
                 exit 1
             fi
@@ -190,6 +195,7 @@ case "${1:-}" in
         echo ""
         echo "Commands:"
         echo "  status          Show agent status (default)"
+        echo "  debug           Run all collectors once and print outputs"
         echo "  register <url>  Register with invite URL"
         echo "  start           Start agent service"
         echo "  stop            Stop agent service"

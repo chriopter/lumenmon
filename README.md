@@ -157,6 +157,7 @@ lumenmon uninstall  # Remove everything
 **Agent** (`lumenmon-agent`):
 ```bash
 lumenmon-agent              # Show status
+lumenmon-agent debug        # Run all collectors once (test output)
 lumenmon-agent register     # Register with invite URL
 lumenmon-agent start/stop   # Control service
 lumenmon-agent logs         # View logs
