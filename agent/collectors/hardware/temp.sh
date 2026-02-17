@@ -18,7 +18,7 @@ while true; do
     if command -v nvme >/dev/null 2>&1; then
         while read -r dev; do
             [ -z "$dev" ] && continue
-            key=$(basename "$dev" | tr '-.' '__')
+            key=$(basename "$dev" | tr '.-' '__')
             temp=$(nvme smart-log "$dev" 2>/dev/null | awk '/^temperature/ {print $3; exit}')
             if [ -n "$temp" ]; then
                 publish_metric "hardware_temp_nvme_${key}_c" "$temp" "INTEGER" "$CYCLE" 0 70

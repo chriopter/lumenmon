@@ -13,7 +13,8 @@ force_hardware="$(get_config hardware_force)"
 virt_mode="none"
 
 if command -v systemd-detect-virt &>/dev/null; then
-    virt_mode="$(systemd-detect-virt 2>/dev/null || echo unknown)"
+    virt_mode="$(systemd-detect-virt 2>/dev/null || true)"
+    [ -z "$virt_mode" ] && virt_mode="unknown"
 fi
 
 if [ "${force_hardware:-0}" != "1" ] && [ "$virt_mode" != "none" ]; then

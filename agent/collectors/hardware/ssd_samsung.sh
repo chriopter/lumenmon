@@ -21,11 +21,11 @@ while true; do
     while read -r disk; do
         [ -z "$disk" ] && continue
         dev="/dev/$disk"
-        model=$(smartctl -i "$dev" 2>/dev/null | awk -F: '/Device Model|Model Number/ {gsub(/^ +/,"",$2); print $2; exit}')
+        model=$(smartctl -i "$dev" 2>/dev/null | awk -F: '/Device Model|Model Number/ {gsub(/^ +/,"",$2); print $2; exit}' || true)
         if printf '%s' "$model" | grep -qi 'samsung'; then
             samsung_count=$((samsung_count + 1))
             disk_key=$(sanitize_name "$disk")
-            firmware=$(smartctl -i "$dev" 2>/dev/null | awk -F: '/Firmware Version/ {gsub(/^ +/,"",$2); print $2; exit}')
+            firmware=$(smartctl -i "$dev" 2>/dev/null | awk -F: '/Firmware Version/ {gsub(/^ +/,"",$2); print $2; exit}' || true)
             if [ -n "$firmware" ]; then
                 publish_metric "hardware_samsung_${disk_key}_firmware" "$firmware" "TEXT" "$REPORT"
             fi
