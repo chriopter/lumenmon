@@ -1,6 +1,6 @@
 #!/bin/bash
 # Generic collectors - always runs on all systems.
-# Starts cpu, memory, disk, heartbeat, hostname, lumenmon, mail, version collectors.
+# Starts cpu, memory, disk, heartbeat, hostname, lumenmon, mail, and version collectors.
 
 COLLECTOR_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 

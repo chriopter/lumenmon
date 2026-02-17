@@ -11,7 +11,7 @@ echo "[agent] Proxmox detected"
 
 COLLECTOR_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-for collector in vms containers storage zfs; do
+for collector in vms containers storage zfs zpool_health; do
     if [ -f "$COLLECTOR_DIR/${collector}.sh" ]; then
         run_collector "proxmox_${collector}" "$COLLECTOR_DIR/${collector}.sh"
     fi
