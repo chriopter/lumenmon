@@ -171,3 +171,12 @@ Result: none of these files currently exist in this repo.
   - `./dev/deploy-test console` for backend/console app changes.
 - Verify with `./dev/deploy-test status` / `./dev/deploy-test check` plus `lumenmon` and `lumenmon-agent` checks.
 - After successful real-server validation, commit and promote via normal release flow.
+
+## Release Notes Safety (Important)
+- Never pass GitHub release notes as a double-quoted inline string when content contains backticks.
+- Use `gh release create/edit --notes-file <file>` or a single-quoted heredoc (`<<'EOF'`) to avoid shell command substitution.
+- Example safe pattern:
+  - `gh release edit vX.Y --notes-file /tmp/release-notes.md`
+- If using heredoc, assign notes first without interpolation:
+  - `NOTES="$(cat <<'EOF' ... EOF)"`
+  - then call `gh release edit ... --notes "$NOTES"`.
