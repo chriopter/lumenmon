@@ -1,0 +1,16 @@
+# Sandboxer auto-maintenance configuration (example)
+# Copy to: dev/sandboxer.conf (gitignored) and adjust values.
+
+# Local validation cadence (minutes)
+interval_minutes=30
+
+# Optional host checks (0/1)
+check_remote_status=1
+
+# Deploy target host from env or explicit value
+# remote_host=lumenmon-server
+
+# Enable these optional checks in maintenance loop (0/1)
+run_shell_syntax=1
+run_collector_contract=1
+run_sensor_inventory=1

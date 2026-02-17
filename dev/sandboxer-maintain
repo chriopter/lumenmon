@@ -1,0 +1,49 @@
+#!/bin/bash
+# Runs periodic local maintenance checks for fast sandbox hygiene.
+# Reads optional settings from dev/sandboxer.conf.
+
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+CONFIG_FILE="dev/sandboxer.conf"
+if [ -f "$CONFIG_FILE" ]; then
+    source "$CONFIG_FILE"
+fi
+
+interval_minutes="${interval_minutes:-30}"
+check_remote_status="${check_remote_status:-1}"
+run_shell_syntax="${run_shell_syntax:-1}"
+run_collector_contract="${run_collector_contract:-1}"
+run_sensor_inventory="${run_sensor_inventory:-1}"
+
+run_once() {
+    echo "[sandboxer] $(date -Is) starting maintenance run"
+
+    if [ "$run_shell_syntax" = "1" ]; then
+        find . -name "*.sh" -type f -exec bash -n {} \;
+    fi
+
+    if [ "$run_collector_contract" = "1" ]; then
+        ./dev/check-collectors
+    fi
+
+    if [ "$check_remote_status" = "1" ]; then
+        ./dev/deploy-test check
+    fi
+
+    if [ "$run_sensor_inventory" = "1" ]; then
+        ./dev/sensor-inventory
+    fi
+
+    echo "[sandboxer] $(date -Is) maintenance run complete"
+}
+
+if [ "${1:-}" = "--once" ]; then
+    run_once
+    exit 0
+fi
+
+while true; do
+    run_once
+    sleep "$((interval_minutes * 60))"
+done

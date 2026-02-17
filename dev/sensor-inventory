@@ -1,0 +1,37 @@
+#!/bin/bash
+# Prints current sensor inventory and failures from /api/agents/*/tables.
+# Useful before and after direct deploys on test/production hosts.
+
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+if [ -f .env ]; then
+    set -a
+    source .env
+    set +a
+fi
+
+if [ -z "${LUMENMON_TEST_HOST:-}" ]; then
+    echo "Error: LUMENMON_TEST_HOST not set" >&2
+    exit 1
+fi
+
+ssh "$LUMENMON_TEST_HOST" 'python3 - <<"PY"
+import json, urllib.request
+
+def load_json(url):
+    with urllib.request.urlopen(url, timeout=10) as r:
+        return json.load(r)
+
+entities = load_json("http://localhost:8080/api/entities").get("entities", [])
+agent_ids = [e.get("id") for e in entities if str(e.get("id", "")).startswith("id_")]
+print(f"Agents: {len(agent_ids)}")
+
+for agent_id in agent_ids:
+    tables = load_json(f"http://localhost:8080/api/agents/{agent_id}/tables").get("tables", [])
+    failed = [t["metric_name"] for t in tables if t.get("health", {}).get("is_failed")]
+    print(f"\n[{agent_id}] metrics={len(tables)} failed={len(failed)}")
+    if failed:
+        for metric in failed:
+            print(f"  - {metric}")
+PY'

@@ -1,0 +1,48 @@
+#!/bin/bash
+# Runs a focused end-to-end diagnosis of data flow and health propagation.
+# Checks collector runtime, API contracts, and stale/failed metric rollups.
+
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+if [ -f .env ]; then
+    set -a
+    source .env
+    set +a
+fi
+
+if [ -z "${LUMENMON_TEST_HOST:-}" ]; then
+    echo "Error: LUMENMON_TEST_HOST not set" >&2
+    exit 1
+fi
+
+echo "==> Runtime status"
+./dev/deploy-test status
+echo ""
+
+echo "==> API smoke checks"
+./dev/deploy-test check
+echo ""
+
+echo "==> Sensor inventory"
+./dev/sensor-inventory
+echo ""
+
+echo "==> Health rollup sanity"
+ssh "$LUMENMON_TEST_HOST" 'python3 - <<"PY"
+import json, urllib.request
+
+def j(url):
+    with urllib.request.urlopen(url, timeout=10) as r:
+        return json.load(r)
+
+entities = j("http://localhost:8080/api/entities").get("entities", [])
+for e in entities:
+    if not str(e.get("id", "")).startswith("id_"):
+        continue
+    status = e.get("status")
+    failed = e.get("failed_collectors", 0)
+    if status == "online" and failed > 0:
+        print(f"WARN: {e['id']} online with failed_collectors={failed}")
+print("Health rollup check complete")
+PY'
