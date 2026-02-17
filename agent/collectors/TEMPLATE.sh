@@ -17,9 +17,13 @@
 RHYTHM="BREATHE"          # PULSE=1s | BREATHE=60s | CYCLE=5m | REPORT=1h
 METRIC="generic_example"  # Metric name (prefix with category)
 TYPE="REAL"               # REAL (decimals) | INTEGER (whole) | TEXT (strings)
-MIN=0                     # Minimum valid value (optional, for health detection)
-MAX=100                   # Maximum valid value (optional, for health detection)
-# Health: values outside MIN/MAX show as FAILED in dashboard
+MIN=0                     # Hard minimum (optional, FAIL/RED below this)
+MAX=100                   # Hard maximum (optional, FAIL/RED above this)
+WARN_MIN=""              # Soft minimum (optional, WARN/YELLOW below this)
+WARN_MAX=""              # Soft maximum (optional, WARN/YELLOW above this)
+# Health model:
+# - values outside MIN/MAX -> FAILED (critical/red)
+# - values outside WARN_MIN/WARN_MAX (but inside MIN/MAX) -> WARNING (degraded/yellow)
 
 # ── Setup ───────────────────────────────────────────────────────────
 set -euo pipefail
@@ -32,9 +36,9 @@ while true; do
     #   value=$(LC_ALL=C some_command | parse_output)
     value="0"
 
-    # Publish: name, value, type, interval, [min], [max]
+    # Publish: name, value, type, interval, [min], [max], [warn_min], [warn_max]
     # The interval MUST use the same variable as RHYTHM (e.g. $BREATHE)
-    publish_metric "$METRIC" "$value" "$TYPE" "$BREATHE" "$MIN" "$MAX"
+    publish_metric "$METRIC" "$value" "$TYPE" "$BREATHE" "$MIN" "$MAX" "$WARN_MIN" "$WARN_MAX"
 
     # Support test mode (required for `lumenmon-agent status`)
     [ "${LUMENMON_TEST_MODE:-}" = "1" ] && exit 0
@@ -56,6 +60,10 @@ done
 #
 # Dynamic bounds (e.g. ZFS online drives must equal total):
 #   publish_metric "zfs_online" "$online" "INTEGER" "$CYCLE" "$total" "$total"
+#
+# Warning-only threshold (yellow before red):
+#   publish_metric "debian_updates_total" "$total" "INTEGER" "$REPORT" 0 10 "" 0
+#   → 1..10 = warning, >10 = failed
 #
 # Multiple metrics from one collector:
 #   Just call publish_metric multiple times with different names.

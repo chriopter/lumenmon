@@ -75,7 +75,7 @@ Read this section as:
 
 | Collector | Publishes | Interval | Failure behavior |
 |-----------|-----------|----------|------------------|
-| `updates` | `debian_updates_total`, `debian_updates_security`, `debian_updates_release`, `debian_updates_age` | 1h (`REPORT`) | `debian_updates_total` currently fails when value > 0 (policy via max=0) |
+| `updates` | `debian_updates_total`, `debian_updates_security`, `debian_updates_release`, `debian_updates_age` | 1h (`REPORT`) | `debian_updates_total`: warn for 1..10, critical >10; security/release >0 stay critical |
 
 #### Proxmox VE
 
@@ -279,8 +279,10 @@ Collectors are bash scripts in `agent/collectors/`. Standard structure:
 
 METRIC="generic_example"
 TYPE="REAL"            # REAL, INTEGER, or TEXT
-MIN=0                  # Optional: minimum valid value
-MAX=100                # Optional: maximum valid value
+MIN=0                  # Optional hard minimum (fail/red below)
+MAX=100                # Optional hard maximum (fail/red above)
+WARN_MIN=""           # Optional soft minimum (warn/yellow below)
+WARN_MAX=""           # Optional soft maximum (warn/yellow above)
 
 source "$LUMENMON_HOME/core/mqtt/publish.sh"
 
@@ -288,7 +290,7 @@ while true; do
     # IMPORTANT: Use LC_ALL=C for commands that produce localized output
     value=$(LC_ALL=C some_command | parse_output)
 
-    publish_metric "$METRIC" "$value" "$TYPE" "$BREATHE" "$MIN" "$MAX"
+    publish_metric "$METRIC" "$value" "$TYPE" "$BREATHE" "$MIN" "$MAX" "$WARN_MIN" "$WARN_MAX"
     [ "${LUMENMON_TEST_MODE:-}" = "1" ] && exit 0  # Support: lumenmon-agent status
 
     sleep $BREATHE
@@ -307,10 +309,12 @@ total=$(apt list --upgradable | grep -c "upgradable from")  # Fails on German sy
 
 **publish_metric** signature:
 ```bash
-publish_metric "name" "value" "TYPE" interval [min] [max]
+publish_metric "name" "value" "TYPE" interval [min] [max] [warn_min] [warn_max]
 ```
 
-**Health Detection:** Values outside min/max bounds show as **failed** in dashboard.
+**Health Detection:**
+- Values outside `min`/`max` show as **failed** (critical/red).
+- Values outside `warn_min`/`warn_max` (but inside min/max) show as **warning** (degraded/yellow).
 
 ```bash
 # Static bounds (percentages)
@@ -318,6 +322,10 @@ publish_metric "cpu" "$val" "REAL" "$PULSE" 0 100
 
 # Dynamic bounds (ZFS: online must equal total drives)
 publish_metric "zfs_online" "$online" "INTEGER" "$CYCLE" "$total" "$total"
+
+# Warning before critical (Debian updates)
+# 1..10 updates => warning, >10 => failed
+publish_metric "debian_updates_total" "$total" "INTEGER" "$REPORT" 0 10 "" 0
 
 # One-time metric (interval=0, never stale)
 publish_metric "hostname" "$host" "TEXT" 0

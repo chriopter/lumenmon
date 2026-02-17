@@ -152,10 +152,13 @@ Fetches server-rendered rows every 1s. Provides row selection, navigation functi
                         const latestVersion = window.app?.data?.latestVersion;
                         const agentVersion = entity.agent_version || '';
                         const isMailStale = staleMap[entity.id] === true;
+                        const hasCollectorFailures = (entity.failed_collectors || 0) > 0;
                         const isOutdated = window.isAgentVersionOutdated
                             ? window.isAgentVersionOutdated(agentVersion, latestVersion)
                             : false;
-                        if (statusDot === 'online' && (entity.failed_collectors > 0 || isOutdated || isMailStale)) {
+                        if (statusDot !== 'offline' && hasCollectorFailures) {
+                            statusDot = 'critical';
+                        } else if (statusDot === 'online' && (isOutdated || isMailStale)) {
                             statusDot = 'degraded';
                         }
                         const originalHostname = entity.original_hostname || entity.hostname || entity.id;
@@ -175,7 +178,12 @@ Fetches server-rendered rows every 1s. Provides row selection, navigation functi
                         const agentUnread = window.app.messages.unreadCounts[entity.id] || 0;
                         const unreadBadge = agentUnread > 0 ? `<span class="unread-badge-inline" title="${agentUnread} unread">\u2709${agentUnread}</span>` : '';
 
-                        const statusTitle = isMailStale ? `${statusDot} (mail stale > 4d)` : statusDot;
+                        let statusTitle = statusDot;
+                        if (statusDot === 'critical') {
+                            statusTitle = 'critical (collector failures)';
+                        } else if (isMailStale) {
+                            statusTitle = `${statusDot} (mail stale > 4d)`;
+                        }
                         html += `<td title="ID: ${entity.id}"><span class="status-dot ${statusDot}" title="${statusTitle}"></span>${displayName}${pendingSymbol}${unreadBadge}</td>`;
                         html += `<td><span class="sparkline">${cpuSparkline}</span></td>`;
                         html += `<td>${cpu.toFixed(0)}%</td>`;

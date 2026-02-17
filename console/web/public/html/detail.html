@@ -436,6 +436,7 @@ Widgets auto-load based on available metrics. Functions: openDetailView(), close
 
                 const health = table.health || {};
                 const isOutOfBounds = health.out_of_bounds || false;
+                const isWarningBounds = health.warning_out_of_bounds || false;
 
                 const latestVersion = window.app?.data?.latestVersion;
                 const isVersionMetric = metricName === 'generic_agent_version';
@@ -444,8 +445,10 @@ Widgets auto-load based on available metrics. Functions: openDetailView(), close
                     ? window.isAgentVersionOutdated(versionValue, latestVersion)
                     : false;
 
-                const hasProblem = isOutdated || isOutOfBounds || isStale;
-                const rowClass = isOutdated ? 'warning-row' : (isOutOfBounds ? 'error-row' : (isStale ? 'stale-row' : ''));
+                const hasProblem = isOutdated || isOutOfBounds || isStale || isWarningBounds;
+                const rowClass = (isOutOfBounds || isStale)
+                    ? (isOutOfBounds ? 'error-row' : 'stale-row')
+                    : ((isOutdated || isWarningBounds) ? 'warning-row' : '');
 
                 const metricData = { metricName, columns, metadata, flashClass, rowClass, nextUpdateText, isOverdue, agentId };
                 if (hasProblem) {

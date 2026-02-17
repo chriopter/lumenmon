@@ -10,7 +10,9 @@ METRIC_RELEASE="debian_updates_release" # Release upgrade (0 or 1)
 METRIC_FRESHNESS="debian_updates_age"   # Hours since last apt update
 TYPE="INTEGER"
 MIN=0
-MAX=0  # >0 triggers warning
+TOTAL_WARN_MAX=0    # 1..10 updates => warning
+TOTAL_FAIL_MAX=10   # >10 updates => critical
+FAIL_MAX=0          # >0 triggers critical
 
 set -euo pipefail
 source "$LUMENMON_HOME/core/mqtt/publish.sh"
@@ -67,9 +69,11 @@ while true; do
     fi
 
     # Publish metrics with thresholds
-    publish_metric "$METRIC_UPDATES" "$total" "$TYPE" "$REPORT" "$MIN" "$MAX"
-    publish_metric "$METRIC_SECURITY" "$security" "$TYPE" "$REPORT" "$MIN" "$MAX"
-    publish_metric "$METRIC_RELEASE" "$release" "$TYPE" "$REPORT" "$MIN" "$MAX"
+    # total: warning for 1..10, critical above 10
+    publish_metric "$METRIC_UPDATES" "$total" "$TYPE" "$REPORT" "$MIN" "$TOTAL_FAIL_MAX" "" "$TOTAL_WARN_MAX"
+    # security/release: any non-zero is critical
+    publish_metric "$METRIC_SECURITY" "$security" "$TYPE" "$REPORT" "$MIN" "$FAIL_MAX"
+    publish_metric "$METRIC_RELEASE" "$release" "$TYPE" "$REPORT" "$MIN" "$FAIL_MAX"
     publish_metric "$METRIC_FRESHNESS" "$freshness" "$TYPE" "$REPORT" 0 72  # Warn if >72h old
     [ "${LUMENMON_TEST_MODE:-}" = "1" ] && exit 0
 

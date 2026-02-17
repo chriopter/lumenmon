@@ -90,7 +90,7 @@ class AgentState:
         # Agent groups {agent_id: group_name}
         self.agent_groups = {}
 
-    def update_metric(self, agent_id, metric_name, value, data_type, interval, min_val, max_val):
+    def update_metric(self, agent_id, metric_name, value, data_type, interval, min_val, max_val, warn_min_val=None, warn_max_val=None):
         """Update metric in RAM (called from MQTT thread)."""
         timestamp = int(time.time())
 
@@ -107,6 +107,8 @@ class AgentState:
                 'interval': interval,
                 'min': min_val,
                 'max': max_val,
+                'warn_min': warn_min_val,
+                'warn_max': warn_max_val,
                 'type': data_type
             }
 
@@ -131,7 +133,9 @@ class AgentState:
                 'timestamp': timestamp,
                 'interval': interval,
                 'min': min_val,
-                'max': max_val
+                'max': max_val,
+                'warn_min': warn_min_val,
+                'warn_max': warn_max_val
             })
 
             self.stats['mqtt_messages'] += 1
@@ -273,8 +277,10 @@ class AgentState:
                     )
                     age = current_time_int - last_update if last_update else 0
 
-                    # Count failed collectors (stale OR out-of-bounds)
+                    # Count failed collectors (stale OR hard out-of-bounds)
+                    # and warning collectors (warning bounds breached).
                     failed = 0
+                    warning = 0
                     total = len(agent_data)
                     for metric_name, metric_data in agent_data.items():
                         if '_registration_test' in metric_name:
@@ -289,7 +295,10 @@ class AgentState:
                         value = metric_data.get('value')
                         min_val = metric_data.get('min')
                         max_val = metric_data.get('max')
+                        warn_min_val = metric_data.get('warn_min')
+                        warn_max_val = metric_data.get('warn_max')
                         data_type = metric_data.get('type', 'REAL')
+                        is_warning_bounds = False
                         if data_type in ('REAL', 'INTEGER') and value is not None:
                             try:
                                 value_num = float(value)
@@ -297,13 +306,20 @@ class AgentState:
                                     is_out_of_bounds = True
                                 elif max_val is not None and value_num > float(max_val):
                                     is_out_of_bounds = True
+
+                                if warn_min_val is not None and value_num < float(warn_min_val):
+                                    is_warning_bounds = True
+                                elif warn_max_val is not None and value_num > float(warn_max_val):
+                                    is_warning_bounds = True
                             except (ValueError, TypeError):
                                 pass
 
                         if is_stale or is_out_of_bounds:
                             failed += 1
+                        elif is_warning_bounds:
+                            warning += 1
 
-                    status = 'offline' if is_offline else ('degraded' if failed > 0 else 'online')
+                    status = 'offline' if is_offline else ('critical' if failed > 0 else ('degraded' if warning > 0 else 'online'))
 
                     # Get history for sparklines
                     cpu_hist = list(agent_history.get('generic_cpu', []))
@@ -325,6 +341,7 @@ class AgentState:
                         'original_hostname': original_hostname,
                         'status': status,
                         'failed_collectors': failed,
+                        'warning_collectors': warning,
                         'total_collectors': total,
                         'age': age,
                         'age_formatted': format_age(age),
@@ -358,7 +375,7 @@ class AgentState:
                 # Groups alphabetically, ungrouped (None) at the end
                 (e.get('group') or '\xff'),  # \xff sorts after all normal chars
                 # Then by status
-                0 if e.get('status') == 'online' else (1 if e.get('status') == 'degraded' else 2),
+                0 if e.get('status') == 'online' else (1 if e.get('status') == 'degraded' else (2 if e.get('status') == 'critical' else 3)),
                 # Then by hostname
                 (e.get('hostname') or e['id']).lower()
             ))
@@ -419,6 +436,8 @@ class AgentState:
                 value = data.get('value')
                 min_val = data.get('min')
                 max_val = data.get('max')
+                warn_min_val = data.get('warn_min')
+                warn_max_val = data.get('warn_max')
                 data_type = data.get('type', 'REAL')
 
                 # Staleness
@@ -427,6 +446,7 @@ class AgentState:
 
                 # Bounds check
                 is_out_of_bounds = False
+                is_warning_bounds = False
                 bounds_error = None
                 if data_type in ('REAL', 'INTEGER') and value is not None:
                     try:
@@ -437,6 +457,11 @@ class AgentState:
                         elif max_val is not None and v > max_val:
                             is_out_of_bounds = True
                             bounds_error = f"value {v} > max {max_val}"
+
+                        if warn_min_val is not None and v < warn_min_val:
+                            is_warning_bounds = True
+                        elif warn_max_val is not None and v > warn_max_val:
+                            is_warning_bounds = True
                     except (ValueError, TypeError):
                         pass
 
@@ -483,7 +508,9 @@ class AgentState:
                         'value': value,
                         'interval': interval,
                         'min_value': min_val,
-                        'max_value': max_val
+                        'max_value': max_val,
+                        'warn_min_value': warn_min_val,
+                        'warn_max_value': warn_max_val
                     },
                     'staleness': {
                         'age': age,
@@ -492,8 +519,10 @@ class AgentState:
                     },
                     'health': {
                         'is_failed': is_stale or is_out_of_bounds,
+                        'is_warning': (not is_stale) and (not is_out_of_bounds) and is_warning_bounds,
                         'is_stale': is_stale,
                         'out_of_bounds': is_out_of_bounds,
+                        'warning_out_of_bounds': is_warning_bounds,
                         'bounds_error': bounds_error
                     },
                     'metadata': {
@@ -796,8 +825,10 @@ class MQTTClient(threading.Thread):
             interval = data.get('interval', 60)
             min_val = data.get('min')
             max_val = data.get('max')
+            warn_min_val = data.get('warn_min')
+            warn_max_val = data.get('warn_max')
 
-            STATE.update_metric(agent_id, metric_name, value, data_type, interval, min_val, max_val)
+            STATE.update_metric(agent_id, metric_name, value, data_type, interval, min_val, max_val, warn_min_val, warn_max_val)
             clear_invite(agent_id)
 
         except Exception as e:
