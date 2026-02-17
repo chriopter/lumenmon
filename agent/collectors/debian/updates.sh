@@ -51,17 +51,13 @@ while true; do
     # Check freshness of package lists (no system modification)
     freshness=$(get_update_age)
 
-    # Count total updates (from cached package lists)
-    # Use intermediate variable to handle grep exit codes properly
+    # Count updates that are actually installable now.
+    # Use apt-get simulation output so phased/held-back updates are excluded.
     total=0
-    if output=$(LC_ALL=C apt list --upgradable 2>/dev/null); then
-        total=$(echo "$output" | grep -c "upgradable from" || true)
-    fi
-
-    # Count security updates
     security=0
-    if output=$(LC_ALL=C apt list --upgradable 2>/dev/null); then
-        security=$(echo "$output" | grep -cE "(-security|/.*-security)" || true)
+    if sim_output=$(LC_ALL=C apt-get -s upgrade 2>/dev/null); then
+        total=$(printf '%s\n' "$sim_output" | awk '/upgraded, [0-9]+ newly installed, [0-9]+ to remove and [0-9]+ not upgraded/ {print $1; found=1; exit} END {if (!found) print 0}')
+        security=$(printf '%s\n' "$sim_output" | awk '/^Inst / && /security/ {count++} END {print count+0}')
     fi
 
     # Check for release upgrade (read-only check)

@@ -2,7 +2,7 @@
 # Collects disk SMART health, temperature, wear, and power cycles.
 # Supports SATA/SAS via smartctl and NVMe via nvme-cli when available.
 
-RHYTHM="CYCLE"
+RHYTHM="REPORT"
 
 set -euo pipefail
 source "$LUMENMON_HOME/core/mqtt/publish.sh"
@@ -42,27 +42,27 @@ while true; do
         else
             health=0
         fi
-        publish_metric "hardware_smart_${disk_key}_health" "$health" "INTEGER" "$CYCLE" 1 1
+        publish_metric "hardware_smart_${disk_key}_health" "$health" "INTEGER" "$REPORT" 1 1
 
         temp=$(get_smart_temp "$dev" || echo "")
         if [ -n "$temp" ] && [ "$temp" != "-" ]; then
-            publish_metric "hardware_smart_${disk_key}_temp_c" "$temp" "INTEGER" "$CYCLE" 0 70
+            publish_metric "hardware_smart_${disk_key}_temp_c" "$temp" "INTEGER" "$REPORT" 0 70
         fi
 
         wear=$(get_smart_wear "$dev" || echo "")
         if [ -n "$wear" ] && [ "$wear" != "-" ]; then
             if [ "$wear" -ge 0 ] 2>/dev/null && [ "$wear" -le 100 ] 2>/dev/null; then
-                publish_metric "hardware_smart_${disk_key}_wear_pct" "$wear" "INTEGER" "$CYCLE" 0 95
+                publish_metric "hardware_smart_${disk_key}_wear_pct" "$wear" "INTEGER" "$REPORT" 0 95
             fi
         fi
 
         cycles=$(get_power_cycles "$dev" || echo "")
         if [ -n "$cycles" ] && [ "$cycles" != "-" ]; then
-            publish_metric "hardware_smart_${disk_key}_power_cycles" "$cycles" "INTEGER" "$CYCLE" 0
+            publish_metric "hardware_smart_${disk_key}_power_cycles" "$cycles" "INTEGER" "$REPORT" 0
         fi
 
     done < <(lsblk -dn -o NAME,TYPE | awk '$2=="disk" {print $1}')
 
     [ "${LUMENMON_TEST_MODE:-}" = "1" ] && exit 0
-    sleep "$CYCLE"
+    sleep "$REPORT"
 done

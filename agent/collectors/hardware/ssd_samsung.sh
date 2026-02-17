@@ -2,7 +2,7 @@
 # Collects Samsung SSD inventory and firmware values.
 # Publishes per-disk firmware text for Samsung drives only.
 
-RHYTHM="CYCLE"
+RHYTHM="REPORT"
 
 set -euo pipefail
 source "$LUMENMON_HOME/core/mqtt/publish.sh"
@@ -27,13 +27,13 @@ while true; do
             disk_key=$(sanitize_name "$disk")
             firmware=$(smartctl -i "$dev" 2>/dev/null | awk -F: '/Firmware Version/ {gsub(/^ +/,"",$2); print $2; exit}')
             if [ -n "$firmware" ]; then
-                publish_metric "hardware_samsung_${disk_key}_firmware" "$firmware" "TEXT" "$CYCLE"
+                publish_metric "hardware_samsung_${disk_key}_firmware" "$firmware" "TEXT" "$REPORT"
             fi
         fi
     done < <(lsblk -dn -o NAME,TYPE | awk '$2=="disk" {print $1}')
 
-    publish_metric "hardware_samsung_disk_count" "$samsung_count" "INTEGER" "$CYCLE" 0
+    publish_metric "hardware_samsung_disk_count" "$samsung_count" "INTEGER" "$REPORT" 0
 
     [ "${LUMENMON_TEST_MODE:-}" = "1" ] && exit 0
-    sleep "$CYCLE"
+    sleep "$REPORT"
 done

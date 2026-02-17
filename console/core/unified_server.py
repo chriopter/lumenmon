@@ -31,6 +31,7 @@ import sqlite3
 import sys
 import threading
 import time
+import urllib.request
 from collections import deque
 from datetime import datetime
 from flask import Flask, jsonify, request, render_template, Response
@@ -46,6 +47,13 @@ MQTT_PASSWD_FILE = "/data/mqtt/passwd"
 HISTORY_SIZE = 30  # Sparkline points to keep in RAM
 PERSIST_INTERVAL = 30  # Seconds between SQLite writes (was 5)
 JSON_CACHE_INTERVAL = 1  # Seconds between JSON rebuilds
+LATEST_VERSION_CACHE_INTERVAL = 3600  # Seconds between upstream version checks
+
+LATEST_VERSION_CACHE = {
+    'version': '',
+    'timestamp': 0
+}
+LATEST_VERSION_LOCK = threading.Lock()
 
 # =============================================================================
 # GLOBAL STATE (RAM)
@@ -813,6 +821,51 @@ def index():
 @app.route('/health')
 def health():
     return jsonify({'status': 'ok', 'service': 'lumenmon-unified'})
+
+
+def fetch_latest_release_version():
+    """Fetch latest release tag from GitHub API."""
+    env_override = os.environ.get('LUMENMON_LATEST_VERSION', '').strip()
+    if env_override:
+        return env_override
+
+    req = urllib.request.Request(
+        'https://api.github.com/repos/chriopter/lumenmon/releases/latest',
+        headers={
+            'Accept': 'application/vnd.github+json',
+            'User-Agent': 'lumenmon-console'
+        }
+    )
+    with urllib.request.urlopen(req, timeout=5) as response:
+        payload = json.loads(response.read().decode('utf-8'))
+    return str(payload.get('tag_name', '')).strip()
+
+
+@app.route('/api/version/latest')
+def get_latest_version():
+    """Return latest release version with in-memory cache."""
+    now = int(time.time())
+
+    with LATEST_VERSION_LOCK:
+        cached_version = LATEST_VERSION_CACHE['version']
+        cached_timestamp = LATEST_VERSION_CACHE['timestamp']
+
+        if cached_version and (now - cached_timestamp) < LATEST_VERSION_CACHE_INTERVAL:
+            return jsonify({'version': cached_version, 'cached': True})
+
+        try:
+            version = fetch_latest_release_version()
+            if version:
+                LATEST_VERSION_CACHE['version'] = version
+                LATEST_VERSION_CACHE['timestamp'] = now
+                return jsonify({'version': version, 'cached': False})
+        except Exception:
+            pass
+
+        if cached_version:
+            return jsonify({'version': cached_version, 'cached': True, 'stale': True})
+
+        return jsonify({'version': '', 'cached': False, 'error': 'unavailable'}), 503
 
 @app.route('/api/entities')
 def get_entities():
