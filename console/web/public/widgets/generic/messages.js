@@ -62,13 +62,13 @@ async function loadMessagesWidget(el, agentId) {
     try {
         const [messagesResponse, stalenessResponse] = await Promise.all([
             fetch(`/api/agents/${agentId}/messages?limit=10`),
-            fetch('/api/messages/staleness?hours=168')
+            fetch('/api/messages/staleness?hours=96')
         ]);
         const result = await messagesResponse.json();
         const staleness = stalenessResponse.ok ? await stalenessResponse.json() : { per_agent: [] };
         const messages = result.messages || [];
         const staleEntry = (staleness.per_agent || []).find(a => a.agent_id === agentId);
-        const staleBadge = staleEntry && staleEntry.is_stale ? '<span class="widget-msg-badge" title="no mail for more than 7 days">stale</span>' : '';
+        const staleBadge = staleEntry && staleEntry.is_stale ? '<span class="widget-msg-badge" title="no mail for more than 4 days">stale</span>' : '';
 
         // Store messages for keyboard nav
         if (!mailWidgetState[agentId]) {

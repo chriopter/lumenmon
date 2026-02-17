@@ -103,11 +103,11 @@ Read this section as:
 | Collector | Publishes | Interval | Failure behavior |
 |-----------|-----------|----------|------------------|
 | `temp` | `hardware_temp_*` | 5m (`CYCLE`) | fails on temperature thresholds |
-| `pcie_errors` | `hardware_pcie_*` | 5m (`CYCLE`) | fails on PCIe/AER errors |
+| `pcie_errors` | `hardware_pcie_*` | 1h (`REPORT`) | fails on PCIe/AER errors |
 | `intel_gpu` | `hardware_intel_gpu_*` | 5m (`CYCLE`) | fails on Intel GPU utilization thresholds |
 | `vram` | `hardware_gpu_vram_*` | 5m (`CYCLE`) | fails on VRAM usage thresholds |
-| `smart_values` | `hardware_smart_*` | 5m (`CYCLE`) | fails on SMART health/temp/wear thresholds |
-| `ssd_samsung` | `hardware_samsung_*` | 5m (`CYCLE`) | inventory/firmware visibility for Samsung SSDs |
+| `smart_values` | `hardware_smart_*` | 1h (`REPORT`) | fails on SMART health/temp/wear thresholds |
+| `ssd_samsung` | `hardware_samsung_*` | 1h (`REPORT`) | inventory/firmware visibility for Samsung SSDs |
 
 #### Optional
 
@@ -135,7 +135,7 @@ This is the complete check map currently implemented in repo (base + opt-in).
 | Core | Proxmox VM/LXC/storage/ZFS | proxmox collectors | `proxmox_*` |
 | Core | Proxmox zpool degraded/upgrade-needed | proxmox collector | `proxmox_zpool_*` |
 | Mail | Mail ingest and per-agent mailbox | generic mail + SMTP receiver | `mail_message` |
-| Mail | Mail staleness (>7d) | server-side messages API | `/api/messages/staleness` |
+| Mail | Mail staleness (>4d) | server-side messages API | `/api/messages/staleness` |
 | PBS | Datastore/task/backup/verify/sync/gc freshness checks | pbs collectors | `pbs_*` |
 | Storage | Generic zpool status summary (non-Proxmox) | generic collector | `generic_zpool_*` |
 | Hardware | SMART health/temp/wear/powercycles | hardware collector | `hardware_smart_*` |
@@ -397,8 +397,8 @@ Current behavior is status-only scaffolding (no outbound webhook delivery yet).
 
 Mail staleness is evaluated in console backend from `messages.received_at`:
 
-- API: `GET /api/messages/staleness?hours=168`
-- Used by UI status warnings (`MAIL STALE > 7D`)
+- API: `GET /api/messages/staleness?hours=96`
+- Used by UI status warnings (`MAIL STALE > 4D`)
 - This avoids agent-local spool heuristics and works for SMTP-only senders.
 
 ### CSS (Tailwind)

@@ -556,7 +556,7 @@ Widgets auto-load based on available metrics. Functions: openDetailView(), close
         try {
             const [entitiesResponse, stalenessResponse] = await Promise.all([
                 fetch('/api/entities'),
-                fetch('/api/messages/staleness?hours=168')
+                fetch('/api/messages/staleness?hours=96')
             ]);
             if (!entitiesResponse.ok) throw new Error(`HTTP ${entitiesResponse.status}`);
 
@@ -572,7 +572,7 @@ Widgets auto-load based on available metrics. Functions: openDetailView(), close
                 const staleness = await stalenessResponse.json();
                 const staleAgent = (staleness.per_agent || []).find(a => a.agent_id === entityId);
                 if (staleAgent && staleAgent.is_stale) {
-                    warnings.push('MAIL STALE > 7D');
+                    warnings.push('MAIL STALE > 4D');
                 }
             }
 

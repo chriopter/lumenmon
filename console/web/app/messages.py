@@ -140,7 +140,7 @@ def messages_staleness():
     """Server-side mail staleness report using messages.received_at."""
     conn = get_db_connection()
     try:
-        threshold_hours = parse_hours_param(request.args.get('hours'), 168, 8760)
+        threshold_hours = parse_hours_param(request.args.get('hours'), 96, 8760)
         now = datetime.now(timezone.utc)
 
         cursor = conn.execute('''
