@@ -19,6 +19,11 @@
         reverse_proxy localhost:5000
     }
 
+    # Proxy debug views to Flask
+    handle /debug/* {
+        reverse_proxy localhost:5000
+    }
+
     # Serve static files (CSS, JS) - no cache
     handle /css/* {
         root * /app/web/public
@@ -62,6 +67,11 @@ localhost:8443, {$CONSOLE_HOST:localhost}:8443 {
 
     # Proxy API requests to Flask
     handle /api/* {
+        reverse_proxy localhost:5000
+    }
+
+    # Proxy debug views to Flask
+    handle /debug/* {
         reverse_proxy localhost:5000
     }
 

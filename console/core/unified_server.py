@@ -55,6 +55,37 @@ LATEST_VERSION_CACHE = {
 }
 LATEST_VERSION_LOCK = threading.Lock()
 
+COLLECTOR_COVERAGE_DEFS = [
+    {'collector': 'debian_updates', 'patterns': ['debian_updates_total', 'debian_updates_security', 'debian_updates_release', 'debian_updates_age']},
+    {'collector': 'generic_cpu', 'patterns': ['generic_cpu']},
+    {'collector': 'generic_disk', 'patterns': ['generic_disk']},
+    {'collector': 'generic_heartbeat', 'patterns': ['generic_heartbeat']},
+    {'collector': 'generic_hostname', 'patterns': ['generic_hostname']},
+    {'collector': 'generic_lumenmon', 'patterns': ['generic_sys_os', 'generic_sys_kernel', 'generic_sys_uptime']},
+    {'collector': 'generic_mail', 'patterns': [], 'mode': 'event_only', 'note': 'mail collector publishes messages, not metric rows'},
+    {'collector': 'generic_memory', 'patterns': ['generic_memory']},
+    {'collector': 'generic_version', 'patterns': ['generic_agent_version']},
+    {'collector': 'generic_zpool', 'patterns': ['generic_zpool_total', 'generic_zpool_degraded']},
+    {'collector': 'hardware_intel_gpu', 'patterns': ['hardware_intel_gpu_busy_pct']},
+    {'collector': 'hardware_pcie_errors', 'patterns': ['hardware_pcie_errors_24h']},
+    {'collector': 'hardware_smart_values', 'patterns': ['hardware_smart_*']},
+    {'collector': 'hardware_ssd_samsung', 'patterns': ['hardware_samsung_disk_count']},
+    {'collector': 'hardware_temp', 'patterns': ['hardware_temp_*']},
+    {'collector': 'hardware_vram', 'patterns': ['hardware_gpu_vram_used_pct']},
+    {'collector': 'optional_mullvad_active', 'patterns': ['mullvad_active', 'mullvad_server']},
+    {'collector': 'pbs_backup_age', 'patterns': ['pbs_backup_age_hours']},
+    {'collector': 'pbs_datastore_count', 'patterns': ['pbs_datastore_count']},
+    {'collector': 'pbs_gc_age', 'patterns': ['pbs_gc_age_hours']},
+    {'collector': 'pbs_sync_age', 'patterns': ['pbs_sync_age_hours']},
+    {'collector': 'pbs_task_failures', 'patterns': ['pbs_task_failures_24h']},
+    {'collector': 'pbs_verify_age', 'patterns': ['pbs_verify_age_hours']},
+    {'collector': 'proxmox_containers', 'patterns': ['proxmox_cts_running', 'proxmox_cts_stopped']},
+    {'collector': 'proxmox_storage', 'patterns': ['proxmox_storage_*']},
+    {'collector': 'proxmox_vms', 'patterns': ['proxmox_vms_running', 'proxmox_vms_stopped']},
+    {'collector': 'proxmox_zfs', 'patterns': ['proxmox_zfs_*']},
+    {'collector': 'proxmox_zpool_health', 'patterns': ['proxmox_zpool_any_degraded']}
+]
+
 # =============================================================================
 # GLOBAL STATE (RAM)
 # =============================================================================
@@ -849,6 +880,13 @@ def index():
     v = ''.join(random.choices(string.ascii_letters + string.digits, k=6))
     return render_template('index.html', v=v)
 
+
+@app.route('/debug/collectors')
+def collectors_debug_view():
+    import random, string
+    v = ''.join(random.choices(string.ascii_letters + string.digits, k=6))
+    return render_template('debug_collectors.html', v=v)
+
 @app.route('/health')
 def health():
     return jsonify({'status': 'ok', 'service': 'lumenmon-unified'})
@@ -925,6 +963,107 @@ def get_stats():
     stats['uptime'] = int(time.time() - START_TIME)
     stats['agents'] = len(STATE.agents)
     return jsonify(stats)
+
+
+@app.route('/api/collectors/coverage')
+def get_collectors_coverage():
+    """Global collector coverage across all agents (which collectors emitted at least one metric)."""
+    with STATE.lock:
+        agent_metrics = {}
+        agent_names = {}
+        live_metrics = set()
+
+        for agent_id, metrics in STATE.agents.items():
+            if not agent_id.startswith('id_'):
+                continue
+            metric_names = set(metrics.keys())
+            agent_metrics[agent_id] = metric_names
+            live_metrics.update(metric_names)
+
+            display_name = STATE.display_names.get(agent_id)
+            hostname = metrics.get('generic_hostname', {}).get('value') if isinstance(metrics, dict) else None
+            agent_names[agent_id] = display_name or hostname or agent_id
+
+    total_agents = len(agent_metrics)
+
+    def _matches(pattern):
+        if pattern.endswith('*'):
+            prefix = pattern[:-1]
+            return [m for m in live_metrics if m.startswith(prefix)]
+        return [pattern] if pattern in live_metrics else []
+
+    def _agent_has_pattern(metric_names, pattern):
+        if pattern.endswith('*'):
+            prefix = pattern[:-1]
+            return any(name.startswith(prefix) for name in metric_names)
+        return pattern in metric_names
+
+    collectors = []
+    metric_collectors = 0
+    metric_with_data = 0
+    metric_without_data = 0
+
+    for definition in COLLECTOR_COVERAGE_DEFS:
+        collector = definition['collector']
+        patterns = definition.get('patterns', [])
+        mode = definition.get('mode', 'metrics')
+        note = definition.get('note')
+
+        matched = []
+        for pattern in patterns:
+            matched.extend(_matches(pattern))
+        matched = sorted(set(matched))
+
+        matched_agents = []
+        if mode == 'event_only':
+            matched_agents = sorted(list(STATE.mail_only_agents))
+        else:
+            for agent_id, metric_names in agent_metrics.items():
+                if any(_agent_has_pattern(metric_names, pattern) for pattern in patterns):
+                    matched_agents.append(agent_id)
+
+        agents_with_data = [
+            {'id': agent_id, 'name': agent_names.get(agent_id, agent_id)}
+            for agent_id in sorted(matched_agents)
+        ]
+        agents_count = len(agents_with_data)
+        coverage_pct = round((agents_count / total_agents) * 100, 1) if total_agents > 0 else 0.0
+
+        if mode == 'event_only':
+            status = 'event_only'
+        else:
+            metric_collectors += 1
+            if matched:
+                status = 'has_data'
+                metric_with_data += 1
+            else:
+                status = 'no_data'
+                metric_without_data += 1
+
+        collectors.append({
+            'collector': collector,
+            'status': status,
+            'patterns': patterns,
+            'matched_metrics': matched,
+            'agents_count': agents_count,
+            'agents_with_data': agents_with_data,
+            'coverage_pct': coverage_pct,
+            'note': note
+        })
+
+    collectors.sort(key=lambda item: item['collector'])
+
+    return jsonify({
+        'collectors': collectors,
+        'summary': {
+            'total_collectors': len(COLLECTOR_COVERAGE_DEFS),
+            'metric_collectors': metric_collectors,
+            'metric_collectors_with_data': metric_with_data,
+            'metric_collectors_without_data': metric_without_data,
+            'event_only_collectors': len([c for c in collectors if c['status'] == 'event_only']),
+            'agents_seen': total_agents
+        }
+    })
 
 @app.route('/api/agents/<agent_id>/name', methods=['PUT', 'POST'])
 def update_agent_name(agent_id):

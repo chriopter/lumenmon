@@ -10,6 +10,9 @@ Provides addLog(message, level) function for inline event logging. Max 50 entrie
   ███████╗╚██████╔╝██║ ╚═╝ ██║███████╗██║ ╚████║██║ ╚═╝ ██║╚██████╔╝██║ ╚████║
   ╚══════╝ ╚═════╝ ╚═╝     ╚═╝╚══════╝╚═╝  ╚═══╝╚═╝     ╚═╝ ╚═════╝ ╚═╝  ╚═══╝</div>
     <div id="log-entries"></div>
+    <div id="collector-coverage" class="log-entry" style="margin-top: 0.5rem; border-top: 1px solid #313244; padding-top: 0.35rem;">
+        <span class="log-timestamp">[debug]</span><span class="log-level-info">collectors: loading coverage...</span>
+    </div>
 </div>
 
 <script>
@@ -62,4 +65,35 @@ Provides addLog(message, level) function for inline event logging. Max 50 entrie
     //     checkMqttMessages();
     //     window.app.mqtt.checkInterval = setInterval(checkMqttMessages, 2000);
     // });
+
+    async function refreshCollectorCoverage() {
+        const el = document.getElementById('collector-coverage');
+        if (!el) return;
+
+        try {
+            const response = await fetch('/api/collectors/coverage');
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+            const data = await response.json();
+            const summary = data.summary || {};
+            const collectors = data.collectors || [];
+
+            const missing = collectors
+                .filter(c => c.status === 'no_data')
+                .map(c => c.collector)
+                .sort();
+
+            const header = `collectors without data: ${summary.metric_collectors_without_data || 0}/${summary.metric_collectors || 0}`;
+            const details = missing.length > 0 ? missing.join(', ') : 'none';
+
+            el.innerHTML = `<span class="log-timestamp">[debug]</span><span class="${missing.length > 0 ? 'log-level-warning' : 'log-level-success'}">${header}</span><div style="margin-top:0.2rem; color:#bac2de; white-space:normal; word-break:break-word;">${details}</div>`;
+        } catch (error) {
+            el.innerHTML = `<span class="log-timestamp">[debug]</span><span class="log-level-error">collector coverage error: ${error.message}</span>`;
+        }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+        refreshCollectorCoverage();
+        setInterval(refreshCollectorCoverage, 30000);
+    });
 </script>
