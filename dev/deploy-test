@@ -13,13 +13,14 @@ fi
 
 TARGET="${1:-}"
 if [ -z "$TARGET" ]; then
-    echo "Usage: $0 [agent|web|console|all|status]"
+    echo "Usage: $0 [agent|web|console|all|status|check]"
     echo ""
     echo "  agent   - Deploy agent scripts, restart service"
     echo "  web     - Build CSS + hot-reload web public files"
     echo "  console - Deploy full console app files + restart container"
     echo "  all     - Deploy agent, then console"
     echo "  status  - Check console/agent status on remote host"
+    echo "  check   - Run quick remote API/runtime health checks"
     exit 1
 fi
 
@@ -104,6 +105,19 @@ show_status() {
     remote "lumenmon-agent"
 }
 
+run_checks() {
+    echo "==> Running remote runtime checks on $LUMENMON_TEST_HOST..."
+    remote "lumenmon"
+    echo ""
+    remote "lumenmon-agent"
+    echo ""
+    remote "curl -fsS http://localhost:8080/api/entities >/dev/null && echo 'Entities API: OK'"
+    remote "curl -fsS http://localhost:8080/api/messages/unread-counts >/dev/null && echo 'Messages API: OK'"
+    remote "curl -fsS http://localhost:8080/api/messages/staleness >/dev/null && echo 'Mail staleness API: OK'"
+    remote "curl -fsS http://localhost:8080/api/alerts/status >/dev/null && echo 'Alerts status API: OK'"
+    remote "docker ps --format 'table {{.Names}}\\t{{.Status}}' | grep lumenmon-console"
+}
+
 preflight
 
 case "$TARGET" in
@@ -124,9 +138,12 @@ case "$TARGET" in
     status)
         show_status
         ;;
+    check)
+        run_checks
+        ;;
     *)
         echo "Unknown target: $TARGET"
-        echo "Use: agent, web, console, all, or status"
+        echo "Use: agent, web, console, all, status, or check"
         exit 1
         ;;
 esac

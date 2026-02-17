@@ -4,6 +4,8 @@
 
 RHYTHM="CYCLE"  # Uses CYCLE timing from agent.sh (5 min)
 
+set -euo pipefail
+
 source "$LUMENMON_HOME/core/mqtt/publish.sh"
 
 # Find mail spool file
@@ -50,14 +52,19 @@ publish_mail() {
     # Escape for JSON
     mail_from=$(echo "$mail_from" | sed 's/\\/\\\\/g; s/"/\\"/g')
     subject=$(echo "$subject" | sed 's/\\/\\\\/g; s/"/\\"/g')
-    body=$(echo -e "$body" | sed 's/\\/\\\\/g; s/"/\\"/g; s/\t/\\t/g' | tr '\n' '\r' | sed 's/\r/\\n/g')
+    body=$(printf '%s' "$body" | sed 's/\\/\\\\/g; s/"/\\"/g; s/\t/\\t/g' | tr '\n' '\r' | sed 's/\r/\\n/g')
 
     _mqtt_load_creds
-    mosquitto_pub -h "$_MQTT_HOST" -p "$_MQTT_PORT" -u "$_MQTT_USER" -P "$_MQTT_PASS" \
+    if mosquitto_pub -h "$_MQTT_HOST" -p "$_MQTT_PORT" -u "$_MQTT_USER" -P "$_MQTT_PASS" \
         --cafile "$_MQTT_CERT" --insecure \
         -t "metrics/$_MQTT_USER/mail_message" \
-        -m "{\"mail_from\":\"$mail_from\",\"subject\":\"$subject\",\"body\":\"$body\"}" 2>/dev/null && \
+        -m "{\"mail_from\":\"$mail_from\",\"subject\":\"$subject\",\"body\":\"$body\"}" 2>/dev/null; then
         echo "[mail] $subject" >&2
+        return 0
+    fi
+
+    echo "[mail] WARN: publish failed for subject '$subject'" >&2
+    return 1
 }
 
 # Main loop
@@ -71,17 +78,29 @@ while true; do
     # Process new mail
     if [ "$size" -gt "$offset" ]; then
         current=""
+        failed=0
         while IFS= read -r line; do
-            if [[ "$line" =~ ^From\ .+\  ]]; then
-                [ -n "$current" ] && publish_mail "$current"
+            if [[ "$line" =~ ^From\  ]]; then
+                if [ -n "$current" ] && ! publish_mail "$current"; then
+                    failed=1
+                    break
+                fi
                 current=""
             else
                 current="${current:+$current
 }$line"
             fi
         done < <(tail -c +$((offset + 1)) "$MAIL_FILE")
-        [ -n "$current" ] && publish_mail "$current"
-        echo "$size" > "$STATE_FILE"
+
+        if [ "$failed" -eq 0 ] && [ -n "$current" ] && ! publish_mail "$current"; then
+            failed=1
+        fi
+
+        if [ "$failed" -eq 0 ]; then
+            echo "$size" > "$STATE_FILE"
+        else
+            echo "[mail] WARN: keeping offset at $offset for retry" >&2
+        fi
     fi
 
     sleep $CYCLE

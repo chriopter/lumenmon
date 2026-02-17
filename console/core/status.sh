@@ -62,15 +62,9 @@ except Exception:
     if [ "$ACTIVE" = "0" ]; then
         NOW=$(date +%s)
         AGENT_IDS=$(sqlite3 /data/metrics.db "SELECT DISTINCT SUBSTR(name, 1, 11) FROM sqlite_master WHERE type='table' AND name LIKE 'id_%_generic_heartbeat'" 2>/dev/null)
-        if [ -z "$AGENT_IDS" ]; then
-            AGENT_IDS=$(sqlite3 /data/metrics.db "SELECT DISTINCT SUBSTR(name, 1, 11) FROM sqlite_master WHERE type='table' AND name LIKE 'id_%_generic_cpu'" 2>/dev/null)
-        fi
 
         for AGENT_ID in $AGENT_IDS; do
             LAST_TS=$(sqlite3 /data/metrics.db "SELECT MAX(timestamp) FROM ${AGENT_ID}_generic_heartbeat" 2>/dev/null || echo "0")
-            if [ "$LAST_TS" = "0" ]; then
-                LAST_TS=$(sqlite3 /data/metrics.db "SELECT MAX(timestamp) FROM ${AGENT_ID}_generic_cpu" 2>/dev/null || echo "0")
-            fi
             AGE=$((NOW - LAST_TS))
             if [ "$AGE" -lt 10 ]; then
                 ACTIVE=$((ACTIVE + 1))
