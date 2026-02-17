@@ -34,14 +34,33 @@ while true; do
 
     while read -r disk; do
         [ -z "$disk" ] && continue
+
+        # Skip zvol block devices (not physical disks, SMART unsupported).
+        case "$disk" in
+            zd*)
+                continue
+                ;;
+        esac
+
         dev="/dev/$disk"
         disk_key=$(sanitize_name "$disk")
 
-        if smartctl -H "$dev" 2>/dev/null | grep -Eq 'PASSED|OK'; then
-            health=1
-        else
-            health=0
+        # smartctl uses bitmask exit codes; do not treat non-zero as immediate failure.
+        # Parse textual health status from output instead.
+        health_out=$(smartctl -H "$dev" 2>/dev/null || true)
+        if [ -z "$health_out" ]; then
+            continue
         fi
+
+        if printf '%s' "$health_out" | grep -Eq 'PASSED|OK'; then
+            health=1
+        elif printf '%s' "$health_out" | grep -Eq 'FAILED|BAD|CRITICAL'; then
+            health=0
+        else
+            # Unknown/unsupported health output: skip rather than emit false failures.
+            continue
+        fi
+
         publish_metric "hardware_smart_${disk_key}_health" "$health" "INTEGER" "$REPORT" 1 1
 
         temp=$(get_smart_temp "$dev" || echo "")
