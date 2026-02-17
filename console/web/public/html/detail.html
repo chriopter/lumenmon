@@ -558,7 +558,10 @@ Widgets auto-load based on available metrics. Functions: openDetailView(), close
 
     async function loadSystemStatus(entityId, entityType) {
         try {
-            const entitiesResponse = await fetch('/api/entities');
+            const [entitiesResponse, stalenessResponse] = await Promise.all([
+                fetch('/api/entities'),
+                fetch('/api/messages/staleness?hours=336')
+            ]);
             if (!entitiesResponse.ok) throw new Error(`HTTP ${entitiesResponse.status}`);
 
             const data = await entitiesResponse.json();
@@ -568,6 +571,14 @@ Widgets auto-load based on available metrics. Functions: openDetailView(), close
             const warnings = [];
             if (!entity.has_mqtt_user) warnings.push('MQTT USER MISSING');
             if (entity.type === 'agent' && !entity.has_table) warnings.push('SQL TABLES MISSING');
+
+            if (stalenessResponse.ok) {
+                const staleness = await stalenessResponse.json();
+                const staleAgent = (staleness.per_agent || []).find(a => a.agent_id === entityId);
+                if (staleAgent && staleAgent.is_stale) {
+                    warnings.push('MAIL STALE > 14D');
+                }
+            }
 
             const warningsEl = document.getElementById('status-warnings');
             if (warningsEl) warningsEl.textContent = warnings.join(' · ');

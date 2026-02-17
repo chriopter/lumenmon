@@ -135,6 +135,7 @@ Use the narrowest target matching changed files.
 - Metric payload contract fields: `value`, `type`, `interval`, optional `min`, `max`.
 - Collector `TYPE` values: `REAL`, `INTEGER`, `TEXT`.
 - Use `min`/`max` when a metric should drive health-state detection.
+- Mail staleness is server-side (`/api/messages/staleness`, default 14 days / 336h) and should stay warning-only unless explicitly changed.
 - Agent ID pattern used by APIs: `id_<hex...>`.
 - SQLite metric table naming: `<agent_id>_<metric_name>`.
 
