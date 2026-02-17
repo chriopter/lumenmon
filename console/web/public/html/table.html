@@ -44,23 +44,12 @@ Fetches server-rendered rows every 1s. Provides row selection, navigation functi
     }
 
     async function fetchAgents() {
-        // Also fetch unread counts and mail staleness
+        // Also fetch unread counts
         await fetchUnreadCounts();
         try {
-            const [entitiesResponse, stalenessResponse] = await Promise.all([
-                fetch('/api/entities'),
-                fetch('/api/messages/staleness?hours=96')
-            ]);
+            const entitiesResponse = await fetch('/api/entities');
             if (!entitiesResponse.ok) throw new Error(`HTTP ${entitiesResponse.status}`);
             const data = await entitiesResponse.json();
-
-            const staleMap = {};
-            if (stalenessResponse.ok) {
-                const stalenessData = await stalenessResponse.json();
-                (stalenessData.per_agent || []).forEach(entry => {
-                    staleMap[entry.agent_id] = !!entry.is_stale;
-                });
-            }
 
             const tbody = document.getElementById('agents-tbody');
 
@@ -151,14 +140,13 @@ Fetches server-rendered rows every 1s. Provides row selection, navigation functi
                         let statusDot = entity.status || 'offline';
                         const latestVersion = window.app?.data?.latestVersion;
                         const agentVersion = entity.agent_version || '';
-                        const isMailStale = staleMap[entity.id] === true;
                         const hasCollectorFailures = (entity.failed_collectors || 0) > 0;
                         const isOutdated = window.isAgentVersionOutdated
                             ? window.isAgentVersionOutdated(agentVersion, latestVersion)
                             : false;
                         if (statusDot !== 'offline' && hasCollectorFailures) {
                             statusDot = 'critical';
-                        } else if (statusDot === 'online' && (isOutdated || isMailStale)) {
+                        } else if (statusDot === 'online' && isOutdated) {
                             statusDot = 'degraded';
                         }
                         const originalHostname = entity.original_hostname || entity.hostname || entity.id;
@@ -172,7 +160,7 @@ Fetches server-rendered rows every 1s. Provides row selection, navigation functi
                         const diskHistory = JSON.stringify(entity.diskHistory || []);
                         const pendingInvite = entity.pending_invite ? JSON.stringify(entity.pending_invite).replace(/'/g, '&#39;') : '';
 
-                        html += `<tr class="agent-row ${selected} ${validClass}" data-index="${index}" data-entity-id="${entity.id}" data-entity-type="agent" data-hostname="${displayName}" data-status="${statusDot}" data-mail-stale="${isMailStale}" data-valid="${entity.valid}" data-age="${entity.age || 0}" data-uptime="${entity.uptime || ''}" data-heartbeat="${entity.heartbeat || 0}" data-cpu-history='${cpuHistory}' data-mem-history='${memHistory}' data-disk-history='${diskHistory}' data-pending-invite='${pendingInvite}' data-display-name="${entity.display_name || ''}" data-original-hostname="${originalHostname}" ${groupAttr} draggable="true">`;
+                        html += `<tr class="agent-row ${selected} ${validClass}" data-index="${index}" data-entity-id="${entity.id}" data-entity-type="agent" data-hostname="${displayName}" data-status="${statusDot}" data-valid="${entity.valid}" data-age="${entity.age || 0}" data-uptime="${entity.uptime || ''}" data-heartbeat="${entity.heartbeat || 0}" data-cpu-history='${cpuHistory}' data-mem-history='${memHistory}' data-disk-history='${diskHistory}' data-pending-invite='${pendingInvite}' data-display-name="${entity.display_name || ''}" data-original-hostname="${originalHostname}" ${groupAttr} draggable="true">`;
                         const pendingSymbol = entity.valid ? '' : ' (pending)';
                         // Check for unread messages for this agent
                         const agentUnread = window.app.messages.unreadCounts[entity.id] || 0;
@@ -181,8 +169,6 @@ Fetches server-rendered rows every 1s. Provides row selection, navigation functi
                         let statusTitle = statusDot;
                         if (statusDot === 'critical') {
                             statusTitle = 'critical (collector failures)';
-                        } else if (isMailStale) {
-                            statusTitle = `${statusDot} (mail stale > 4d)`;
                         }
                         html += `<td title="ID: ${entity.id}"><span class="status-dot ${statusDot}" title="${statusTitle}"></span>${displayName}${pendingSymbol}${unreadBadge}</td>`;
                         html += `<td><span class="sparkline">${cpuSparkline}</span></td>`;

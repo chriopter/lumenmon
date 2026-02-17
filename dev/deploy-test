@@ -113,7 +113,6 @@ run_checks() {
     echo ""
     remote "curl -fsS http://localhost:8080/api/entities >/dev/null && echo 'Entities API: OK'"
     remote "curl -fsS http://localhost:8080/api/messages/unread-counts >/dev/null && echo 'Messages API: OK'"
-    remote "curl -fsS http://localhost:8080/api/messages/staleness >/dev/null && echo 'Mail staleness API: OK'"
     remote "curl -fsS http://localhost:8080/api/alerts/status >/dev/null && echo 'Alerts status API: OK'"
     remote "docker ps --format 'table {{.Names}}\\t{{.Status}}' | grep lumenmon-console"
 }

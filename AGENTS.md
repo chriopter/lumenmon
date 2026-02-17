@@ -137,7 +137,6 @@ Use the narrowest target matching changed files.
 - Use `min`/`max` when a metric should drive health-state detection.
 - Agent ID pattern used by APIs: `id_<hex...>`.
 - SQLite metric table naming: `<agent_id>_<metric_name>`.
-- Mail staleness is server-side (`/api/messages/staleness`), not agent spool-state based.
 
 ### Error handling and logging
 - Shell: emit actionable warnings to stderr; keep non-critical failures non-fatal when possible.

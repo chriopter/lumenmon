@@ -135,7 +135,6 @@ This is the complete check map currently implemented in repo (base + opt-in).
 | Core | Proxmox VM/LXC/storage/ZFS | proxmox collectors | `proxmox_*` |
 | Core | Proxmox zpool degraded/upgrade-needed | proxmox collector | `proxmox_zpool_*` |
 | Mail | Mail ingest and per-agent mailbox | generic mail + SMTP receiver | `mail_message` |
-| Mail | Mail staleness (>4d) | server-side messages API | `/api/messages/staleness` |
 | PBS | Datastore/task/backup/verify/sync/gc freshness checks | pbs collectors | `pbs_*` |
 | Storage | Generic zpool status summary (non-Proxmox) | generic collector | `generic_zpool_*` |
 | Hardware | SMART health/temp/wear/powercycles | hardware collector | `hardware_smart_*` |
@@ -401,14 +400,6 @@ Console exposes webhook alert configuration status in GUI and API:
 - GUI footer: `alerts: not configured` / `alerts: webhook dry-run` / `alerts: active`
 
 Current behavior is status-only scaffolding (no outbound webhook delivery yet).
-
-### Mail Staleness (Server-side)
-
-Mail staleness is evaluated in console backend from `messages.received_at`:
-
-- API: `GET /api/messages/staleness?hours=96`
-- Used by UI status warnings (`MAIL STALE > 4D`)
-- This avoids agent-local spool heuristics and works for SMTP-only senders.
 
 ### CSS (Tailwind)
 ```bash
