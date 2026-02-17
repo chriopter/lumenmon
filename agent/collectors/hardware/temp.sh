@@ -18,14 +18,15 @@ while true; do
         while IFS= read -r line; do
             [ -z "$line" ] && continue
 
-            if [[ "$line" != *":"* ]] && [[ "$line" != " "* ]] && [[ "$line" != $'\t'* ]]; then
+            if [[ "$line" != " "* ]] && [[ "$line" != $'\t'* ]] && [[ "$line" != Adapter:* ]]; then
                 current_chip="$line"
                 continue
             fi
 
-            if [[ "$line" =~ ^[[:space:]]*([^:]+):[[:space:]]*([+-]?[0-9]+(\.[0-9]+)?) ]]; then
+            if [[ "$line" =~ ^[[:space:]]*([^:]+):[[:space:]]*([+-]?[0-9]+(\.[0-9]+)?)°C ]]; then
                 label="${BASH_REMATCH[1]}"
                 temp="${BASH_REMATCH[2]}"
+                temp="${temp#+}"
 
                 if awk -v t="$temp" 'BEGIN {exit !(t >= -10 && t <= 120)}'; then
                     sensor_key=$(printf '%s_%s' "$current_chip" "$label" | tr '[:upper:]' '[:lower:]' | tr -cs 'a-z0-9' '_' | tr -s '_')
@@ -56,8 +57,20 @@ while true; do
         while read -r dev; do
             [ -z "$dev" ] && continue
             key=$(basename "$dev" | tr '.-' '__')
-            temp=$(nvme smart-log "$dev" 2>/dev/null | awk '/^temperature/ {print $3; exit}')
-            if [ -n "$temp" ]; then
+            temp=$(nvme smart-log "$dev" 2>/dev/null | awk '
+                BEGIN { IGNORECASE=1 }
+                /temperature/ {
+                    if (match($0, /\(([0-9]+)[[:space:]]*C\)/, m)) {
+                        print m[1]
+                        exit
+                    }
+                    if (match($0, /temperature[^0-9]*([0-9]+)[[:space:]]*C/, m)) {
+                        print m[1]
+                        exit
+                    }
+                }
+            ')
+            if [ -n "$temp" ] && awk -v t="$temp" 'BEGIN {exit !(t >= -10 && t <= 120)}'; then
                 publish_metric "hardware_temp_nvme_${key}_c" "$temp" "INTEGER" "$CYCLE" 0 70
             fi
         done < <(nvme list 2>/dev/null | awk '/^\/dev\/nvme/ {print $1}')

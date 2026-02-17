@@ -8,7 +8,7 @@ LumenmonWidget({
     category: 'hardware',
     metrics: ['hardware_smart_*', 'hardware_samsung_*'],
     size: 'stat',
-    gridSize: 'md',
+    gridSize: 'sm',
     priority: 15,
     render: function(data) {
         const drives = {};
@@ -49,12 +49,8 @@ LumenmonWidget({
             }
 
             const temp = (d.temp_c !== undefined && d.temp_c !== null) ? `${d.temp_c}C` : '-';
-            const wear = (d.wear_pct !== undefined && d.wear_pct !== null) ? `${d.wear_pct}%` : '-';
-            const cycles = (d.power_cycles !== undefined && d.power_cycles !== null) ? `${d.power_cycles}` : '-';
-            const fw = d.firmware ? ` fw:${d.firmware}` : '';
-
-            html += `<div class="tui-info-row"><span class="tui-info-label">${disk}</span><span class="tui-info-value ${klass}">${status}</span></div>`;
-            html += `<div class="tui-info-row"><span class="tui-info-label"> </span><span class="tui-info-value">temp:${temp} wear:${wear} cycles:${cycles}${fw}</span></div>`;
+            const wear = (d.wear_pct !== undefined && d.wear_pct !== null) ? ` wear:${d.wear_pct}%` : '';
+            html += `<div class="tui-info-row"><span class="tui-info-label">${disk}</span><span class="tui-info-value ${klass}">${status} ${temp}${wear}</span></div>`;
         });
         html += '</div></div>';
         return html;

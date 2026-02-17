@@ -7,8 +7,8 @@ LumenmonWidget({
     title: 'Hardware Temps',
     category: 'hardware',
     metrics: ['hardware_temp_*'],
-    size: 'chart',
-    gridSize: 'md',
+    size: 'stat',
+    gridSize: 'sm',
     priority: 14,
     render: function(data) {
         const toLabel = (metric) => {
@@ -28,6 +28,15 @@ LumenmonWidget({
                 .replace(/_/g, ' ')
                 .replace(/\s+/g, ' ')
                 .trim();
+        };
+
+        const isSensibleSensor = (metric) => {
+            if (metric === 'hardware_temp_cpu_c') return true;
+            if (/^hardware_temp_gpu_\d+_c$/.test(metric)) return true;
+            if (/^hardware_temp_nvme_.+_c$/.test(metric)) return true;
+            if (/^hardware_temp_coretemp_isa_[^_]+_package_id_0_c$/.test(metric)) return true;
+            if (/^hardware_temp_nct[0-9]+_isa_[^_]+_cputin_c$/.test(metric)) return true;
+            return false;
         };
 
         const scoreSensor = (sensor) => {
@@ -59,7 +68,8 @@ LumenmonWidget({
                     score: Number.isNaN(value) ? -999 : scoreSensor({ metric })
                 };
             })
-            .filter(s => !Number.isNaN(s.value) && s.value >= -10 && s.value <= 120);
+            .filter(s => !Number.isNaN(s.value) && s.value >= -10 && s.value <= 120)
+            .filter(s => isSensibleSensor(s.metric));
 
         if (sensors.length === 0) {
             return '<div class="tui-box"><h3>hardware temps</h3><span class="no-data">No temperature sensors</span></div>';
@@ -68,12 +78,12 @@ LumenmonWidget({
         const keySensors = sensors
             .slice()
             .sort((a, b) => (b.score - a.score) || (b.value - a.value))
-            .slice(0, 6);
+            .slice(0, 4);
 
         const hottest = sensors
             .slice()
             .sort((a, b) => b.value - a.value)
-            .slice(0, 3);
+            .slice(0, 2);
 
         const selected = [];
         const seen = new Set();
@@ -87,14 +97,9 @@ LumenmonWidget({
         let html = '<div class="tui-box"><h3>hardware temps</h3><div class="tui-info-list">';
         selected.forEach((sensor) => {
             const valueText = `${sensor.value.toFixed(1)} C`;
-            const history = sensor.history;
-            const spark = history.length > 1 ? LumenmonWidgets.sparkline(history) : '...';
             const cls = sensor.value >= 85 ? 'status-error' : (sensor.value >= 75 ? 'status-warning' : '');
-            html += `<div class="tui-info-row"><span class="tui-info-label">${sensor.label}</span><span class="tui-info-value ${cls}">${valueText}  ${spark}</span></div>`;
+            html += `<div class="tui-info-row"><span class="tui-info-label">${sensor.label}</span><span class="tui-info-value ${cls}">${valueText}</span></div>`;
         });
-        if (sensors.length > selected.length) {
-            html += `<div class="tui-info-row"><span class="tui-info-label">sensors</span><span class="tui-info-value">showing ${selected.length}/${sensors.length}</span></div>`;
-        }
         html += '</div></div>';
         return html;
     }
