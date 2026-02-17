@@ -128,6 +128,40 @@ def set_host_group(agent_id, group_name):
         print(f"Error setting group: {e}")
         return False
 
+
+def set_host_group_order(agent_id, group_order):
+    """Set manual order for an agent within its group."""
+    try:
+        init_host_settings_table()
+        conn = get_db_connection()
+        conn.execute('''
+            INSERT INTO host_settings (agent_id, group_order, updated_at)
+            VALUES (?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(agent_id) DO UPDATE SET
+                group_order = excluded.group_order,
+                updated_at = CURRENT_TIMESTAMP
+        ''', (agent_id, int(group_order)))
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"Error setting group order: {e}")
+        return False
+
+
+def get_all_host_group_orders():
+    """Get all host manual orders as {agent_id: group_order}."""
+    try:
+        init_host_settings_table()
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT agent_id, group_order FROM host_settings")
+        result = {row['agent_id']: int(row['group_order'] or 0) for row in cursor.fetchall()}
+        conn.close()
+        return result
+    except Exception:
+        return {}
+
 def get_all_host_groups():
     """Get all agent groups as a dict {agent_id: group_name}."""
     try:

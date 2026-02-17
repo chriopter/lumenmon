@@ -120,6 +120,8 @@ class AgentState:
         self.mail_only_agents = set()
         # Agent groups {agent_id: group_name}
         self.agent_groups = {}
+        # Manual order within group {agent_id: integer}
+        self.agent_orders = {}
 
     def update_metric(self, agent_id, metric_name, value, data_type, interval, min_val, max_val, warn_min_val=None, warn_max_val=None):
         """Update metric in RAM (called from MQTT thread)."""
@@ -273,6 +275,7 @@ class AgentState:
                     'pending_invite': get_invite(agent_id),
                     'display_name': display_name,
                     'group': agent_group,
+                    'group_order': self.agent_orders.get(agent_id, 0),
                 }
 
                 if is_mail_only:
@@ -401,12 +404,12 @@ class AgentState:
                         'pending_invite': get_invite(user_id)
                     })
 
-            # Sort: by group (ungrouped last), then by status, then by hostname/id
+            # Sort: by group (ungrouped last), then manual order, then hostname/id
             entities.sort(key=lambda e: (
                 # Groups alphabetically, ungrouped (None) at the end
                 (e.get('group') or '\xff'),  # \xff sorts after all normal chars
-                # Then by status
-                0 if e.get('status') == 'online' else (1 if e.get('status') == 'degraded' else (2 if e.get('status') == 'critical' else 3)),
+                # Then by manual order
+                int(e.get('group_order', 0) or 0),
                 # Then by hostname
                 (e.get('hostname') or e['id']).lower()
             ))
@@ -588,6 +591,12 @@ class AgentState:
             # Invalidate JSON cache so it gets rebuilt
             self._entities_json_time = 0
 
+    def update_agent_order(self, agent_id, group_order):
+        """Update manual agent order in RAM cache and invalidate JSON cache."""
+        with self.lock:
+            self.agent_orders[agent_id] = int(group_order)
+            self._entities_json_time = 0
+
     def get_stats(self):
         """Get server statistics."""
         with self.lock:
@@ -707,7 +716,15 @@ class AgentState:
             except Exception:
                 pass  # host_settings table might not exist or no group_name column
 
-            print(f"[unified] Loaded {len(self.agents)} agents, {len(self.mail_only_agents)} mail senders, {len(self.display_names)} display names, {len(self.agent_groups)} groups from SQLite", flush=True)
+            # Load manual order
+            try:
+                cursor.execute("SELECT agent_id, group_order FROM host_settings")
+                for agent_id, group_order in cursor.fetchall():
+                    self.agent_orders[agent_id] = int(group_order or 0)
+            except Exception:
+                pass
+
+            print(f"[unified] Loaded {len(self.agents)} agents, {len(self.mail_only_agents)} mail senders, {len(self.display_names)} display names, {len(self.agent_groups)} groups, {len(self.agent_orders)} orders from SQLite", flush=True)
         except Exception as e:
             print(f"[unified] Error loading from SQLite: {e}", flush=True)
 
@@ -1121,6 +1138,30 @@ def get_groups():
         'groups': groups,
         'count': len(groups)
     })
+
+
+@app.route('/api/agents/reorder', methods=['PUT', 'POST'])
+def reorder_agents_api():
+    """Persist manual order for a list of agent IDs within a group."""
+    from db import set_host_group_order
+
+    data = request.get_json() or {}
+    agent_ids = data.get('agent_ids') or []
+
+    if not isinstance(agent_ids, list) or not agent_ids:
+        return jsonify({'success': False, 'error': 'agent_ids must be a non-empty list'}), 400
+
+    order = 0
+    updated = 0
+    for agent_id in agent_ids:
+        if not isinstance(agent_id, str) or not re.match(r'^id_[a-f0-9]+$', agent_id):
+            continue
+        if set_host_group_order(agent_id, order):
+            STATE.update_agent_order(agent_id, order)
+            updated += 1
+            order += 1
+
+    return jsonify({'success': True, 'updated': updated, 'total': len(agent_ids)})
 
 
 @app.route('/api/agents/<agent_id>/reset', methods=['POST'])

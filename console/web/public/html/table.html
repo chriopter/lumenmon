@@ -91,7 +91,12 @@ Fetches server-rendered rows every 1s. Provides row selection, navigation functi
                     // Within same group, mail-only goes after regular agents
                     if (aTypeOrder !== bTypeOrder) return aTypeOrder - bTypeOrder;
 
-                    // Within same group and type, sort alphabetically by display name or hostname
+                    // Within same group and type, sort by manual order first
+                    const aOrder = Number.isFinite(Number(a.group_order)) ? Number(a.group_order) : 0;
+                    const bOrder = Number.isFinite(Number(b.group_order)) ? Number(b.group_order) : 0;
+                    if (aOrder !== bOrder) return aOrder - bOrder;
+
+                    // Fallback alphabetical by display name or hostname
                     const aName = (a.display_name || a.hostname || a.id).toLowerCase();
                     const bName = (b.display_name || b.hostname || b.id).toLowerCase();
                     return aName.localeCompare(bName);
@@ -126,7 +131,7 @@ Fetches server-rendered rows every 1s. Provides row selection, navigation functi
                     const index = rowIndex++;
                     const selected = index === 0 ? 'selected' : '';
                     const validClass = entity.valid ? '' : 'entity-invalid';
-                    const groupAttr = entity.group ? `data-group="${entity.group}"` : '';
+                    const groupAttr = `data-group="${entity.group || ''}"`;
 
                     if (entity.type === 'invite') {
                         // Render invite row
@@ -141,7 +146,7 @@ Fetches server-rendered rows every 1s. Provides row selection, navigation functi
                         const unreadBadge = agentUnread > 0 ? `<span class="unread-badge-inline" title="${agentUnread} unread">\u2709${agentUnread}</span>` : '';
                         const displayName = entity.display_name || entity.id;
 
-                        html += `<tr class="agent-row ${selected}" data-index="${index}" data-entity-id="${entity.id}" data-entity-type="agent" data-hostname="${displayName}" data-status="mail-only" data-valid="true" data-mail-only="true" data-display-name="${entity.display_name || ''}" data-original-hostname="" ${groupAttr} draggable="true">`;
+                        html += `<tr class="agent-row ${selected}" data-index="${index}" data-entity-id="${entity.id}" data-entity-type="agent" data-hostname="${displayName}" data-status="mail-only" data-valid="true" data-mail-only="true" data-display-name="${entity.display_name || ''}" data-original-hostname="" data-group-order="${entity.group_order || 0}" ${groupAttr} draggable="true">`;
                         html += `<td title="ID: ${entity.id} (mail only)"><span class="status-dot warning" title="mail-only"></span>${displayName}${unreadBadge}</td>`;
                         html += `<td colspan="4" class="mail-only-label">mail only</td>`;
                         html += `</tr>`;
@@ -172,7 +177,7 @@ Fetches server-rendered rows every 1s. Provides row selection, navigation functi
                         const diskHistory = JSON.stringify(entity.diskHistory || []);
                         const pendingInvite = entity.pending_invite ? JSON.stringify(entity.pending_invite).replace(/'/g, '&#39;') : '';
 
-                        html += `<tr class="agent-row ${selected} ${validClass}" data-index="${index}" data-entity-id="${entity.id}" data-entity-type="agent" data-hostname="${displayName}" data-status="${statusDot}" data-mail-stale="${isMailStale}" data-valid="${entity.valid}" data-age="${entity.age || 0}" data-uptime="${entity.uptime || ''}" data-heartbeat="${entity.heartbeat || 0}" data-cpu-history='${cpuHistory}' data-mem-history='${memHistory}' data-disk-history='${diskHistory}' data-pending-invite='${pendingInvite}' data-display-name="${entity.display_name || ''}" data-original-hostname="${originalHostname}" ${groupAttr} draggable="true">`;
+                        html += `<tr class="agent-row ${selected} ${validClass}" data-index="${index}" data-entity-id="${entity.id}" data-entity-type="agent" data-hostname="${displayName}" data-status="${statusDot}" data-mail-stale="${isMailStale}" data-valid="${entity.valid}" data-age="${entity.age || 0}" data-uptime="${entity.uptime || ''}" data-heartbeat="${entity.heartbeat || 0}" data-cpu-history='${cpuHistory}' data-mem-history='${memHistory}' data-disk-history='${diskHistory}' data-pending-invite='${pendingInvite}' data-display-name="${entity.display_name || ''}" data-original-hostname="${originalHostname}" data-group-order="${entity.group_order || 0}" ${groupAttr} draggable="true">`;
                         const pendingSymbol = entity.valid ? '' : ' (pending)';
                         // Check for unread messages for this agent
                         const agentUnread = window.app.messages.unreadCounts[entity.id] || 0;
@@ -297,6 +302,7 @@ Fetches server-rendered rows every 1s. Provides row selection, navigation functi
             row.addEventListener('dragstart', (e) => {
                 window.app.isDragging = true;
                 e.dataTransfer.setData('text/plain', row.dataset.entityId);
+                e.dataTransfer.setData('application/x-group', row.dataset.group || '');
                 row.classList.add('dragging');
             });
 
@@ -375,10 +381,16 @@ Fetches server-rendered rows every 1s. Provides row selection, navigation functi
                 e.preventDefault();
                 row.classList.remove('drag-over-row');
                 const agentId = e.dataTransfer.getData('text/plain');
+                const sourceGroup = e.dataTransfer.getData('application/x-group') || '';
                 const targetGroup = row.dataset.group;
                 const targetAgentId = row.dataset.entityId;
 
                 if (!agentId || agentId === targetAgentId) return;
+
+                if ((sourceGroup || '') === (targetGroup || '')) {
+                    await reorderWithinGroup(agentId, targetAgentId, targetGroup || '');
+                    return;
+                }
 
                 if (targetGroup) {
                     // Target has a group - add dragged agent to that group
@@ -393,6 +405,36 @@ Fetches server-rendered rows every 1s. Provides row selection, navigation functi
                 }
             });
         });
+    }
+
+    async function persistAgentOrder(agentIds) {
+        const response = await fetch('/api/agents/reorder', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ agent_ids: agentIds })
+        });
+        return response.ok;
+    }
+
+    async function reorderWithinGroup(draggedAgentId, targetAgentId, groupName) {
+        const groupRows = Array.from(document.querySelectorAll('.agent-row[data-entity-type="agent"]'))
+            .filter(row => (row.dataset.group || '') === (groupName || ''));
+
+        const orderedIds = groupRows.map(row => row.dataset.entityId).filter(Boolean);
+        const fromIndex = orderedIds.indexOf(draggedAgentId);
+        const toIndex = orderedIds.indexOf(targetAgentId);
+        if (fromIndex < 0 || toIndex < 0 || fromIndex === toIndex) return;
+
+        orderedIds.splice(fromIndex, 1);
+        orderedIds.splice(toIndex, 0, draggedAgentId);
+
+        const ok = await persistAgentOrder(orderedIds);
+        if (ok) {
+            addLog(`reordered ${orderedIds.length} hosts in ${groupName || 'ungrouped'}`, 'success');
+            fetchAgents();
+        } else {
+            addLog('failed to persist host order', 'error');
+        }
     }
 
     // Set agent group via API
