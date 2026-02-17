@@ -450,7 +450,48 @@ Widgets auto-load based on available metrics. Functions: openDetailView(), close
                     ? (isOutOfBounds ? 'error-row' : 'stale-row')
                     : ((isOutdated || isWarningBounds) ? 'warning-row' : '');
 
-                const metricData = { metricName, columns, metadata, flashClass, rowClass, nextUpdateText, isOverdue, agentId };
+                let valueCellClass = '';
+                let minCellClass = '';
+                let maxCellClass = '';
+
+                if (isOutdated) {
+                    valueCellClass = 'status-warning';
+                }
+
+                if (isOutOfBounds || isWarningBounds) {
+                    const numericValue = Number(value);
+                    const severityClass = isOutOfBounds ? 'status-error' : 'status-warning';
+                    valueCellClass = severityClass;
+
+                    if (!Number.isNaN(numericValue)) {
+                        if (columns.min_value !== null && columns.min_value !== undefined && numericValue < Number(columns.min_value)) {
+                            minCellClass = severityClass;
+                        }
+                        if (columns.max_value !== null && columns.max_value !== undefined && numericValue > Number(columns.max_value)) {
+                            maxCellClass = severityClass;
+                        }
+                        if (!minCellClass && columns.warn_min_value !== null && columns.warn_min_value !== undefined && numericValue < Number(columns.warn_min_value)) {
+                            minCellClass = 'status-warning';
+                        }
+                        if (!maxCellClass && columns.warn_max_value !== null && columns.warn_max_value !== undefined && numericValue > Number(columns.warn_max_value)) {
+                            maxCellClass = 'status-warning';
+                        }
+                    }
+                }
+
+                const metricData = {
+                    metricName,
+                    columns,
+                    metadata,
+                    flashClass,
+                    rowClass,
+                    nextUpdateText,
+                    isOverdue,
+                    agentId,
+                    valueCellClass,
+                    minCellClass,
+                    maxCellClass
+                };
                 if (hasProblem) {
                     problemMetrics.push(metricData);
                 } else {
@@ -463,14 +504,17 @@ Widgets auto-load based on available metrics. Functions: openDetailView(), close
             // Helper to build table row
             const fmtVal = (v) => v !== null && v !== undefined ? v : '-';
             const buildRow = (m) => {
+                const realClass = `type-real ${m.columns.value_real !== null ? m.flashClass : ''} ${m.columns.value_real !== null ? m.valueCellClass : ''}`.trim();
+                const intClass = `type-integer ${m.columns.value_int !== null ? m.flashClass : ''} ${m.columns.value_int !== null ? m.valueCellClass : ''}`.trim();
+                const textClass = `type-text ${m.columns.value_text !== null ? m.valueCellClass : ''}`.trim();
                 let row = `<tr class="${m.rowClass}">`;
                 row += `<td class="metric-name">${m.metricName}</td>`;
                 row += `<td>${m.columns.timestamp || '-'}</td>`;
-                row += `<td class="type-real ${m.columns.value_real !== null ? m.flashClass : ''}" data-full="${fmtVal(m.columns.value_real)}">${fmtVal(m.columns.value_real)}</td>`;
-                row += `<td class="type-integer ${m.columns.value_int !== null ? m.flashClass : ''}" data-full="${fmtVal(m.columns.value_int)}">${fmtVal(m.columns.value_int)}</td>`;
-                row += `<td class="type-text" data-full="${fmtVal(m.columns.value_text)}">${fmtVal(m.columns.value_text)}</td>`;
-                row += `<td>${fmtVal(m.columns.min_value)}</td>`;
-                row += `<td>${fmtVal(m.columns.max_value)}</td>`;
+                row += `<td class="${realClass}" data-full="${fmtVal(m.columns.value_real)}">${fmtVal(m.columns.value_real)}</td>`;
+                row += `<td class="${intClass}" data-full="${fmtVal(m.columns.value_int)}">${fmtVal(m.columns.value_int)}</td>`;
+                row += `<td class="${textClass}" data-full="${fmtVal(m.columns.value_text)}">${fmtVal(m.columns.value_text)}</td>`;
+                row += `<td class="${m.minCellClass}">${fmtVal(m.columns.min_value)}</td>`;
+                row += `<td class="${m.maxCellClass}">${fmtVal(m.columns.max_value)}</td>`;
                 row += `<td>${m.columns.interval}s</td>`;
                 row += `<td class="db-content-separator">${m.metadata.timestamp_age || '-'}</td>`;
                 row += `<td class="${m.isOverdue ? 'overdue-text' : ''}">${m.nextUpdateText}</td>`;

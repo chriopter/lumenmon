@@ -11,6 +11,11 @@ get_config() {
 
 force_hardware="$(get_config hardware_force)"
 virt_mode="none"
+is_proxmox_host=0
+
+if command -v pvesh &>/dev/null || [ -x /usr/sbin/pvesh ] || [ -x /sbin/pvesh ] || [ -f /etc/pve/.version ]; then
+    is_proxmox_host=1
+fi
 
 if command -v systemd-detect-virt &>/dev/null; then
     virt_mode="$(systemd-detect-virt 2>/dev/null || true)"
@@ -19,7 +24,7 @@ fi
 
 if [ "${force_hardware:-0}" != "1" ] && [ "$virt_mode" != "none" ]; then
     # Proxmox hosts can report virtualization in some setups; still allow hardware collectors there.
-    if ! command -v pvesh &>/dev/null; then
+    if [ "$is_proxmox_host" -ne 1 ]; then
         return 0 2>/dev/null || true
     fi
 fi
