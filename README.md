@@ -123,25 +123,9 @@ Collector health is computed from:
 
 Entity (host) health rolls up from metric health. If any metric fails, entity status becomes degraded.
 
-### Full Check Catalog
-
-This is the complete check map currently implemented in repo (base + opt-in).
-
-| Domain | Check | Source | Metric Prefix |
-|--------|-------|--------|---------------|
-| Core | CPU/Memory/Disk/Heartbeat | generic collectors | `generic_*` |
-| Core | Host identity and runtime info | generic collectors | `generic_hostname`, `generic_sys_*`, `generic_agent_version` |
-| Core | Debian updates | debian collector | `debian_updates_*` |
-| Core | Proxmox VM/LXC/storage/ZFS | proxmox collectors | `proxmox_*` |
-| Core | Proxmox zpool degraded/upgrade-needed | proxmox collector | `proxmox_zpool_*` |
-| Mail | Mail ingest and per-agent mailbox | generic mail + SMTP receiver | `mail_message` |
-| Mail | Mail staleness (>14d) | server-side messages API | `/api/messages/staleness` |
-| PBS | Datastore/task/backup/verify/sync/gc freshness checks | pbs collectors | `pbs_*` |
-| Storage | Generic zpool status summary (non-Proxmox) | generic collector | `generic_zpool_*` |
-| Hardware | SMART health/temp/wear/powercycles | hardware collector | `hardware_smart_*` |
-| Hardware | Samsung SSD inventory and firmware | hardware collector | `hardware_samsung_*` |
-| Hardware | CPU/NVMe temps, PCIe errors, Intel GPU busy, VRAM usage | hardware collector | `hardware_temp_*`, `hardware_pcie_*`, `hardware_intel_gpu_*`, `hardware_gpu_vram_*` |
-| Alerting | Webhook config status in GUI/API | console alert status endpoint | `/api/alerts/status` |
+Non-collector checks also exist in the console API/UI layer:
+- Mail staleness endpoint: `/api/messages/staleness` (default 14 days / 336h, warning)
+- Alerting status endpoint: `/api/alerts/status`
 
 ## Commands
 
