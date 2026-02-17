@@ -1,0 +1,92 @@
+#!/bin/bash
+# Validates collector scripts against basic runtime contract expectations.
+# Checks shell syntax, test mode support, and publish path consistency.
+
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+ERRORS=0
+WARNINGS=0
+
+collector_files=(agent/collectors/*/*.sh)
+
+is_runtime_collector() {
+    local file="$1"
+    case "$(basename "$file")" in
+        _init.sh|TEMPLATE.sh)
+            return 1
+            ;;
+    esac
+    return 0
+}
+
+check_file() {
+    local file="$1"
+    local dir
+    local expected_prefix
+
+    dir="$(basename "$(dirname "$file")")"
+    expected_prefix="${dir}_"
+
+    if ! bash -n "$file"; then
+        echo "ERROR: syntax check failed: $file"
+        ERRORS=$((ERRORS + 1))
+    fi
+
+    if ! grep -q 'LUMENMON_TEST_MODE' "$file"; then
+        echo "ERROR: missing test-mode support in $file"
+        ERRORS=$((ERRORS + 1))
+    fi
+
+    if ! grep -Fq 'source "$LUMENMON_HOME/core/mqtt/publish.sh"' "$file"; then
+        echo "ERROR: missing publish helper source in $file"
+        ERRORS=$((ERRORS + 1))
+    fi
+
+    if ! grep -q 'publish_metric' "$file"; then
+        # generic/mail uses direct message publish and is intentionally special.
+        if [ "$file" != "agent/collectors/generic/mail.sh" ]; then
+            echo "ERROR: no publish_metric usage found in $file"
+            ERRORS=$((ERRORS + 1))
+        fi
+    fi
+
+    # Prefix check only for string-literal metric names.
+    while IFS= read -r metric; do
+        if [ -z "$metric" ]; then
+            continue
+        fi
+        if [[ "$metric" == '$'* ]]; then
+            continue
+        fi
+        if [ "$dir" = "optional" ]; then
+            # Optional collectors may intentionally use non-optional_* names.
+            if [[ "$metric" != optional_* ]] && [[ "$metric" != mullvad_* ]]; then
+                echo "WARN: optional collector metric '$metric' has unusual prefix in $file"
+                WARNINGS=$((WARNINGS + 1))
+            fi
+            continue
+        fi
+
+        if [[ "$metric" != "$expected_prefix"* ]]; then
+            echo "WARN: metric '$metric' does not match '${expected_prefix}*' in $file"
+            WARNINGS=$((WARNINGS + 1))
+        fi
+    done < <(grep -oE 'publish_metric\s+"[^"]+"' "$file" | sed -E 's/^publish_metric\s+"([^"]+)"$/\1/')
+}
+
+for file in "${collector_files[@]}"; do
+    if ! is_runtime_collector "$file"; then
+        continue
+    fi
+    check_file "$file"
+done
+
+echo ""
+echo "Collector contract check complete"
+echo "  Errors:   $ERRORS"
+echo "  Warnings: $WARNINGS"
+
+if [ "$ERRORS" -gt 0 ]; then
+    exit 1
+fi

@@ -293,6 +293,7 @@ publish_metric "hostname" "$host" "TEXT" 0
 ```bash
 ./dev/auto         # Full reset and setup with virtual agent
 ./dev/add3         # Spawn 3 test agents
+./dev/check-collectors  # Validate collector contract assumptions
 ```
 
 ### CSS (Tailwind)

@@ -13,6 +13,7 @@ Focus: build/lint/test commands and practical code conventions.
 ### Core dev commands (repo root)
 - `./dev/auto` - full local reset + console + dev agent + virtual agent.
 - `./dev/add3` - spawn extra test agents.
+- `./dev/check-collectors` - validate collector script contract assumptions.
 - `./dev/updatedeps` - refresh vendored frontend dependencies.
 - `./dev/release` - create release tag workflow.
 
@@ -33,6 +34,7 @@ No dedicated lint config found (no ruff/eslint/shellcheck config files).
 Current checks are:
 - `find . -name "*.sh" -type f -exec bash -n {} \;`
 - `docker build -t test-console:ci ./console`
+- Optional local guard: `./dev/check-collectors`
 
 ### Playwright E2E tests
 Run in `dev/tests/`:
