@@ -69,6 +69,7 @@ Read this section as:
 | `lumenmon` | `generic_sys_os`, `generic_sys_kernel`, `generic_sys_uptime` | 1h (`REPORT`) | stale only |
 | `version` | `generic_agent_version` | 1h (`REPORT`) | stale only (UI may show update warning) |
 | `mail` | `mail_message` | 5m (`CYCLE`) | informational (message stream) |
+| `zpool` | `generic_zpool_total`, `generic_zpool_degraded` | 5m (`CYCLE`) | fails when any non-Proxmox pool is degraded |
 
 #### Debian/Ubuntu
 
@@ -86,17 +87,37 @@ Read this section as:
 | `zfs` | `proxmox_zfs_*` | 5m (`CYCLE`) | stale + bounds (online drives vs total) |
 | `zpool_health` | `proxmox_zpool_*` | 5m (`CYCLE`) | degraded and upgrade-needed flags (`max=0`) |
 
+#### Proxmox Backup Server (PBS)
+
+| Collector | Publishes | Interval | Failure behavior |
+|-----------|-----------|----------|------------------|
+| `datastore_count` | `pbs_datastore_count` | 5m (`CYCLE`) | fails when no datastore is detected |
+| `task_failures` | `pbs_task_failures_24h` | 5m (`CYCLE`) | fails when errors/failures > 0 in last 24h |
+| `backup_age` | `pbs_backup_age_hours` | 5m (`CYCLE`) | fails when age exceeds 24h |
+| `verify_age` | `pbs_verify_age_hours` | 5m (`CYCLE`) | fails when age exceeds 168h |
+| `sync_age` | `pbs_sync_age_hours` | 5m (`CYCLE`) | fails when age exceeds 168h |
+| `gc_age` | `pbs_gc_age_hours` | 5m (`CYCLE`) | fails when age exceeds 168h |
+
+#### Hardware (real hosts)
+
+| Collector | Publishes | Interval | Failure behavior |
+|-----------|-----------|----------|------------------|
+| `temp` | `hardware_temp_*` | 5m (`CYCLE`) | fails on temperature thresholds |
+| `pcie_errors` | `hardware_pcie_*` | 5m (`CYCLE`) | fails on PCIe/AER errors |
+| `intel_gpu` | `hardware_intel_gpu_*`, `hardware_gpu_vram_*` | 5m (`CYCLE`) | fails on Intel GPU/VRAM thresholds |
+| `smart_values` | `hardware_smart_*`, `hardware_samsung_*` | 5m (`CYCLE`) | fails on SMART health/temp/wear thresholds |
+
+#### Services
+
+| Collector | Publishes | Interval | Failure behavior |
+|-----------|-----------|----------|------------------|
+| `watch` | `services_gickup_*`, `services_mount_*` | 5m (`CYCLE`) | fails on service inactive or mount issues |
+
 #### Optional
 
 | Collector | Publishes | Interval | Failure behavior |
 |-----------|-----------|----------|------------------|
 | `mullvad_active` | `optional_mullvad_active` | opt-in | stale/bounds depend on local config |
-| `pbs_mega_check` | `optional_pbs_*` | 5m (`CYCLE`) | detects PBS task/log staleness and failures |
-| `zpool_status` | `optional_zpool_*` | 5m (`CYCLE`) | fails when any pool state != ONLINE |
-| `storage_smart` | `optional_smart_*`, `optional_samsung_*` | 5m (`CYCLE`) | fails on SMART health/temp/wear bounds |
-| `truenas_alerts` | `optional_truenas_*` | 5m (`CYCLE`) | fails on critical/SMART alerts or stale scrubs |
-| `hardware_sensors` | `optional_temp_*`, `optional_pcie_*`, `optional_intel_gpu_*`, `optional_gpu_vram_*` | 5m (`CYCLE`) | fails on temp/PCIe/gpu bounds |
-| `services_watch` | `optional_gickup_*`, `optional_mount_*` | 5m (`CYCLE`) | fails when watched services/mounts are unhealthy |
 
 #### Quick policy note
 
@@ -119,12 +140,11 @@ This is the complete check map currently implemented in repo (base + opt-in).
 | Core | Proxmox zpool degraded/upgrade-needed | proxmox collector | `proxmox_zpool_*` |
 | Mail | Mail ingest and per-agent mailbox | generic mail + SMTP receiver | `mail_message` |
 | Mail | Mail staleness (>7d) | server-side messages API | `/api/messages/staleness` |
-| Storage (opt-in) | PBS mega-check (task failures + backup/verify/sync/GC age + datastore count) | optional collector | `optional_pbs_*` |
-| Storage (opt-in) | Generic zpool status summary | optional collector | `optional_zpool_*` |
-| Storage (opt-in) | SMART health/temp/wear/powercycles/firmware | optional collector | `optional_smart_*`, `optional_samsung_*` |
-| TrueNAS (opt-in) | Alerts, SMART alerts, scrub age | optional collector | `optional_truenas_*` |
-| Hardware (opt-in) | CPU/NVMe temps, PCIe errors, Intel GPU busy, VRAM usage | optional collector | `optional_temp_*`, `optional_pcie_*`, `optional_intel_gpu_*`, `optional_gpu_vram_*` |
-| Services (opt-in) | Gickup status + mount surveillance | optional collector | `optional_gickup_*`, `optional_mount_*` |
+| PBS | Datastore/task/backup/verify/sync/gc freshness checks | pbs collectors | `pbs_*` |
+| Storage | Generic zpool status summary (non-Proxmox) | generic collector | `generic_zpool_*` |
+| Hardware | SMART health/temp/wear/powercycles/firmware | hardware collector | `hardware_smart_*`, `hardware_samsung_*` |
+| Hardware | CPU/NVMe temps, PCIe errors, Intel GPU busy, VRAM usage | hardware collector | `hardware_temp_*`, `hardware_pcie_*`, `hardware_intel_gpu_*`, `hardware_gpu_vram_*` |
+| Services | Gickup status + mount surveillance | services collector | `services_gickup_*`, `services_mount_*` |
 | Alerting | Webhook config status in GUI/API | console alert status endpoint | `/api/alerts/status` |
 
 ## Commands
@@ -311,6 +331,10 @@ publish_metric "hostname" "$host" "TEXT" 0
 |-----------|--------|---------|
 | `collectors/generic/` | `generic_` | Universal (CPU, memory, disk) |
 | `collectors/proxmox/` | `proxmox_` | Proxmox (VMs, containers, ZFS) |
+| `collectors/pbs/` | `pbs_` | Proxmox Backup Server checks |
+| `collectors/hardware/` | `hardware_` | Real-hardware telemetry |
+| `collectors/services/` | `services_` | Host service and mount health |
+| `collectors/optional/` | `optional_` | Explicitly opt-in checks |
 
 </details>
 
@@ -360,19 +384,12 @@ Optional collectors are enabled via keys in `agent/data/config` (or `/opt/lumenm
 
 ```ini
 mullvad_active=1
-pbs_mega_check=1
-zpool_status=1
-storage_smart=1
-truenas_alerts=1
-hardware_sensors=1
-services_watch=1
 
-# services_watch settings
+# services/watch.sh settings
 watch_mounts=/mnt/storage,/mnt/backups
 
-# truenas_alerts settings
-truenas_url=https://truenas.local
-truenas_api_key=replace_me
+# hardware collectors on virtual hosts (optional override)
+hardware_force=0
 ```
 
 ### Alerting (Webhook Status Only)

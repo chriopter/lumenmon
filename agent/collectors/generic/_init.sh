@@ -1,10 +1,10 @@
 #!/bin/bash
 # Generic collectors - always runs on all systems.
-# Starts cpu, memory, disk, heartbeat, hostname, lumenmon, mail, and version collectors.
+# Starts cpu, memory, disk, heartbeat, hostname, lumenmon, mail, zpool, and version collectors.
 
 COLLECTOR_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-for collector in cpu disk heartbeat hostname lumenmon mail memory version; do
+for collector in cpu disk heartbeat hostname lumenmon mail memory zpool version; do
     if [ -f "$COLLECTOR_DIR/${collector}.sh" ]; then
         run_collector "generic_${collector}" "$COLLECTOR_DIR/${collector}.sh"
     fi
