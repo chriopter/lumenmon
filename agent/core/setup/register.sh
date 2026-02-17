@@ -9,6 +9,11 @@ LUMENMON_HOME="${LUMENMON_HOME:-$(cd "$SCRIPT_DIR/../.." && pwd)}"
 LUMENMON_DATA="${LUMENMON_DATA:-$LUMENMON_HOME/data}"
 MQTT_DATA_DIR="$LUMENMON_DATA/mqtt"
 
+normalize_fingerprint() {
+    local fp="${1:-}"
+    printf '%s' "$fp" | tr -d ': \n\r\t' | tr '[:lower:]' '[:upper:]'
+}
+
 INVITE_URL="${1:-}"
 if [ -z "$INVITE_URL" ]; then
     echo "Usage: lumenmon-agent register <invite_url>"
@@ -26,6 +31,7 @@ PASSWORD="${BASH_REMATCH[2]}"
 MQTT_HOST="${BASH_REMATCH[3]}"
 MQTT_PORT="${BASH_REMATCH[4]:-8884}"  # Default to 8884 if not specified
 EXPECTED_FP="${BASH_REMATCH[5]}"
+EXPECTED_FP_NORM=$(normalize_fingerprint "$EXPECTED_FP")
 
 echo "[register] ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "[register] Agent Registration"
@@ -37,13 +43,14 @@ echo ""
 # Get actual server certificate fingerprint
 echo "[register] Connecting to MQTT server to verify certificate..."
 ACTUAL_FP=$(echo | openssl s_client \
-    -connect "$MQTT_HOST:8884" \
+    -connect "$MQTT_HOST:$MQTT_PORT" \
     -servername "$MQTT_HOST" 2>/dev/null | \
     openssl x509 -noout -fingerprint -sha256 2>/dev/null | \
     cut -d= -f2 || echo "")
+ACTUAL_FP_NORM=$(normalize_fingerprint "$ACTUAL_FP")
 
-if [ -z "$ACTUAL_FP" ]; then
-    echo "[register] ERROR: Could not connect to MQTT server at $MQTT_HOST:8884"
+if [ -z "$ACTUAL_FP_NORM" ]; then
+    echo "[register] ERROR: Could not connect to MQTT server at $MQTT_HOST:$MQTT_PORT"
     echo "[register] Check network connectivity and hostname"
     exit 1
 fi
@@ -51,7 +58,7 @@ fi
 # Download and save the server certificate
 echo "[register] Downloading server certificate..."
 SERVER_CERT=$(echo | openssl s_client \
-    -connect "$MQTT_HOST:8884" \
+    -connect "$MQTT_HOST:$MQTT_PORT" \
     -servername "$MQTT_HOST" 2>/dev/null | \
     sed -n '/-----BEGIN CERTIFICATE-----/,/-----END CERTIFICATE-----/p')
 
@@ -69,7 +76,7 @@ echo "[register] Expected: $EXPECTED_FP"
 echo "[register] Actual:   $ACTUAL_FP"
 echo ""
 
-if [ "$ACTUAL_FP" = "$EXPECTED_FP" ]; then
+if [ "$ACTUAL_FP_NORM" = "$EXPECTED_FP_NORM" ]; then
     echo "[register] Status: ✓ MATCH"
     echo ""
     echo "[register] The certificate fingerprint matches the invite."
@@ -89,7 +96,7 @@ fi
 echo "[register] ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 # Auto-accept if fingerprint matches, ask only on mismatch
-if [ "$ACTUAL_FP" = "$EXPECTED_FP" ]; then
+if [ "$ACTUAL_FP_NORM" = "$EXPECTED_FP_NORM" ]; then
     echo "[register] ✓ Certificate accepted (fingerprint verified)"
 elif [ "${LUMENMON_AUTO_ACCEPT:-}" = "1" ]; then
     echo "[register] Auto-accepting certificate (LUMENMON_AUTO_ACCEPT=1)"
@@ -108,8 +115,9 @@ mkdir -p "$MQTT_DATA_DIR"
 # Save credentials
 echo "$USERNAME" > "$MQTT_DATA_DIR/username"
 echo "$PASSWORD" > "$MQTT_DATA_DIR/password"
-echo "$ACTUAL_FP" > "$MQTT_DATA_DIR/fingerprint"
+echo "$ACTUAL_FP_NORM" > "$MQTT_DATA_DIR/fingerprint"
 echo "$MQTT_HOST" > "$MQTT_DATA_DIR/host"
+echo "$MQTT_PORT" > "$MQTT_DATA_DIR/port"
 
 # Save server certificate for TLS connections
 echo "$SERVER_CERT" > "$MQTT_DATA_DIR/server.crt"
@@ -121,7 +129,7 @@ echo "[register] ✓ Server certificate saved (pinned for TLS)"
 # Test connection with credentials
 echo "[register] Testing connection..."
 mosquitto_pub \
-    -h "$MQTT_HOST" -p 8884 \
+    -h "$MQTT_HOST" -p "$MQTT_PORT" \
     -u "$USERNAME" -P "$PASSWORD" \
     --cafile "$MQTT_DATA_DIR/server.crt" \
     -t "metrics/$USERNAME/registration_test" \
@@ -138,6 +146,6 @@ echo "[register] ━━━━━━━━━━━━━━━━━━━━━
 echo "[register] Registration Complete!"
 echo "[register] ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "[register] Agent ID: $USERNAME"
-echo "[register] MQTT Host: $MQTT_HOST:8884"
+echo "[register] MQTT Host: $MQTT_HOST:$MQTT_PORT"
 echo "[register] Credentials saved to: $MQTT_DATA_DIR/"
 echo "[register] ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

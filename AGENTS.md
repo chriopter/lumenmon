@@ -66,6 +66,7 @@ Set host first:
 - `export LUMENMON_TEST_HOST="root@your-test-server.local"`
 - Dev environment may have access to a real server, but do not hardcode real hostnames in tracked files.
 - Store real host values only in gitignored env files (for example repo-root `.env`) or shell-local exports.
+- Agents should read `LUMENMON_TEST_HOST` from environment (or repo-root `.env` loaded by scripts) when running deploy helpers.
 Deploy commands:
 - `./dev/deploy-test web`
 - `./dev/deploy-test agent`
@@ -154,3 +155,12 @@ Result: none of these files currently exist in this repo.
 - After edits, run the smallest command set that validates your change.
 - Prefer targeted deploy/test loops (`./dev/deploy-test ...`) during active development.
 - Do not push commits unless explicitly asked.
+
+## Fast Direct Deploy Strategy
+- Keep host in gitignored env (`LUMENMON_TEST_HOST` in repo `.env` or shell export).
+- Iterate with narrow targets:
+  - `./dev/deploy-test agent` for agent/runtime script changes.
+  - `./dev/deploy-test web` for frontend/public asset changes.
+  - `./dev/deploy-test console` for backend/console app changes.
+- Verify with `./dev/deploy-test status` plus `lumenmon` and `lumenmon-agent` checks.
+- After successful real-server validation, commit and promote via normal release flow.

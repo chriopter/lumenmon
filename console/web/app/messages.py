@@ -13,6 +13,16 @@ import string
 messages_bp = Blueprint('messages', __name__)
 
 
+def parse_limit_param(raw_value, default_value, max_value):
+    """Parse limit query parameter with bounds checking."""
+    if raw_value is None or raw_value == '':
+        return default_value
+    value = int(raw_value)
+    if value < 1:
+        raise ValueError('limit must be >= 1')
+    return min(value, max_value)
+
+
 def generate_mail_token(length=16):
     """Generate a random mail token for agent email addresses."""
     alphabet = string.ascii_lowercase + string.digits
@@ -22,12 +32,13 @@ def generate_mail_token(length=16):
 @messages_bp.route('/api/messages', methods=['GET'])
 def list_all_messages():
     """List all messages, optionally filtered by agent_id or read status."""
-    agent_id = request.args.get('agent_id')
-    unread_only = request.args.get('unread', '').lower() == 'true'
-    limit = int(request.args.get('limit', 100))
-
-    conn = get_db_connection()
+    conn = None
     try:
+        agent_id = request.args.get('agent_id')
+        unread_only = request.args.get('unread', '').lower() == 'true'
+        limit = parse_limit_param(request.args.get('limit'), 100, 500)
+
+        conn = get_db_connection()
         query = 'SELECT id, agent_id, mail_from, mail_to, subject, received_at, read FROM messages'
         conditions = []
         params = []
@@ -61,10 +72,16 @@ def list_all_messages():
             })
 
         return jsonify({'messages': messages})
+    except ValueError:
+        return jsonify({'error': 'Invalid limit parameter'}), 400
     except Exception as e:
         return jsonify({'error': 'Internal server error'}), 500
     finally:
-        conn.close()
+        if conn is not None:
+            try:
+                conn.close()
+            except Exception:
+                pass
 
 
 @messages_bp.route('/api/messages/unread-counts', methods=['GET'])
@@ -157,10 +174,11 @@ def delete_message(message_id):
 @messages_bp.route('/api/agents/<agent_id>/messages', methods=['GET'])
 def agent_messages(agent_id):
     """Get messages for a specific agent."""
-    limit = int(request.args.get('limit', 50))
-
-    conn = get_db_connection()
+    conn = None
     try:
+        limit = parse_limit_param(request.args.get('limit'), 50, 500)
+
+        conn = get_db_connection()
         if agent_id == 'unknown':
             cursor = conn.execute('''
                 SELECT id, agent_id, mail_from, mail_to, subject, received_at, read
@@ -187,10 +205,16 @@ def agent_messages(agent_id):
             })
 
         return jsonify({'messages': messages})
+    except ValueError:
+        return jsonify({'error': 'Invalid limit parameter'}), 400
     except Exception as e:
         return jsonify({'error': 'Internal server error'}), 500
     finally:
-        conn.close()
+        if conn is not None:
+            try:
+                conn.close()
+            except Exception:
+                pass
 
 
 @messages_bp.route('/api/agents/<agent_id>/email', methods=['GET'])

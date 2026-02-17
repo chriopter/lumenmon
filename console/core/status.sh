@@ -43,20 +43,40 @@ fi
 if [ -f /data/metrics.db ]; then
     TOTAL=$(sqlite3 /data/metrics.db "SELECT COUNT(DISTINCT SUBSTR(name, 1, 11)) FROM sqlite_master WHERE type='table' AND name LIKE 'id_%'" 2>/dev/null || echo "0")
 
-    # Active agents (with data less than 10 seconds old)
+    # Active agents from unified RAM API (online + degraded), with DB fallback.
     ACTIVE=0
-    NOW=$(date +%s)
-    # Get all unique agent IDs
-    AGENT_IDS=$(sqlite3 /data/metrics.db "SELECT DISTINCT SUBSTR(name, 1, 11) FROM sqlite_master WHERE type='table' AND name LIKE 'id_%_generic_cpu'" 2>/dev/null)
+    if command -v curl >/dev/null 2>&1 && command -v python3 >/dev/null 2>&1; then
+        ACTIVE=$(curl -fsS http://localhost:5000/api/entities 2>/dev/null | python3 -c '
+import json, sys
+try:
+    data = json.load(sys.stdin)
+    entities = data.get("entities", [])
+    active = [e for e in entities if str(e.get("id", "")).startswith("id_") and e.get("status") in ("online", "degraded")]
+    print(len(active))
+except Exception:
+    print(0)
+' 2>/dev/null || echo 0)
+    fi
 
-    for AGENT_ID in $AGENT_IDS; do
-        # Check if agent has recent CPU data (last 10 seconds)
-        LAST_TS=$(sqlite3 /data/metrics.db "SELECT MAX(timestamp) FROM ${AGENT_ID}_generic_cpu" 2>/dev/null || echo "0")
-        AGE=$((NOW - LAST_TS))
-        if [ "$AGE" -lt 10 ]; then
-            ACTIVE=$((ACTIVE + 1))
+    # Fallback when API is unavailable: infer activity from heartbeat tables in SQLite.
+    if [ "$ACTIVE" = "0" ]; then
+        NOW=$(date +%s)
+        AGENT_IDS=$(sqlite3 /data/metrics.db "SELECT DISTINCT SUBSTR(name, 1, 11) FROM sqlite_master WHERE type='table' AND name LIKE 'id_%_generic_heartbeat'" 2>/dev/null)
+        if [ -z "$AGENT_IDS" ]; then
+            AGENT_IDS=$(sqlite3 /data/metrics.db "SELECT DISTINCT SUBSTR(name, 1, 11) FROM sqlite_master WHERE type='table' AND name LIKE 'id_%_generic_cpu'" 2>/dev/null)
         fi
-    done
+
+        for AGENT_ID in $AGENT_IDS; do
+            LAST_TS=$(sqlite3 /data/metrics.db "SELECT MAX(timestamp) FROM ${AGENT_ID}_generic_heartbeat" 2>/dev/null || echo "0")
+            if [ "$LAST_TS" = "0" ]; then
+                LAST_TS=$(sqlite3 /data/metrics.db "SELECT MAX(timestamp) FROM ${AGENT_ID}_generic_cpu" 2>/dev/null || echo "0")
+            fi
+            AGE=$((NOW - LAST_TS))
+            if [ "$AGE" -lt 10 ]; then
+                ACTIVE=$((ACTIVE + 1))
+            fi
+        done
+    fi
 
     if [ "$TOTAL" -gt 0 ]; then
         printf "  Agents       ${GREEN}✓${NC} $TOTAL registered\n"

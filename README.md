@@ -40,50 +40,64 @@ lumenmon-agent start
 
 ### Collection Intervals
 
-| Rhythm | Interval | Metrics |
-|--------|----------|---------|
-| PULSE | 1s | cpu, heartbeat |
-| BREATHE | 60s | memory, disk |
-| CYCLE | 5m | proxmox vms/containers/storage/zfs |
-| REPORT | 1h | hostname, os, kernel, uptime |
+| Rhythm | Interval | Typical collectors |
+|--------|----------|--------------------|
+| `PULSE` | 1s | `cpu`, `heartbeat` |
+| `BREATHE` | 60s | `memory`, `disk` |
+| `CYCLE` | 5m | `mail`, `proxmox_*` |
+| `REPORT` | 1h | `hostname`, `lumenmon`, `version`, `debian_updates` |
 
 ### Collectors
 
-All collectors are pure bash scripts that run at fixed intervals.
+All collectors are plain Bash scripts under `agent/collectors/`.
+
+Read this section as:
+- **Collector**: script name.
+- **Publishes**: metric names sent to MQTT.
+- **Interval**: update cadence.
+- **Failure behavior**: when/why a metric marks host state as degraded.
 
 #### Generic (all Linux systems)
 
-| Collector | Interval | Details |
-|-----------|----------|---------|
-| `cpu` | 1s (PULSE) | CPU usage % from `/proc/stat` |
-| `memory` | 60s (BREATHE) | Memory usage % from `/proc/meminfo` |
-| `disk` | 60s (BREATHE) | Root filesystem usage % via `df` |
-| `heartbeat` | 1s (PULSE) | Connectivity check (always 1) |
-| `hostname` | 1h (REPORT) | System hostname |
-| `lumenmon` | 1h (REPORT) | OS, kernel, uptime |
-| `version` | 1h (REPORT) | Agent version (git tag/commit) |
-| `mail` | 5m (CYCLE) | Forwards local mail from `/var/mail/root` |
+| Collector | Publishes | Interval | Failure behavior |
+|-----------|-----------|----------|------------------|
+| `cpu` | `generic_cpu` | 1s (`PULSE`) | stale only |
+| `memory` | `generic_memory` | 60s (`BREATHE`) | stale only |
+| `disk` | `generic_disk` | 60s (`BREATHE`) | stale only |
+| `heartbeat` | `generic_heartbeat` | 1s (`PULSE`) | stale only (drives online/offline) |
+| `hostname` | `generic_hostname` | 1h (`REPORT`) | stale only |
+| `lumenmon` | `generic_sys_os`, `generic_sys_kernel`, `generic_sys_uptime` | 1h (`REPORT`) | stale only |
+| `version` | `generic_agent_version` | 1h (`REPORT`) | stale only (UI may show update warning) |
+| `mail` | `mail_message` | 5m (`CYCLE`) | informational (message stream) |
 
 #### Debian/Ubuntu
 
-| Collector | Interval | Details |
-|-----------|----------|---------|
-| `updates` | 1h (REPORT) | Available apt updates (total, security, release) |
+| Collector | Publishes | Interval | Failure behavior |
+|-----------|-----------|----------|------------------|
+| `updates` | `debian_updates_total`, `debian_updates_security`, `debian_updates_release`, `debian_updates_age` | 1h (`REPORT`) | `debian_updates_total` currently fails when value > 0 (policy via max=0) |
 
 #### Proxmox VE
 
-| Collector | Interval | Details |
-|-----------|----------|---------|
-| `vms` | 5m (CYCLE) | VM counts (running/stopped) via `qm list` |
-| `containers` | 5m (CYCLE) | LXC counts (running/stopped) via `pct list` |
-| `storage` | 5m (CYCLE) | Storage pool usage (GB) via `pvesh` API |
-| `zfs` | 5m (CYCLE) | Pool health: drive counts, online status, capacity |
+| Collector | Publishes | Interval | Failure behavior |
+|-----------|-----------|----------|------------------|
+| `vms` | `proxmox_vms_*` | 5m (`CYCLE`) | stale only |
+| `containers` | `proxmox_containers_*` | 5m (`CYCLE`) | stale only |
+| `storage` | `proxmox_storage_*` | 5m (`CYCLE`) | stale + bounds if configured |
+| `zfs` | `proxmox_zfs_*` | 5m (`CYCLE`) | stale + bounds (online drives vs total) |
 
 #### Optional
 
-| Collector | Interval | Details |
-|-----------|----------|---------|
-| `mullvad_active` | – | VPN status: 1 if traffic exits via Mullvad, 0 if not |
+| Collector | Publishes | Interval | Failure behavior |
+|-----------|-----------|----------|------------------|
+| `mullvad_active` | `optional_mullvad_active` | opt-in | stale/bounds depend on local config |
+
+#### Quick policy note
+
+Collector health is computed from:
+- metric stale timeout (`interval` exceeded), and/or
+- min/max bounds violations (`min_value`, `max_value`).
+
+Entity (host) health rolls up from metric health. If any metric fails, entity status becomes degraded.
 
 ## Commands
 

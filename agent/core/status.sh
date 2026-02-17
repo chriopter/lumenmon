@@ -8,6 +8,11 @@ LUMENMON_HOME="${LUMENMON_HOME:-$(cd "$SCRIPT_DIR/.." && pwd)}"
 LUMENMON_DATA="${LUMENMON_DATA:-$LUMENMON_HOME/data}"
 MQTT_DATA_DIR="$LUMENMON_DATA/mqtt"
 
+normalize_fingerprint() {
+    local fp="${1:-}"
+    printf '%s' "$fp" | tr -d ': \n\r\t' | tr '[:lower:]' '[:upper:]'
+}
+
 # Colors
 GREEN='\033[0;32m'
 RED='\033[0;31m'
@@ -18,8 +23,9 @@ echo "Agent:"
 if [ -f "$MQTT_DATA_DIR/username" ] && [ -f "$MQTT_DATA_DIR/password" ] && [ -f "$MQTT_DATA_DIR/host" ]; then
     AGENT_ID=$(cat "$MQTT_DATA_DIR/username")
     MQTT_HOST=$(cat "$MQTT_DATA_DIR/host")
+    MQTT_PORT=$(cat "$MQTT_DATA_DIR/port" 2>/dev/null || printf '8884')
     printf "  Agent ID     ${GREEN}✓${NC} $AGENT_ID\n"
-    printf "  MQTT Host    ${GREEN}✓${NC} $MQTT_HOST:8884\n"
+    printf "  MQTT Host    ${GREEN}✓${NC} $MQTT_HOST:$MQTT_PORT\n"
 else
     printf "  Credentials  ${RED}✗${NC} Not registered\n"
     exit 1
@@ -35,11 +41,13 @@ fi
 # Certificate fingerprint verification
 if [ -f "$MQTT_DATA_DIR/fingerprint" ]; then
     EXPECTED_FP=$(cat "$MQTT_DATA_DIR/fingerprint")
-    ACTUAL_FP=$(echo | openssl s_client -connect "$MQTT_HOST:8884" -servername "$MQTT_HOST" 2>/dev/null | \
+    ACTUAL_FP=$(echo | openssl s_client -connect "$MQTT_HOST:$MQTT_PORT" -servername "$MQTT_HOST" 2>/dev/null | \
         openssl x509 -noout -fingerprint -sha256 2>/dev/null | cut -d= -f2 || echo "")
+    EXPECTED_FP_NORM=$(normalize_fingerprint "$EXPECTED_FP")
+    ACTUAL_FP_NORM=$(normalize_fingerprint "$ACTUAL_FP")
 
-    if [ -n "$ACTUAL_FP" ]; then
-        if [ "$ACTUAL_FP" = "$EXPECTED_FP" ]; then
+    if [ -n "$ACTUAL_FP_NORM" ]; then
+        if [ "$ACTUAL_FP_NORM" = "$EXPECTED_FP_NORM" ]; then
             printf "  Fingerprint  ${GREEN}✓${NC} Match\n"
         else
             printf "  Fingerprint  ${RED}✗${NC} Mismatch\n"
@@ -55,7 +63,7 @@ MQTT_PASSWORD=$(cat "$MQTT_DATA_DIR/password")
 
 printf "  Connection   "
 if mosquitto_pub \
-    -h "$MQTT_HOST" -p 8884 \
+    -h "$MQTT_HOST" -p "$MQTT_PORT" \
     -u "$MQTT_USERNAME" -P "$MQTT_PASSWORD" \
     --cafile "$MQTT_DATA_DIR/server.crt" \
     -t "metrics/${MQTT_USERNAME}/status_test" \

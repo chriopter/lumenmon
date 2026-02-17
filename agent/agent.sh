@@ -22,7 +22,7 @@ fi
 MQTT_USERNAME=$(cat "$MQTT_DATA_DIR/username")
 MQTT_PASSWORD=$(cat "$MQTT_DATA_DIR/password")
 MQTT_HOST=$(cat "$MQTT_DATA_DIR/host")
-MQTT_PORT="8884"  # TLS port
+MQTT_PORT=$(cat "$MQTT_DATA_DIR/port" 2>/dev/null || printf '8884')
 
 # Generate or load agent ID (from credentials)
 AGENT_ID="$MQTT_USERNAME"

@@ -53,7 +53,7 @@ publish_mail() {
     body=$(echo -e "$body" | sed 's/\\/\\\\/g; s/"/\\"/g; s/\t/\\t/g' | tr '\n' '\r' | sed 's/\r/\\n/g')
 
     _mqtt_load_creds
-    mosquitto_pub -h "$_MQTT_HOST" -p 8884 -u "$_MQTT_USER" -P "$_MQTT_PASS" \
+    mosquitto_pub -h "$_MQTT_HOST" -p "$_MQTT_PORT" -u "$_MQTT_USER" -P "$_MQTT_PASS" \
         --cafile "$_MQTT_CERT" --insecure \
         -t "metrics/$_MQTT_USER/mail_message" \
         -m "{\"mail_from\":\"$mail_from\",\"subject\":\"$subject\",\"body\":\"$body\"}" 2>/dev/null && \

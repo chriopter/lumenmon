@@ -10,6 +10,7 @@ _mqtt_load_creds() {
     if [ -z "${_MQTT_CREDS_LOADED:-}" ]; then
         local data_dir="$LUMENMON_DATA/mqtt"
         _MQTT_HOST=$(cat "$data_dir/host" 2>/dev/null)
+        _MQTT_PORT=$(cat "$data_dir/port" 2>/dev/null || printf '8884')
         _MQTT_USER=$(cat "$data_dir/username" 2>/dev/null)
         _MQTT_PASS=$(cat "$data_dir/password" 2>/dev/null)
         _MQTT_CERT="$data_dir/server.crt"
@@ -53,7 +54,7 @@ publish_metric() {
     # Publish via mosquitto_pub with TLS
     # Note: --insecure skips hostname verification (we use cert pinning instead)
     mosquitto_pub \
-        -h "$_MQTT_HOST" -p 8884 \
+        -h "$_MQTT_HOST" -p "$_MQTT_PORT" \
         -u "$_MQTT_USER" -P "$_MQTT_PASS" \
         --cafile "$_MQTT_CERT" --insecure \
         -t "$topic" \

@@ -145,7 +145,7 @@ Fetches server-rendered rows every 1s. Provides row selection, navigation functi
                         if (statusDot === 'online' && (entity.failed_collectors > 0 || isOutdated)) {
                             statusDot = 'degraded';
                         }
-                        const originalHostname = entity.hostname || entity.id;
+                        const originalHostname = entity.original_hostname || entity.hostname || entity.id;
                         const displayName = entity.display_name || originalHostname;
                         const cpu = entity.cpu || 0;
                         const memory = entity.memory || 0;
@@ -262,9 +262,9 @@ Fetches server-rendered rows every 1s. Provides row selection, navigation functi
                 const index = parseInt(row.dataset.index);
                 selectRow(index);
 
-                // If it's an invite, copy URL on click
+                // Open detail view for all entity types
                 if (row.dataset.entityType === 'invite') {
-                    copyInviteUrl(row.dataset.entityId);
+                    openDetailView();
                 } else {
                     // For agents, open detail view
                     openDetailView();
@@ -504,28 +504,6 @@ Fetches server-rendered rows every 1s. Provides row selection, navigation functi
         } catch (error) {
             console.error('Error parsing entity data:', error);
             return null;
-        }
-    }
-
-    async function copyInviteUrl(inviteId) {
-        try {
-            const response = await fetch(`/api/invites/${inviteId}/url`);
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            const data = await response.json();
-
-            if (data.success) {
-                // Use shared utility to copy
-                const copied = await copyText(data.install_command, 'invite command copied to clipboard');
-                if (!copied) {
-                    // Fallback: show in log if clipboard fails
-                    addLog(`invite: ${data.install_command}`, 'info');
-                }
-            } else {
-                addLog(`copy failed: ${data.error}`, 'error');
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            addLog(`error copying invite: ${error.message}`, 'error');
         }
     }
 

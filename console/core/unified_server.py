@@ -226,6 +226,8 @@ class AgentState:
                     'has_mqtt_user': agent_id in mqtt_users,
                     'has_table': bool(agent_data),
                     'is_mail_only': is_mail_only,
+                    'mail_only': is_mail_only,
+                    'pending_invite': get_invite(agent_id),
                     'display_name': display_name,
                     'group': agent_group,
                 }
@@ -263,16 +265,34 @@ class AgentState:
                     )
                     age = current_time_int - last_update if last_update else 0
 
-                    # Count failed collectors
+                    # Count failed collectors (stale OR out-of-bounds)
                     failed = 0
                     total = len(agent_data)
                     for metric_name, metric_data in agent_data.items():
                         if '_registration_test' in metric_name:
                             total -= 1
                             continue
+
                         ts = metric_data.get('timestamp', 0)
                         interval = metric_data.get('interval', 60)
-                        if interval > 0 and (current_time_int - ts) > (interval + 1):
+                        is_stale = interval > 0 and (current_time_int - ts) > (interval + 1)
+
+                        is_out_of_bounds = False
+                        value = metric_data.get('value')
+                        min_val = metric_data.get('min')
+                        max_val = metric_data.get('max')
+                        data_type = metric_data.get('type', 'REAL')
+                        if data_type in ('REAL', 'INTEGER') and value is not None:
+                            try:
+                                value_num = float(value)
+                                if min_val is not None and value_num < float(min_val):
+                                    is_out_of_bounds = True
+                                elif max_val is not None and value_num > float(max_val):
+                                    is_out_of_bounds = True
+                            except (ValueError, TypeError):
+                                pass
+
+                        if is_stale or is_out_of_bounds:
                             failed += 1
 
                     status = 'offline' if is_offline else ('degraded' if failed > 0 else 'online')
@@ -415,11 +435,43 @@ class AgentState:
                 # History for this metric
                 hist = list(agent_history.get(metric_name, []))
 
+                # Backward-compatible typed value columns (used by detail table UI)
+                value_real = None
+                value_int = None
+                value_text = None
+                if data_type == 'REAL':
+                    value_real = value
+                elif data_type == 'INTEGER':
+                    value_int = value
+                else:
+                    value_text = value
+
+                # Next update countdown for UI
+                next_update_in = 0
+                if interval > 0 and timestamp:
+                    next_update_in = (timestamp + interval) - current_time
+
+                # Data span (history coverage)
+                data_span = '-'
+                if len(hist) >= 2:
+                    span_seconds = hist[-1]['timestamp'] - hist[0]['timestamp']
+                    if span_seconds < 60:
+                        data_span = f"{span_seconds}s"
+                    elif span_seconds < 3600:
+                        data_span = f"{span_seconds // 60}m"
+                    elif span_seconds < 86400:
+                        data_span = f"{span_seconds // 3600}h"
+                    else:
+                        data_span = f"{span_seconds // 86400}d"
+
                 tables.append({
                     'metric_name': metric_name,
                     'table_name': f"{agent_id}_{metric_name}",
                     'columns': {
                         'timestamp': timestamp,
+                        'value_real': value_real,
+                        'value_int': value_int,
+                        'value_text': value_text,
                         'value': value,
                         'interval': interval,
                         'min_value': min_val,
@@ -427,7 +479,8 @@ class AgentState:
                     },
                     'staleness': {
                         'age': age,
-                        'is_stale': is_stale
+                        'is_stale': is_stale,
+                        'next_update_in': next_update_in
                     },
                     'health': {
                         'is_failed': is_stale or is_out_of_bounds,
@@ -438,6 +491,7 @@ class AgentState:
                     'metadata': {
                         'type': data_type,
                         'timestamp_age': f"{age}s ago",
+                        'data_span': data_span,
                         'line_count': len(hist)
                     },
                     'history': hist

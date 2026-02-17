@@ -1,35 +1,52 @@
 #!/bin/bash
-# Deploy local code to remote test server via rsync+SSH.
-# Usage: ./dev/deploy-test [agent|web|console|all]
+# Directly deploy local changes to remote test server via rsync+SSH.
+# Supports fast loops for agent, web, console, all, and status checks.
 
-set -e
+set -euo pipefail
 cd "$(dirname "$0")/.."
 
-# Load .env if it exists
-[ -f .env ] && source .env
-
-# Test server SSH target - set via environment variable or .env
-# Example: export LUMENMON_TEST_HOST="root@test-server.local"
-if [ -z "$LUMENMON_TEST_HOST" ]; then
-    echo "Error: LUMENMON_TEST_HOST not set"
-    echo "Set it to your test server SSH target, e.g.:"
-    echo "  export LUMENMON_TEST_HOST=\"root@test-server.local\""
-    exit 1
+if [ -f .env ]; then
+    set -a
+    source .env
+    set +a
 fi
 
-TARGET="$1"
+TARGET="${1:-}"
 if [ -z "$TARGET" ]; then
     echo "Usage: $0 [agent|web|console|all|status]"
     echo ""
     echo "  agent   - Deploy agent scripts, restart service"
-    echo "  web     - Deploy web frontend (hot reload, no restart)"
-    echo "  console - Deploy full console, restart container"
-    echo "  all     - Deploy everything"
-    echo "  status  - Check status on test server"
+    echo "  web     - Build CSS + hot-reload web public files"
+    echo "  console - Deploy full console app files + restart container"
+    echo "  all     - Deploy agent, then console"
+    echo "  status  - Check console/agent status on remote host"
     exit 1
 fi
 
-# Helper functions
+if [ -z "${LUMENMON_TEST_HOST:-}" ]; then
+    echo "Error: LUMENMON_TEST_HOST not set"
+    echo "Set it in shell or repo .env, e.g.:"
+    echo "  LUMENMON_TEST_HOST=root@test-server.local"
+    exit 1
+fi
+
+require_cmd() {
+    if ! command -v "$1" >/dev/null 2>&1; then
+        echo "Error: required command not found: $1" >&2
+        exit 1
+    fi
+}
+
+remote() {
+    ssh "$LUMENMON_TEST_HOST" "$@"
+}
+
+preflight() {
+    require_cmd ssh
+    require_cmd rsync
+    remote "command -v docker >/dev/null && command -v systemctl >/dev/null"
+}
+
 deploy_agent() {
     echo "==> Deploying agent to $LUMENMON_TEST_HOST..."
     rsync -avz --delete \
@@ -37,11 +54,9 @@ deploy_agent() {
         agent/ \
         "$LUMENMON_TEST_HOST:/opt/lumenmon/agent/"
 
-    echo "==> Restarting agent service..."
-    ssh "$LUMENMON_TEST_HOST" "systemctl restart lumenmon-agent"
-
+    remote "systemctl restart lumenmon-agent"
     echo "==> Agent status:"
-    ssh "$LUMENMON_TEST_HOST" "lumenmon-agent"
+    remote "lumenmon-agent"
 }
 
 deploy_web() {
@@ -49,67 +64,48 @@ deploy_web() {
     (cd console && npm run build)
 
     echo "==> Deploying web frontend to $LUMENMON_TEST_HOST..."
-    ssh "$LUMENMON_TEST_HOST" "mkdir -p /tmp/lumenmon-dev"
+    remote "mkdir -p /tmp/lumenmon-dev/public"
     rsync -avz --delete \
         console/web/public/ \
         "$LUMENMON_TEST_HOST:/tmp/lumenmon-dev/public/"
 
-    echo "==> Copying into container (hot reload)..."
-    ssh "$LUMENMON_TEST_HOST" "docker cp /tmp/lumenmon-dev/public/. lumenmon-console:/app/web/public/"
-
+    remote "docker cp /tmp/lumenmon-dev/public/. lumenmon-console:/app/web/public/"
     echo "==> Web files deployed (no restart needed)"
 }
 
 deploy_console() {
     echo "==> Deploying full console to $LUMENMON_TEST_HOST..."
-    ssh "$LUMENMON_TEST_HOST" "mkdir -p /tmp/lumenmon-dev"
+    remote "mkdir -p /tmp/lumenmon-dev"
 
-    # Sync web files
-    rsync -avz --delete \
-        console/web/ \
-        "$LUMENMON_TEST_HOST:/tmp/lumenmon-dev/web/"
-
-    # Sync core scripts
-    rsync -avz --delete \
-        console/core/ \
-        "$LUMENMON_TEST_HOST:/tmp/lumenmon-dev/core/"
-
-    # Sync entry point
+    rsync -avz --delete --exclude='__pycache__/' --exclude='*.pyc' console/web/ "$LUMENMON_TEST_HOST:/tmp/lumenmon-dev/web/"
+    rsync -avz --delete --exclude='__pycache__/' --exclude='*.pyc' console/core/ "$LUMENMON_TEST_HOST:/tmp/lumenmon-dev/core/"
+    rsync -avz --delete console/config/ "$LUMENMON_TEST_HOST:/tmp/lumenmon-dev/config/"
     scp console/console.sh "$LUMENMON_TEST_HOST:/tmp/lumenmon-dev/console.sh"
 
-    # Sync config (mosquitto config)
-    rsync -avz --delete \
-        console/config/ \
-        "$LUMENMON_TEST_HOST:/tmp/lumenmon-dev/config/"
+    remote "find /tmp/lumenmon-dev -name '*.sh' -exec chmod +x {} \; && chmod +x /tmp/lumenmon-dev/console.sh"
 
-    # Fix permissions on host BEFORE copying (docker cp loses execute bits)
-    echo "==> Fixing permissions..."
-    ssh "$LUMENMON_TEST_HOST" "find /tmp/lumenmon-dev -name '*.sh' -exec chmod +x {} \; && chmod +x /tmp/lumenmon-dev/console.sh"
+    remote "docker cp /tmp/lumenmon-dev/web/. lumenmon-console:/app/web/"
+    remote "docker cp /tmp/lumenmon-dev/core/. lumenmon-console:/app/core/"
+    remote "docker cp /tmp/lumenmon-dev/console.sh lumenmon-console:/app/console.sh"
+    remote "docker cp /tmp/lumenmon-dev/config/. lumenmon-console:/app/config/"
+    remote "docker cp /tmp/lumenmon-dev/web/config/Caddyfile lumenmon-console:/etc/caddy/Caddyfile"
+    remote "docker restart lumenmon-console"
 
-    echo "==> Copying into container..."
-    ssh "$LUMENMON_TEST_HOST" "docker cp /tmp/lumenmon-dev/web/. lumenmon-console:/app/web/"
-    ssh "$LUMENMON_TEST_HOST" "docker cp /tmp/lumenmon-dev/core/. lumenmon-console:/app/core/"
-    ssh "$LUMENMON_TEST_HOST" "docker cp /tmp/lumenmon-dev/console.sh lumenmon-console:/app/console.sh"
-    ssh "$LUMENMON_TEST_HOST" "docker cp /tmp/lumenmon-dev/config/. lumenmon-console:/app/config/"
-    ssh "$LUMENMON_TEST_HOST" "docker cp /tmp/lumenmon-dev/web/config/Caddyfile lumenmon-console:/etc/caddy/Caddyfile"
-
-    echo "==> Restarting container..."
-    ssh "$LUMENMON_TEST_HOST" "docker restart lumenmon-console"
-
-    sleep 5
+    sleep 3
     echo "==> Console status:"
-    ssh "$LUMENMON_TEST_HOST" "lumenmon"
+    remote "lumenmon"
 }
 
 show_status() {
     echo "==> Console status on $LUMENMON_TEST_HOST:"
-    ssh "$LUMENMON_TEST_HOST" "lumenmon"
+    remote "lumenmon"
     echo ""
     echo "==> Agent status on $LUMENMON_TEST_HOST:"
-    ssh "$LUMENMON_TEST_HOST" "lumenmon-agent"
+    remote "lumenmon-agent"
 }
 
-# Execute based on target
+preflight
+
 case "$TARGET" in
     agent)
         deploy_agent

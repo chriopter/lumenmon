@@ -113,14 +113,9 @@ Tab switches focus between agent list and detail pane.
             moveSelection(-1);
         } else if (key === 'enter') {
             e.preventDefault();
-            const selected = getSelectedAgent();
-            if (selected && selected.type === 'invite') {
-                copyInviteUrl(selected.id);
-            } else {
-                openDetailView();
-                // Focus first widget after detail view loads
-                setTimeout(focusFirstWidget, 150);
-            }
+            openDetailView();
+            // Focus first widget after detail view loads
+            setTimeout(focusFirstWidget, 150);
         } else if (key === 'm' && !e.ctrlKey && !e.metaKey && !e.altKey) {
             e.preventDefault();
             const selected = getSelectedAgent();
