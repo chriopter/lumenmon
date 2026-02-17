@@ -55,11 +55,14 @@ case "${1:-}" in
         # Stop service
         $SUDO systemctl stop lumenmon-agent 2>/dev/null || true
 
-        # Fetch with tags (--force overwrites conflicting local tags)
+        # Fetch with tags (--force overwrites conflicting local tags).
+        # Some older git setups still reject clobbering tags; fallback to explicit forced tag refspec.
         if ! $SUDO git -C "$GIT_ROOT" fetch origin --tags --force; then
-            $SUDO systemctl start lumenmon-agent
-            echo "Fetch failed, service restarted"
-            exit 1
+            if ! $SUDO git -C "$GIT_ROOT" fetch origin '+refs/tags/*:refs/tags/*'; then
+                $SUDO systemctl start lumenmon-agent
+                echo "Fetch failed, service restarted"
+                exit 1
+            fi
         fi
 
         # Get latest tag and checkout
