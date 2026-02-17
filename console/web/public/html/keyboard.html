@@ -1,6 +1,6 @@
 <!--
 Keyboard navigation event handler for TUI-style shortcuts.
-Binds ↑/↓/j/k (navigation), Enter (detail), Esc (close), i (invite), r (refresh), d (delete).
+Binds ↑/↓/j/k (navigation), Enter (detail), Esc (close), i (invite), r (refresh), x (reset), d (delete).
 Tab switches focus between agent list and detail pane.
 -->
 <script>
@@ -141,6 +141,9 @@ Tab switches focus between agent list and detail pane.
         } else if (key === 'd' && !e.ctrlKey && !e.metaKey && !e.altKey) {
             e.preventDefault();
             openDeleteConfirmation();
+        } else if (key === 'x' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+            e.preventDefault();
+            openResetConfirmation();
         }
     });
 </script>

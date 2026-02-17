@@ -983,6 +983,44 @@ def get_groups():
         'count': len(groups)
     })
 
+
+@app.route('/api/agents/<agent_id>/reset', methods=['POST'])
+def reset_agent_metrics(agent_id):
+    """Reset metric state for an agent while preserving mail/messages and credentials."""
+    if not re.match(r'^id_[a-f0-9]+$', agent_id):
+        return jsonify({'success': False, 'message': 'Invalid agent_id format'}), 400
+
+    dropped_tables = []
+    try:
+        conn = sqlite3.connect(DB_PATH, timeout=5.0)
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name LIKE ?",
+            (f"{agent_id}_%",)
+        )
+        for (table_name,) in cursor.fetchall():
+            if not validate_identifier(table_name):
+                continue
+            cursor.execute(f'DROP TABLE IF EXISTS "{table_name}"')
+            dropped_tables.append(table_name)
+        conn.commit()
+        conn.close()
+    except Exception:
+        return jsonify({'success': False, 'message': 'Failed to reset agent metrics'}), 500
+
+    with STATE.lock:
+        STATE.agents.pop(agent_id, None)
+        STATE.history.pop(agent_id, None)
+        STATE._tables_cache.pop(agent_id, None)
+        STATE.db_write_queue = [item for item in STATE.db_write_queue if item.get('agent_id') != agent_id]
+        STATE._entities_json_time = 0
+
+    return jsonify({
+        'success': True,
+        'message': f'Agent {agent_id} metric data reset',
+        'dropped_tables': len(dropped_tables)
+    })
+
 # Import other blueprints for non-optimized endpoints
 sys.path.insert(0, '/app/web/app')
 from invites import invites_bp

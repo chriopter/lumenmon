@@ -1,6 +1,6 @@
 <!--
 Delete confirmation modal for removing agents completely.
-Functions: openDeleteConfirmation(), closeDeleteConfirmation(), confirmDelete()
+Functions: openDeleteConfirmation(), closeDeleteConfirmation(), confirmDelete(), openResetConfirmation()
 -->
 <div id="delete-modal" class="delete-modal" style="display: none;">
     <div class="delete-content">
@@ -169,5 +169,43 @@ Functions: openDeleteConfirmation(), closeDeleteConfirmation(), confirmDelete()
         }
 
         window.app.ui.agentToDelete = null;
+    }
+
+    async function openResetConfirmation() {
+        const agent = getSelectedAgent();
+        if (!agent) {
+            addLog('no agent selected', 'error');
+            return;
+        }
+
+        if (agent.type === 'invite') {
+            addLog('cannot reset invite entries', 'error');
+            return;
+        }
+
+        const displayName = agent.hostname || agent.id;
+        const ok = confirm(`Reset metrics for ${displayName} (${agent.id})?\n\nThis removes metric history and current values, keeps mail/messages, and repopulates on next agent cycle.`);
+        if (!ok) return;
+
+        addLog(`resetting agent metrics for ${displayName}...`, 'info');
+        try {
+            const response = await fetch(`/api/agents/${agent.id}/reset`, {
+                method: 'POST'
+            });
+            const result = await response.json();
+            if (result.success) {
+                addLog(`agent metrics reset: ${displayName}`, 'success');
+                setTimeout(() => {
+                    fetchAgents();
+                    if (window.app.ui.detailViewOpen) {
+                        openDetailView();
+                    }
+                }, 800);
+            } else {
+                addLog(`reset failed: ${result.message}`, 'error');
+            }
+        } catch (error) {
+            addLog(`reset error: ${error.message}`, 'error');
+        }
     }
 </script>
