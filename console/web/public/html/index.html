@@ -87,11 +87,31 @@ Loads CSS, Chart.js vendor library, and initializes components. Served by Flask 
             charts: {}
         };
 
+        function logServerVersion(version) {
+            if (!version) return;
+            const message = `server version: ${version}`;
+
+            const tryLog = () => {
+                if (typeof window.addLog === 'function') {
+                    window.addLog(message, 'info');
+                    return true;
+                }
+                return false;
+            };
+
+            if (!tryLog()) {
+                window.addEventListener('load', () => {
+                    tryLog();
+                }, { once: true });
+            }
+        }
+
         // Fetch latest version from backend (cached hourly)
         fetch('/api/version/latest')
             .then(r => r.json())
             .then(data => {
                 window.app.data.latestVersion = data.version;
+                logServerVersion(data.version);
             })
             .catch(() => {});
 
