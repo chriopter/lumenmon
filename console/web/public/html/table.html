@@ -152,8 +152,9 @@ Fetches server-rendered rows every 1s. Provides row selection, navigation functi
                         const latestVersion = window.app?.data?.latestVersion;
                         const agentVersion = entity.agent_version || '';
                         const isMailStale = staleMap[entity.id] === true;
-                        const isOutdated = latestVersion && agentVersion &&
-                            agentVersion !== latestVersion && !agentVersion.startsWith(latestVersion);
+                        const isOutdated = window.isAgentVersionOutdated
+                            ? window.isAgentVersionOutdated(agentVersion, latestVersion)
+                            : false;
                         if (statusDot === 'online' && (entity.failed_collectors > 0 || isOutdated || isMailStale)) {
                             statusDot = 'degraded';
                         }

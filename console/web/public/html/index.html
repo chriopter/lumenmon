@@ -87,6 +87,30 @@ Loads CSS, Chart.js vendor library, and initializes components. Served by Flask 
             charts: {}
         };
 
+        window.isAgentVersionOutdated = function(agentVersion, latestVersion) {
+            if (!agentVersion || !latestVersion) return false;
+
+            const parseVersion = (value) => {
+                const match = String(value).match(/^v?(\d+)\.(\d+)/);
+                if (!match) return null;
+                return {
+                    major: parseInt(match[1], 10),
+                    minor: parseInt(match[2], 10)
+                };
+            };
+
+            const latest = parseVersion(latestVersion);
+            const current = parseVersion(agentVersion);
+            if (!latest || !current) {
+                return false;
+            }
+
+            if (current.major < latest.major) return true;
+            if (current.major > latest.major) return false;
+
+            return (latest.minor - current.minor) > 1;
+        };
+
         function logServerVersion(version) {
             if (!version) return;
             const message = `server version: ${version}`;
