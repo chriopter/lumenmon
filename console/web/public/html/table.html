@@ -49,14 +49,21 @@ Fetches server-rendered rows every 1s. Provides row selection, navigation functi
         try {
             const [entitiesResponse, stalenessResponse] = await Promise.all([
                 fetch('/api/entities'),
-                fetch('/api/messages/staleness?hours=336')
+                fetch('/api/messages/staleness')
             ]);
             if (!entitiesResponse.ok) throw new Error(`HTTP ${entitiesResponse.status}`);
             const data = await entitiesResponse.json();
 
             const staleMap = {};
+            let mailStaleLabel = '14d';
             if (stalenessResponse.ok) {
                 const stalenessData = await stalenessResponse.json();
+                const thresholdHours = Number(stalenessData.threshold_hours);
+                if (Number.isFinite(thresholdHours) && thresholdHours > 0) {
+                    mailStaleLabel = thresholdHours % 24 === 0
+                        ? `${Math.floor(thresholdHours / 24)}d`
+                        : `${thresholdHours}h`;
+                }
                 (stalenessData.per_agent || []).forEach(entry => {
                     staleMap[entry.agent_id] = !!entry.is_stale;
                 });
@@ -187,7 +194,7 @@ Fetches server-rendered rows every 1s. Provides row selection, navigation functi
                         if (statusDot === 'critical') {
                             statusTitle = 'critical (collector failures)';
                         } else if (isMailStale) {
-                            statusTitle = `${statusDot} (mail stale > 14d)`;
+                            statusTitle = `${statusDot} (mail stale > ${mailStaleLabel})`;
                         }
                         html += `<td title="ID: ${entity.id}"><span class="status-dot ${statusDot}" title="${statusTitle}"></span>${displayName}${pendingSymbol}${unreadBadge}</td>`;
                         html += `<td><span class="sparkline">${cpuSparkline}</span></td>`;

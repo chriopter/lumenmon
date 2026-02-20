@@ -12,7 +12,11 @@ set -euo pipefail
 source "$LUMENMON_HOME/core/mqtt/publish.sh"
 
 while true; do
-    count=$(journalctl --since '24 hours ago' --no-pager 2>/dev/null | grep -ci 'AER:\|PCIe Bus Error\|pcieport.*error' || echo 0)
+    if command -v journalctl >/dev/null 2>&1; then
+        count=$(journalctl --since '24 hours ago' --no-pager 2>/dev/null | awk 'BEGIN {IGNORECASE=1} /AER:|PCIe Bus Error|pcieport.*error/ {count++} END {print count+0}')
+    else
+        count=$(dmesg 2>/dev/null | awk 'BEGIN {IGNORECASE=1} /AER:|PCIe Bus Error|pcieport.*error/ {count++} END {print count+0}')
+    fi
     publish_metric "$METRIC" "$count" "$TYPE" "$REPORT" "$MIN" "$MAX"
 
     [ "${LUMENMON_TEST_MODE:-}" = "1" ] && exit 0

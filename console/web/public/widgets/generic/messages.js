@@ -1,6 +1,6 @@
 /**
  * Messages Widget - Shows emails for this host
- * Keyboard navigation: ↑↓ to navigate, Enter to open, Esc to close
+ * Keyboard navigation: ↑↓ to navigate, Enter to open, d to delete, Esc to close
  */
 
 // Track widget state per agent
@@ -62,13 +62,19 @@ async function loadMessagesWidget(el, agentId) {
     try {
         const [messagesResponse, stalenessResponse] = await Promise.all([
             fetch(`/api/agents/${agentId}/messages?limit=10`),
-            fetch('/api/messages/staleness?hours=336')
+            fetch('/api/messages/staleness')
         ]);
         const result = await messagesResponse.json();
         const staleness = stalenessResponse.ok ? await stalenessResponse.json() : { per_agent: [] };
         const messages = result.messages || [];
         const staleEntry = (staleness.per_agent || []).find(a => a.agent_id === agentId);
-        const staleBadge = staleEntry && staleEntry.is_stale ? '<span class="widget-msg-badge" title="no mail for more than 14 days">stale</span>' : '';
+        const thresholdHours = Number(staleness.threshold_hours);
+        const staleTitle = Number.isFinite(thresholdHours) && thresholdHours > 0
+            ? (thresholdHours % 24 === 0
+                ? `no mail for more than ${Math.floor(thresholdHours / 24)} days`
+                : `no mail for more than ${thresholdHours} hours`)
+            : 'no mail for more than 14 days';
+        const staleBadge = staleEntry && staleEntry.is_stale ? `<span class="widget-msg-badge" title="${staleTitle}">stale</span>` : '';
 
         // Store messages for keyboard nav
         if (!mailWidgetState[agentId]) {
@@ -168,6 +174,11 @@ function setupMailKeyboardNav(el, agentId) {
                 }
                 break;
 
+            case 'd':
+                e.preventDefault();
+                await deleteSelectedMail(agentId);
+                break;
+
             case 'Escape':
                 e.preventDefault();
                 closeMailExpand(agentId);
@@ -177,6 +188,65 @@ function setupMailKeyboardNav(el, agentId) {
 
     // Focus widget on click
     widget.addEventListener('click', () => widget.focus());
+}
+
+async function deleteSelectedMail(agentId) {
+    const state = mailWidgetState[agentId];
+    if (!state || state.messages.length === 0) {
+        addLog('no mail to delete', 'warning');
+        return;
+    }
+
+    let selectedIndex = state.selectedIndex;
+    if (selectedIndex < 0 || selectedIndex >= state.messages.length) {
+        selectedIndex = state.expandedId
+            ? state.messages.findIndex(m => m.id === state.expandedId)
+            : 0;
+    }
+
+    if (selectedIndex < 0 || selectedIndex >= state.messages.length) {
+        addLog('no mail selected', 'warning');
+        return;
+    }
+
+    const message = state.messages[selectedIndex];
+
+    try {
+        const response = await fetch(`/api/messages/${message.id}`, { method: 'DELETE' });
+        if (!response.ok) {
+            let errorText = `HTTP ${response.status}`;
+            try {
+                const result = await response.json();
+                if (result && result.error) {
+                    errorText = result.error;
+                }
+            } catch (_) {}
+            throw new Error(errorText);
+        }
+
+        addLog('message deleted', 'success');
+        closeMailExpand(agentId);
+
+        const widget = document.querySelector(`.widget-messages[data-agent-id="${agentId}"]`);
+        if (!widget) {
+            return;
+        }
+
+        await loadMessagesWidget(widget.parentElement, agentId);
+
+        const refreshedState = mailWidgetState[agentId];
+        if (!refreshedState || refreshedState.messages.length === 0) {
+            if (refreshedState) {
+                refreshedState.selectedIndex = -1;
+            }
+            return;
+        }
+
+        const nextIndex = Math.min(selectedIndex, refreshedState.messages.length - 1);
+        selectMailRow(agentId, nextIndex);
+    } catch (e) {
+        addLog(`Error deleting message: ${e.message}`, 'error');
+    }
 }
 
 // Expand mail inline below the widget (TUI style)

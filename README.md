@@ -75,7 +75,7 @@ Read this section as:
 
 | Collector | Publishes | Interval | Failure behavior |
 |-----------|-----------|----------|------------------|
-| `updates` | `debian_updates_total`, `debian_updates_security`, `debian_updates_release`, `debian_updates_age` | 1h (`REPORT`) | `debian_updates_total`: warn for 1..10, critical >10; security/release >0 stay critical |
+| `updates` | `debian_updates_total`, `debian_updates_security`, `debian_updates_release`, `debian_updates_age` | 1h (`REPORT`) | total/security only warn after updates are pending for >=24h; release >0 stays critical |
 
 #### Proxmox VE
 
@@ -102,12 +102,14 @@ Read this section as:
 
 | Collector | Publishes | Interval | Failure behavior |
 |-----------|-----------|----------|------------------|
-| `temp` | `hardware_temp_*` | 5m (`CYCLE`) | fails on temperature thresholds |
+| `temp` | `hardware_temp_*` | 5m (`CYCLE`) | fails on temperature thresholds; negative sensor glitches are clamped to 0 |
 | `pcie_errors` | `hardware_pcie_*` | 1h (`REPORT`) | fails on PCIe/AER errors |
 | `intel_gpu` | `hardware_intel_gpu_*` | 5m (`CYCLE`) | fails on Intel GPU utilization thresholds |
 | `vram` | `hardware_gpu_vram_*` | 5m (`CYCLE`) | fails on VRAM usage thresholds |
 | `smart_values` | `hardware_smart_*` | 1h (`REPORT`) | fails on SMART health/temp/wear thresholds |
 | `ssd_samsung` | `hardware_samsung_*` | 1h (`REPORT`) | inventory/firmware visibility for Samsung SSDs |
+
+Note: on virtualized guests, hardware collectors stay disabled by default. If GPU passthrough is detected, `hardware_intel_gpu` and `hardware_vram` are enabled automatically.
 
 #### Optional
 
@@ -307,9 +309,8 @@ publish_metric "cpu" "$val" "REAL" "$PULSE" 0 100
 # Dynamic bounds (ZFS: online must equal total drives)
 publish_metric "zfs_online" "$online" "INTEGER" "$CYCLE" "$total" "$total"
 
-# Warning before critical (Debian updates)
-# 1..10 updates => warning, >10 => failed
-publish_metric "debian_updates_total" "$total" "INTEGER" "$REPORT" 0 10 "" 0
+# Warning-only threshold
+publish_metric "debian_updates_total" "$total" "INTEGER" "$REPORT" 0 "" "" 0
 
 # One-time metric (interval=0, never stale)
 publish_metric "hostname" "$host" "TEXT" 0

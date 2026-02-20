@@ -13,6 +13,9 @@ from datetime import datetime, timezone
 
 messages_bp = Blueprint('messages', __name__)
 
+DEFAULT_STALENESS_HOURS = 336  # 14 days
+MAX_STALENESS_HOURS = 8760
+
 
 def parse_limit_param(raw_value, default_value, max_value):
     """Parse limit query parameter with bounds checking."""
@@ -142,7 +145,11 @@ def messages_staleness():
     """Server-side mail staleness report using messages.received_at."""
     conn = get_db_connection()
     try:
-        threshold_hours = parse_hours_param(request.args.get('hours'), 336, 8760)
+        threshold_hours = parse_hours_param(
+            request.args.get('hours'),
+            DEFAULT_STALENESS_HOURS,
+            MAX_STALENESS_HOURS,
+        )
         now = datetime.now(timezone.utc)
 
         cursor = conn.execute('''

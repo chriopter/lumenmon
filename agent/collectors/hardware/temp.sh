@@ -7,11 +7,21 @@ RHYTHM="CYCLE"
 set -euo pipefail
 source "$LUMENMON_HOME/core/mqtt/publish.sh"
 
+sanitize_temp() {
+    local raw_temp="${1:-}"
+    awk -v t="$raw_temp" 'BEGIN {
+        if (t !~ /^[-+]?[0-9]+([.][0-9]+)?$/) exit 1
+        if (t > 120) exit 1
+        if (t < 0) t = 0
+        print t
+    }'
+}
+
 while true; do
     if command -v sensors >/dev/null 2>&1; then
         cpu_temp=$(LC_ALL=C sensors 2>/dev/null | awk '/Package id 0:|Tctl:|CPU Temperature:/ {gsub(/\+|°C/,"",$4); print $4; exit}')
-        if [ -n "$cpu_temp" ]; then
-            publish_metric "hardware_temp_cpu_c" "$cpu_temp" "REAL" "$CYCLE" 0 90
+        if cpu_temp_clean="$(sanitize_temp "$cpu_temp")"; then
+            publish_metric "hardware_temp_cpu_c" "$cpu_temp_clean" "REAL" "$CYCLE" 0 90
         fi
 
         current_chip=""
@@ -28,13 +38,13 @@ while true; do
                 temp="${BASH_REMATCH[2]}"
                 temp="${temp#+}"
 
-                if awk -v t="$temp" 'BEGIN {exit !(t >= -10 && t <= 120)}'; then
+                if temp_clean="$(sanitize_temp "$temp")"; then
                     sensor_key=$(printf '%s_%s' "$current_chip" "$label" | tr '[:upper:]' '[:lower:]' | tr -cs 'a-z0-9' '_' | tr -s '_')
                     sensor_key="${sensor_key#_}"
                     sensor_key="${sensor_key%_}"
 
                     [ -z "$sensor_key" ] && continue
-                    publish_metric "hardware_temp_${sensor_key}_c" "$temp" "REAL" "$CYCLE" 0 90
+                    publish_metric "hardware_temp_${sensor_key}_c" "$temp_clean" "REAL" "$CYCLE" 0 90
                 fi
             fi
         done < <(LC_ALL=C sensors 2>/dev/null)
@@ -47,8 +57,8 @@ while true; do
             [ -z "$gpu_index" ] && continue
             [ -z "$gpu_temp" ] && continue
 
-            if awk -v t="$gpu_temp" 'BEGIN {exit !(t >= -10 && t <= 120)}'; then
-                publish_metric "hardware_temp_gpu_${gpu_index}_c" "$gpu_temp" "INTEGER" "$CYCLE" 0 90
+            if gpu_temp_clean="$(sanitize_temp "$gpu_temp")"; then
+                publish_metric "hardware_temp_gpu_${gpu_index}_c" "$gpu_temp_clean" "INTEGER" "$CYCLE" 0 90
             fi
         done < <(nvidia-smi --query-gpu=index,temperature.gpu --format=csv,noheader,nounits 2>/dev/null || true)
     fi
@@ -70,8 +80,8 @@ while true; do
                     }
                 }
             ')
-            if [ -n "$temp" ] && awk -v t="$temp" 'BEGIN {exit !(t >= -10 && t <= 120)}'; then
-                publish_metric "hardware_temp_nvme_${key}_c" "$temp" "INTEGER" "$CYCLE" 0 70
+            if temp_clean="$(sanitize_temp "$temp")"; then
+                publish_metric "hardware_temp_nvme_${key}_c" "$temp_clean" "INTEGER" "$CYCLE" 0 70
             fi
         done < <(nvme list 2>/dev/null | awk '/^\/dev\/nvme/ {print $1}')
     fi

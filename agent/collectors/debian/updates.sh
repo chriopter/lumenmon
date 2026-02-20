@@ -10,9 +10,11 @@ METRIC_RELEASE="debian_updates_release" # Release upgrade (0 or 1)
 METRIC_FRESHNESS="debian_updates_age"   # Hours since last apt update
 TYPE="INTEGER"
 MIN=0
-TOTAL_WARN_MAX=0    # 1..10 updates => warning
-TOTAL_FAIL_MAX=10   # >10 updates => critical
-FAIL_MAX=0          # >0 triggers critical
+ALERT_GRACE_HOURS=24
+TOTAL_WARN_MAX=0      # >0 updates => warning (after grace)
+SECURITY_WARN_MAX=0   # >0 security updates => warning (after grace)
+RELEASE_FAIL_MAX=0    # >0 release upgrade check stays critical
+STATE_FILE="$LUMENMON_DATA/debian_updates_pending"
 
 set -euo pipefail
 source "$LUMENMON_HOME/core/mqtt/publish.sh"
@@ -49,6 +51,26 @@ get_update_age() {
     echo "$age_hours"
 }
 
+read_pending_since() {
+    local key="$1"
+    local value=""
+    value=$(awk -F= -v key="$key" '$1==key {print $2; exit}' "$STATE_FILE" 2>/dev/null || true)
+    if [[ "$value" =~ ^[0-9]+$ ]]; then
+        echo "$value"
+    else
+        echo 0
+    fi
+}
+
+save_pending_since() {
+    local total_since="$1"
+    local security_since="$2"
+    local tmp_file="${STATE_FILE}.tmp"
+
+    printf 'total=%s\nsecurity=%s\n' "$total_since" "$security_since" > "$tmp_file"
+    mv "$tmp_file" "$STATE_FILE"
+}
+
 while true; do
     # Check freshness of package lists (no system modification)
     freshness=$(get_update_age)
@@ -68,13 +90,50 @@ while true; do
         LC_ALL=C do-release-upgrade -c 2>/dev/null | grep -q "New release" && release=1 || true
     fi
 
-    # Publish metrics with thresholds
-    # total: warning for 1..10, critical above 10
-    publish_metric "$METRIC_UPDATES" "$total" "$TYPE" "$REPORT" "$MIN" "$TOTAL_FAIL_MAX" "" "$TOTAL_WARN_MAX"
-    # security/release: any non-zero is critical
-    publish_metric "$METRIC_SECURITY" "$security" "$TYPE" "$REPORT" "$MIN" "$FAIL_MAX"
-    publish_metric "$METRIC_RELEASE" "$release" "$TYPE" "$REPORT" "$MIN" "$FAIL_MAX"
+    # Track how long updates have continuously been pending.
+    now=$(date +%s)
+    total_pending_since=$(read_pending_since total)
+    security_pending_since=$(read_pending_since security)
+
+    if [ "$total" -gt 0 ]; then
+        [ "$total_pending_since" -le 0 ] && total_pending_since="$now"
+    else
+        total_pending_since=0
+    fi
+
+    if [ "$security" -gt 0 ]; then
+        [ "$security_pending_since" -le 0 ] && security_pending_since="$now"
+    else
+        security_pending_since=0
+    fi
+
+    total_pending_hours=0
+    security_pending_hours=0
+    [ "$total_pending_since" -gt 0 ] && total_pending_hours=$(((now - total_pending_since) / 3600))
+    [ "$security_pending_since" -gt 0 ] && security_pending_hours=$(((now - security_pending_since) / 3600))
+
+    # Publish metrics with delayed alerting.
+    # Only warn once updates have been pending for at least 24h.
+    if [ "$total" -gt 0 ] && [ "$total_pending_hours" -ge "$ALERT_GRACE_HOURS" ]; then
+        publish_metric "$METRIC_UPDATES" "$total" "$TYPE" "$REPORT" "$MIN" "" "" "$TOTAL_WARN_MAX"
+    else
+        publish_metric "$METRIC_UPDATES" "$total" "$TYPE" "$REPORT" "$MIN"
+    fi
+
+    if [ "$security" -gt 0 ] && [ "$security_pending_hours" -ge "$ALERT_GRACE_HOURS" ]; then
+        publish_metric "$METRIC_SECURITY" "$security" "$TYPE" "$REPORT" "$MIN" "" "" "$SECURITY_WARN_MAX"
+    else
+        publish_metric "$METRIC_SECURITY" "$security" "$TYPE" "$REPORT" "$MIN"
+    fi
+
+    # Release upgrade is still treated as hard-fail signal.
+    publish_metric "$METRIC_RELEASE" "$release" "$TYPE" "$REPORT" "$MIN" "$RELEASE_FAIL_MAX"
     publish_metric "$METRIC_FRESHNESS" "$freshness" "$TYPE" "$REPORT" 0 72  # Warn if >72h old
+
+    if [ "${LUMENMON_TEST_MODE:-}" != "1" ]; then
+        save_pending_since "$total_pending_since" "$security_pending_since"
+    fi
+
     [ "${LUMENMON_TEST_MODE:-}" = "1" ] && exit 0
 
     # Wait for next interval OR until apt lists change (whichever comes first)
