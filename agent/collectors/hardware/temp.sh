@@ -18,8 +18,11 @@ sanitize_temp() {
 }
 
 while true; do
+    sensors_output=""
     if command -v sensors >/dev/null 2>&1; then
-        cpu_temp=$(LC_ALL=C sensors 2>/dev/null | awk '/Package id 0:|Tctl:|CPU Temperature:/ {gsub(/\+|°C/,"",$4); print $4; exit}')
+        sensors_output="$(LC_ALL=C sensors 2>/dev/null || true)"
+
+        cpu_temp="$(printf '%s\n' "$sensors_output" | awk '/Package id 0:|Tctl:|CPU Temperature:/ {gsub(/\+|°C/,"",$4); print $4; exit}')"
         if cpu_temp_clean="$(sanitize_temp "$cpu_temp")"; then
             publish_metric "hardware_temp_cpu_c" "$cpu_temp_clean" "REAL" "$CYCLE" 0 90
         fi
@@ -47,7 +50,7 @@ while true; do
                     publish_metric "hardware_temp_${sensor_key}_c" "$temp_clean" "REAL" "$CYCLE" 0 90
                 fi
             fi
-        done < <(LC_ALL=C sensors 2>/dev/null)
+        done <<< "$sensors_output"
     fi
 
     if command -v nvidia-smi >/dev/null 2>&1; then
@@ -79,11 +82,11 @@ while true; do
                         exit
                     }
                 }
-            ')
+            ' || true)
             if temp_clean="$(sanitize_temp "$temp")"; then
                 publish_metric "hardware_temp_nvme_${key}_c" "$temp_clean" "INTEGER" "$CYCLE" 0 70
             fi
-        done < <(nvme list 2>/dev/null | awk '/^\/dev\/nvme/ {print $1}')
+        done < <(nvme list 2>/dev/null | awk '/^\/dev\/nvme/ {print $1}' || true)
     fi
 
     [ "${LUMENMON_TEST_MODE:-}" = "1" ] && exit 0
