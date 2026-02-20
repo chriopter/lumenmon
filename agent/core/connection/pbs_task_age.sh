@@ -9,7 +9,7 @@ pbs_latest_task_ts() {
     command -v proxmox-backup-manager >/dev/null 2>&1 || return 1
     command -v python3 >/dev/null 2>&1 || return 1
 
-    raw="$(LC_ALL=C proxmox-backup-manager task list --output-format json 2>/dev/null || true)"
+    raw="$(LC_ALL=C proxmox-backup-manager task list --all --limit 1000 --output-format json 2>/dev/null || true)"
     [ -n "$raw" ] || return 1
 
     printf '%s\n' "$raw" | python3 - "$task_kind" <<'PY'
