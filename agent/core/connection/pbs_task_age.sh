@@ -12,7 +12,7 @@ pbs_latest_task_ts() {
     raw="$(LC_ALL=C proxmox-backup-manager task list --all --limit 1000 --output-format json 2>/dev/null || true)"
     [ -n "$raw" ] || return 1
 
-    printf '%s\n' "$raw" | python3 - "$task_kind" <<'PY'
+    printf '%s\n' "$raw" | python3 -c '
 import json
 import re
 import sys
@@ -20,10 +20,10 @@ import sys
 task_kind = sys.argv[1]
 
 patterns = {
-    'backup': r'\bbackup\b',
-    'gc': r'\bgc\b|garbage',
-    'sync': r'\bsync\b',
-    'verify': r'\bverify\b|verification',
+    "backup": r"\bbackup\b",
+    "gc": r"\bgc\b|garbage",
+    "sync": r"\bsync\b|syncjob",
+    "verify": r"\bverify\b|verification",
 }
 
 pattern = patterns.get(task_kind)
@@ -31,12 +31,12 @@ if pattern is None:
     raise SystemExit(1)
 
 try:
-    payload = json.loads(sys.stdin.read() or '[]')
+    payload = json.loads(sys.stdin.read() or "[]")
 except Exception:
     raise SystemExit(1)
 
 if isinstance(payload, dict):
-    payload = payload.get('data', [])
+    payload = payload.get("data", [])
 if not isinstance(payload, list):
     raise SystemExit(1)
 
@@ -45,12 +45,12 @@ for task in payload:
     if not isinstance(task, dict):
         continue
 
-    search_text = ' '.join(str(task.get(key, '')) for key in ('worker_type', 'task', 'upid')).lower()
+    search_text = " ".join(str(task.get(key, "")) for key in ("worker_type", "type", "task", "upid")).lower()
     if not re.search(pattern, search_text, re.I):
         continue
 
     ts = 0
-    for key in ('endtime', 'end_time', 'starttime', 'start_time', 'timestamp', 'time'):
+    for key in ("endtime", "end_time", "starttime", "start_time", "timestamp", "time"):
         value = task.get(key)
         if isinstance(value, (int, float)):
             ts = max(ts, int(value))
@@ -58,11 +58,11 @@ for task in payload:
             ts = max(ts, int(value))
 
     if ts <= 0:
-        upid = str(task.get('upid') or '')
-        parts = upid.split(':')
-        if len(parts) > 4:
+        upid = str(task.get("upid") or "")
+        parts = upid.split(":")
+        if len(parts) > 6:
             try:
-                ts = int(parts[4], 16)
+                ts = int(parts[5], 16)
             except Exception:
                 ts = 0
 
@@ -70,7 +70,7 @@ for task in payload:
 
 if latest > 0:
     print(latest)
-PY
+    ' "$task_kind"
 }
 
 get_pbs_task_age_hours() {
