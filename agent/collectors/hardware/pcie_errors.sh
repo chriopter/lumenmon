@@ -13,9 +13,9 @@ source "$LUMENMON_HOME/core/mqtt/publish.sh"
 
 while true; do
     if command -v journalctl >/dev/null 2>&1; then
-        count=$(journalctl --since '24 hours ago' --no-pager 2>/dev/null | awk 'BEGIN {IGNORECASE=1} /AER:|PCIe Bus Error|pcieport.*error/ {count++} END {print count+0}')
+        count=$(journalctl --since '24 hours ago' --no-pager 2>/dev/null | awk 'BEGIN {IGNORECASE=1} /AER:.*(Corrected|Uncorrected|error severity)|PCIe Bus Error|pcieport.*error severity/ {count++} END {print count+0}')
     else
-        count=$(dmesg 2>/dev/null | awk 'BEGIN {IGNORECASE=1} /AER:|PCIe Bus Error|pcieport.*error/ {count++} END {print count+0}')
+        count=$(dmesg 2>/dev/null | awk 'BEGIN {IGNORECASE=1} /AER:.*(Corrected|Uncorrected|error severity)|PCIe Bus Error|pcieport.*error severity/ {count++} END {print count+0}')
     fi
     publish_metric "$METRIC" "$count" "$TYPE" "$REPORT" "$MIN" "$MAX"
 
