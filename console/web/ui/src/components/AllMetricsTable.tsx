@@ -223,7 +223,7 @@ export function AllMetricsTable({ agentId, tables, latestVersion, onLog }: Props
                         <div key={name} className="collectors-combined-row">
                             <span>{name}</span>
                             <strong className={stats.failed > 0 ? 'crit-text' : stats.warning > 0 ? 'warn-text' : ''}>
-                                {stats.total} · {stats.failed}f · {stats.warning}w · {stats.stale}s
+                                {stats.total} total · {stats.failed} fail · {stats.warning} warn · {stats.stale} stale
                             </strong>
                         </div>
                     ))}

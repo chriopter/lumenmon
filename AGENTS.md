@@ -136,6 +136,8 @@ Use the narrowest target matching changed files.
 - Collector `TYPE` values: `REAL`, `INTEGER`, `TEXT`.
 - Use `min`/`max` when a metric should drive health-state detection.
 - Mail staleness is server-side (`/api/messages/staleness`, default 14 days / 336h) and should stay warning-only unless explicitly changed.
+- Frontend mail widget must stay host-scoped (no cross-host/global fallback when selected host has no messages).
+- Frontend collector summary legend: `total`, `fail`, `warn`, `stale`.
 - Agent ID pattern used by APIs: `id_<hex...>`.
 - SQLite metric table naming: `<agent_id>_<metric_name>`.
 

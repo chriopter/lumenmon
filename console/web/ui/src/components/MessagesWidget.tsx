@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { deleteMessage, fetchAgentMessages, fetchAllMessages, fetchMessage } from '../api';
+import { deleteMessage, fetchAgentMessages, fetchMessage } from '../api';
 import { emailLocalPart, formatMessageTime } from '../lib';
 import type { Message } from '../types';
 
@@ -19,22 +19,18 @@ export function MessagesWidget({ agentId, onLog }: Props) {
         refetchInterval: 20000
     });
 
-    const fallbackMessagesQuery = useQuery({
-        queryKey: ['all-messages-fallback'],
-        queryFn: () => fetchAllMessages(10),
-        refetchInterval: 30000,
-        enabled: (messagesQuery.data?.messages || []).length === 0
-    });
-
     const selectedMessageQuery = useQuery({
         queryKey: ['message', selectedId],
         queryFn: () => fetchMessage(selectedId as number),
         enabled: selectedId !== null
     });
 
-    const directMessages = messagesQuery.data?.messages || [];
-    const messages = directMessages.length > 0 ? directMessages : (fallbackMessagesQuery.data?.messages || []);
+    const messages = messagesQuery.data?.messages || [];
     const unreadCount = useMemo(() => messages.filter((message) => !message.read).length, [messages]);
+
+    useEffect(() => {
+        setSelectedId(null);
+    }, [agentId]);
 
     async function onDelete(message: Message) {
         try {
@@ -56,7 +52,7 @@ export function MessagesWidget({ agentId, onLog }: Props) {
                 <div className="tui-metric-box">
                     <div className="widget-header">
                         <h3>mail</h3>
-                        <span className="badge">{unreadCount} unread{directMessages.length === 0 && messages.length > 0 ? ' · global' : ''}</span>
+                        <span className="badge">{unreadCount} unread</span>
                     </div>
 
                     {messages.length === 0 ? (

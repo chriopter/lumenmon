@@ -217,6 +217,21 @@ Configure your system to send mail to `<agent_id>@<console-host>`. Works with Pr
 
 Both methods store mail in the same messages table, displayed per-agent in the web UI.
 
+Web UI behavior:
+- Mail panel is host-scoped. Selecting a host shows only messages for that host.
+- If a host has no mail, the panel stays empty (no global cross-host fallback).
+
+</details>
+
+<details>
+<summary>Web UI Notes</summary>
+
+Collector summary in `All Values` uses this legend:
+- `total`: metrics in that collector group
+- `fail`: hard failed metrics (critical)
+- `warn`: warning metrics (degraded)
+- `stale`: metrics without fresh data in expected interval
+
 </details>
 
 <details>
