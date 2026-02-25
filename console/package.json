@@ -1,13 +1,28 @@
 {
   "name": "lumenmon-console",
   "version": "1.0.0",
-  "description": "Lumenmon Console CSS build",
+  "description": "Lumenmon Console web build",
   "scripts": {
-    "build": "tailwindcss -i ./web/public/css/input.css -o ./web/public/css/styles.css --minify",
-    "dev": "tailwindcss -i ./web/public/css/input.css -o ./web/public/css/styles.css --watch"
+    "build:css": "tailwindcss -i ./web/public/css/input.css -o ./web/public/css/styles.css --minify",
+    "build:ui": "vite build",
+    "build": "npm run build:css && npm run build:ui",
+    "dev:css": "tailwindcss -i ./web/public/css/input.css -o ./web/public/css/styles.css --watch",
+    "dev:ui": "vite",
+    "dev": "npm run dev:ui"
   },
   "devDependencies": {
     "@tailwindcss/cli": "^4.0.0",
-    "tailwindcss": "^4.0.0"
+    "@types/react": "^18.3.23",
+    "@types/react-dom": "^18.3.7",
+    "@vitejs/plugin-react": "^4.7.0",
+    "tailwindcss": "^4.0.0",
+    "typescript": "^5.9.2",
+    "vite": "^7.1.3"
+  },
+  "dependencies": {
+    "echarts": "^6.0.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "@tanstack/react-query": "^5.90.2"
   }
 }

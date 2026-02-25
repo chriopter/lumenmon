@@ -32,14 +32,7 @@
         encode gzip
     }
 
-    handle /js/* {
-        root * /app/web/public
-        header Cache-Control "no-cache, max-age=0"
-        file_server
-        encode gzip
-    }
-
-    handle /widgets/* {
+    handle /app/* {
         root * /app/web/public
         header Cache-Control "no-cache, max-age=0"
         file_server
@@ -83,14 +76,7 @@ localhost:8443, {$CONSOLE_HOST:localhost}:8443 {
         encode gzip
     }
 
-    handle /js/* {
-        root * /app/web/public
-        header Cache-Control "no-cache, max-age=0"
-        file_server
-        encode gzip
-    }
-
-    handle /widgets/* {
+    handle /app/* {
         root * /app/web/public
         header Cache-Control "no-cache, max-age=0"
         file_server

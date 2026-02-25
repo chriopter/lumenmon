@@ -34,7 +34,7 @@ import time
 import urllib.request
 from collections import deque
 from datetime import datetime
-from flask import Flask, jsonify, request, render_template, Response
+from flask import Flask, jsonify, request, render_template, Response, send_from_directory
 import paho.mqtt.client as mqtt
 
 # Add app directory for imports
@@ -893,9 +893,7 @@ app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 
 @app.route('/')
 def index():
-    import random, string
-    v = ''.join(random.choices(string.ascii_letters + string.digits, k=6))
-    return render_template('index.html', v=v)
+    return send_from_directory(static_dir, 'html/index.html')
 
 
 @app.route('/debug/collectors')

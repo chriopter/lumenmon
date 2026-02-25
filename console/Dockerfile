@@ -2,8 +2,12 @@
 FROM node:22-slim AS css-builder
 WORKDIR /build
 COPY package.json ./
+COPY package-lock.json ./
+COPY vite.config.ts ./
+COPY tsconfig.json ./
 RUN npm install
 COPY web/public/css/ ./web/public/css/
+COPY web/ui/ ./web/ui/
 RUN npm run build
 
 # Stage 2: Runtime image
@@ -45,8 +49,9 @@ COPY core/ ./core/
 COPY web/ ./web/
 COPY config/ ./config/
 
-# Copy compiled CSS from build stage (overwrites uncompiled input.css output location)
+# Copy compiled UI assets from build stage
 COPY --from=css-builder /build/web/public/css/styles.css ./web/public/css/styles.css
+COPY --from=css-builder /build/web/public/app/ ./web/public/app/
 
 # Copy Caddyfile from web config
 COPY web/config/Caddyfile /etc/caddy/Caddyfile
