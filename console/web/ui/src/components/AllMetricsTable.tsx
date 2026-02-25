@@ -1,7 +1,8 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { fetchJson } from '../api';
 import { metricCurrentValue, toNumber } from '../lib';
+import { MiniMetricChart } from './widgets/MiniMetricChart';
 import type { AgentTable } from '../types';
 
 type Props = {
@@ -14,14 +15,15 @@ type Props = {
 type PreparedMetric = {
     table: AgentTable;
     name: string;
-    minClass: string;
-    maxClass: string;
     rowClass: string;
     nextUpdateText: string;
     hasProblem: boolean;
-    realClass: string;
-    intClass: string;
-    textClass: string;
+    valueClass: string;
+    statusText: string;
+    statusClass: string;
+    currentValueText: string;
+    minClass: string;
+    maxClass: string;
 };
 
 function formatValue(value: number | string | null | undefined): string {
@@ -62,6 +64,7 @@ function nextUpdateText(table: AgentTable): string {
 
 export function AllMetricsTable({ agentId, tables, latestVersion, onLog }: Props) {
     const queryClient = useQueryClient();
+    const [expandedMetric, setExpandedMetric] = useState<string | null>(null);
 
     const prepared = useMemo(() => {
         return tables
@@ -93,11 +96,17 @@ export function AllMetricsTable({ agentId, tables, latestVersion, onLog }: Props
                 let valueClass = '';
                 let minClass = '';
                 let maxClass = '';
+                let statusText = 'ok';
+                let statusClass = 'ok-text';
 
                 if (hardProblem) {
                     valueClass = 'crit-text';
+                    statusText = health.is_stale ? 'stale' : 'failed';
+                    statusClass = 'crit-text';
                 } else if (softProblem) {
                     valueClass = 'warn-text';
+                    statusText = 'warning';
+                    statusClass = 'warn-text';
                 }
 
                 if (numericValue !== null) {
@@ -116,14 +125,15 @@ export function AllMetricsTable({ agentId, tables, latestVersion, onLog }: Props
                 return {
                     table,
                     name: table.metric_name,
-                    minClass,
-                    maxClass,
                     rowClass: hardProblem ? 'metric-row-problem' : softProblem ? 'metric-row-warning' : '',
                     nextUpdateText: nextUpdateText(table),
                     hasProblem,
-                    realClass: table.columns.value_real !== null ? valueClass : '',
-                    intClass: table.columns.value_int !== null ? valueClass : '',
-                    textClass: table.columns.value_text !== null ? valueClass : ''
+                    valueClass,
+                    statusText,
+                    statusClass,
+                    currentValueText: formatValue(metricCurrentValue(table)),
+                    minClass,
+                    maxClass
                 } satisfies PreparedMetric;
             })
             .sort((a, b) => a.name.localeCompare(b.name));
@@ -135,21 +145,6 @@ export function AllMetricsTable({ agentId, tables, latestVersion, onLog }: Props
         if (!a.hasProblem && b.hasProblem) return 1;
         return a.name.localeCompare(b.name);
     });
-    const collectors = useMemo(() => {
-        const map = new Map<string, { total: number; failed: number; warning: number; stale: number }>();
-        for (const table of tables) {
-            const parts = table.metric_name.split('_');
-            const collector = parts.length >= 2 ? `${parts[0]}_${parts[1]}` : parts[0];
-            const row = map.get(collector) || { total: 0, failed: 0, warning: 0, stale: 0 };
-            row.total += 1;
-            if (table.health?.is_failed) row.failed += 1;
-            if (table.health?.is_warning) row.warning += 1;
-            if (table.health?.is_stale) row.stale += 1;
-            map.set(collector, row);
-        }
-        return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]));
-    }, [tables]);
-
     async function deleteMetric(metricName: string) {
         const ok = window.confirm(`Delete metric "${metricName}"?`);
         if (!ok) {
@@ -166,47 +161,67 @@ export function AllMetricsTable({ agentId, tables, latestVersion, onLog }: Props
         }
     }
 
-    function renderTableHeader() {
+    function renderHistory(metric: PreparedMetric) {
+        const numericHistory = (metric.table.history || []).filter((point) => Number.isFinite(point.value));
+        if (numericHistory.length < 2) {
+            return <div className="metric-history-empty">No numeric history available.</div>;
+        }
+
         return (
-            <thead>
-                <tr>
-                    <td>name</td>
-                    <td>timestamp</td>
-                    <td>real</td>
-                    <td>int</td>
-                    <td>text</td>
-                    <td>min</td>
-                    <td>max</td>
-                    <td>interval</td>
-                    <td>last update</td>
-                    <td>next update</td>
-                    <td>data span</td>
-                    <td># samples</td>
-                    <td></td>
-                </tr>
-            </thead>
+            <div className="metric-history-chart">
+                <MiniMetricChart
+                    points={numericHistory}
+                    color={metric.statusClass === 'crit-text' ? '#f38ba8' : metric.statusClass === 'warn-text' ? '#f9e2af' : '#a6e3a1'}
+                    yMin={toNumber(metric.table.columns.min_value) ?? undefined}
+                    yMax={toNumber(metric.table.columns.max_value) ?? undefined}
+                />
+            </div>
         );
     }
 
     function renderRow(metric: PreparedMetric) {
+        const expanded = expandedMetric === metric.name;
+        const boundsClass = metric.minClass === 'crit-text' || metric.maxClass === 'crit-text'
+            ? 'crit-text'
+            : metric.minClass === 'warn-text' || metric.maxClass === 'warn-text'
+                ? 'warn-text'
+                : '';
         return (
-            <tr key={metric.name} className={metric.rowClass}>
-                <td className="mono-cell">{metric.name}</td>
-                <td>{formatValue(metric.table.columns.timestamp)}</td>
-                <td className={metric.realClass}>{formatValue(metric.table.columns.value_real)}</td>
-                <td className={metric.intClass}>{formatValue(metric.table.columns.value_int)}</td>
-                <td className={metric.textClass}>{formatValue(metric.table.columns.value_text)}</td>
-                <td className={metric.minClass}>{formatValue(metric.table.columns.min_value)}</td>
-                <td className={metric.maxClass}>{formatValue(metric.table.columns.max_value)}</td>
-                <td>{formatValue(metric.table.columns.interval)}s</td>
-                <td>{formatValue(metric.table.metadata?.timestamp_age)}</td>
-                <td>{metric.nextUpdateText}</td>
-                <td>{formatValue(metric.table.metadata?.data_span)}</td>
-                <td>{formatValue(metric.table.metadata?.line_count)}</td>
-                <td>
+            <article key={metric.name} className={`metric-card ${metric.rowClass}`}>
+                <div className="metric-row">
+                    <button
+                        type="button"
+                        className="metric-toggle"
+                        onClick={() => setExpandedMetric(expanded ? null : metric.name)}
+                    >
+                        <span className="metric-cell metric-name mono-cell">{metric.name}</span>
+                        <span className={`metric-cell metric-value ${metric.valueClass}`}>{metric.currentValueText}</span>
+                        <span className={`metric-cell metric-bounds ${boundsClass}`}>
+                            {formatValue(metric.table.columns.min_value)}..{formatValue(metric.table.columns.max_value)}
+                        </span>
+                        <span className="metric-cell metric-next">{metric.nextUpdateText}</span>
+                        <span className={`metric-cell metric-status ${metric.statusClass}`}>{metric.statusText}</span>
+                    </button>
                     <button type="button" className="delete-metric" onClick={() => void deleteMetric(metric.name)}>x</button>
-                </td>
-            </tr>
+                </div>
+
+                {expanded ? (
+                    <div className="metric-expand">
+                        {renderHistory(metric)}
+                        <div className="metric-meta-grid">
+                            <div><span>timestamp</span><strong>{formatValue(metric.table.columns.timestamp)}</strong></div>
+                            <div><span>real</span><strong className={metric.valueClass}>{formatValue(metric.table.columns.value_real)}</strong></div>
+                            <div><span>int</span><strong className={metric.valueClass}>{formatValue(metric.table.columns.value_int)}</strong></div>
+                            <div><span>text</span><strong className={metric.valueClass}>{formatValue(metric.table.columns.value_text)}</strong></div>
+                            <div><span>interval</span><strong>{formatValue(metric.table.columns.interval)}s</strong></div>
+                            <div><span>last update</span><strong>{formatValue(metric.table.metadata?.timestamp_age)}</strong></div>
+                            <div><span>next update</span><strong>{metric.nextUpdateText}</strong></div>
+                            <div><span>data span</span><strong>{formatValue(metric.table.metadata?.data_span)}</strong></div>
+                            <div><span>samples</span><strong>{formatValue(metric.table.metadata?.line_count)}</strong></div>
+                        </div>
+                    </div>
+                ) : null}
+            </article>
         );
     }
 
@@ -216,27 +231,17 @@ export function AllMetricsTable({ agentId, tables, latestVersion, onLog }: Props
                 All Values{problemMetrics.length > 0 ? <span className="issues-badge">{` ⚠ ${problemMetrics.length}`}</span> : null}
             </h3>
 
-            <div className="collectors-combined">
-                <div className="collectors-combined-title">Collectors</div>
-                <div className="collectors-combined-grid">
-                    {collectors.map(([name, stats]) => (
-                        <div key={name} className="collectors-combined-row">
-                            <span>{name}</span>
-                            <strong className={stats.failed > 0 ? 'crit-text' : stats.warning > 0 ? 'warn-text' : ''}>
-                                {stats.total} total · {stats.failed} fail · {stats.warning} warn · {stats.stale} stale
-                            </strong>
-                        </div>
-                    ))}
-                </div>
-            </div>
-
             <div className="metrics-table-wrap">
-                <table className="tui-table">
-                    {renderTableHeader()}
-                    <tbody>
-                        {orderedMetrics.map(renderRow)}
-                    </tbody>
-                </table>
+                <div className="metrics-headline-row">
+                    <span>name</span>
+                    <span>value</span>
+                    <span>bounds</span>
+                    <span>next</span>
+                    <span>state</span>
+                </div>
+                <div className="metrics-list">
+                    {orderedMetrics.map(renderRow)}
+                </div>
             </div>
         </section>
     );

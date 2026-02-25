@@ -145,6 +145,11 @@
     -ms-overflow-style: none;
 }
 
+.mail-list:focus {
+    outline: 1px solid rgba(137, 180, 250, 0.45);
+    outline-offset: 1px;
+}
+
 .mail-list::-webkit-scrollbar {
     display: none;
 }
@@ -161,6 +166,10 @@
     gap: 0.35rem;
     text-align: left;
     cursor: pointer;
+}
+
+.mail-row:focus-visible {
+    outline: 1px solid rgba(137, 180, 250, 0.7);
 }
 
 .mail-row.selected {
@@ -251,10 +260,12 @@
 }
 
 .metrics-table-wrap {
-    overflow: auto;
+    overflow-y: auto;
+    overflow-x: hidden;
     max-height: 44vh;
     border: 1px solid var(--background3);
     border-radius: 3px;
+    padding: 0.3rem;
     scrollbar-width: none;
     -ms-overflow-style: none;
 }
@@ -263,49 +274,106 @@
     display: none;
 }
 
-.metrics-table-wrap .tui-table td {
+.metrics-headline-row {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 0.8fr) minmax(0, 0.9fr) minmax(0, 0.8fr) minmax(0, 0.7fr);
+    gap: 0.35rem;
+    padding: 0.2rem 0.32rem;
+    color: var(--foreground2);
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--background3);
+}
+
+.metrics-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin-top: 0.25rem;
+}
+
+.metric-card {
+    border-bottom: 1px dotted rgba(186, 194, 222, 0.2);
+}
+
+.metric-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.17rem 0.2rem;
+}
+
+.metric-toggle {
+    border: 0;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 0.8fr) minmax(0, 0.9fr) minmax(0, 0.8fr) minmax(0, 0.7fr);
+    gap: 0.35rem;
+    align-items: center;
+    font-size: 0.7rem;
+}
+
+.metric-cell {
+    min-width: 0;
+}
+
+.metric-name {
+    overflow-wrap: anywhere;
+}
+
+.metric-value,
+.metric-bounds,
+.metric-next,
+.metric-status {
     white-space: nowrap;
-    font-size: 0.68rem;
 }
 
-.collectors-combined {
-    border: 1px solid var(--background3);
-    border-radius: 3px;
-    padding: 0.35rem 0.45rem;
-    margin-bottom: 0.35rem;
+.metric-expand {
+    border-top: 1px dotted rgba(186, 194, 222, 0.2);
+    padding: 0.3rem 0.2rem 0.35rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
 }
 
-.collectors-combined-title {
+.metric-history-chart .mini-chart {
+    height: 110px;
+}
+
+.metric-history-empty {
+    color: var(--foreground2);
+    font-size: 0.7rem;
+}
+
+.metric-meta-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.2rem 0.45rem;
+}
+
+.metric-meta-grid > div {
+    display: grid;
+    grid-template-columns: 5.8rem minmax(0, 1fr);
+    column-gap: 0.25rem;
+    align-items: baseline;
+    border-bottom: 1px dotted rgba(186, 194, 222, 0.18);
+    padding-bottom: 0.04rem;
+}
+
+.metric-meta-grid > div > span {
     color: var(--foreground2);
     font-size: 0.66rem;
-    text-transform: uppercase;
-    margin-bottom: 0.2rem;
+    text-transform: lowercase;
 }
 
-.collectors-combined-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.15rem 0.5rem;
-}
-
-.collectors-combined-row {
-    display: flex;
-    justify-content: space-between;
-    gap: 0.35rem;
-    font-size: 0.66rem;
-    border-bottom: 1px dotted rgba(186, 194, 222, 0.18);
-    padding-bottom: 0.05rem;
-}
-
-.collectors-combined-row > strong {
-    font-size: 0.68rem;
-}
-
-.metrics-table-wrap .tui-table thead td {
-    position: sticky;
-    top: 0;
-    z-index: 3;
-    background: rgba(30, 32, 55, 0.95);
+.metric-meta-grid > div > strong {
+    font-size: 0.7rem;
+    overflow-wrap: anywhere;
 }
 
 .mono-cell {
@@ -314,11 +382,11 @@
 }
 
 .metric-row-problem {
-    background: rgba(243, 139, 168, 0.12);
+    background: rgba(243, 139, 168, 0.08);
 }
 
 .metric-row-warning {
-    background: rgba(249, 226, 175, 0.1);
+    background: rgba(249, 226, 175, 0.07);
 }
 
 .issues-badge,
@@ -520,12 +588,29 @@
         font-size: 0.86rem;
     }
 
-    .collectors-combined-grid {
-        grid-template-columns: 1fr;
-    }
-
     .metrics-table-wrap {
         max-height: none;
+    }
+
+    .metrics-headline-row {
+        display: none;
+    }
+
+    .metric-toggle {
+        grid-template-columns: 1fr;
+        gap: 0.06rem;
+    }
+
+    .metric-value,
+    .metric-bounds,
+    .metric-next,
+    .metric-status {
+        font-size: 0.66rem;
+        white-space: normal;
+    }
+
+    .metric-meta-grid {
+        grid-template-columns: 1fr;
     }
 
     .mail-row {

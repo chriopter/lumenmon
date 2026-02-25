@@ -283,6 +283,9 @@ export function App() {
             if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
                 return;
             }
+            if (target && (target.closest('.mail-list') || target.closest('.mail-expanded'))) {
+                return;
+            }
             const key = event.key.toLowerCase();
             const currentIndex = sortedEntities.findIndex((entity) => entity.id === selectedAgentId);
 

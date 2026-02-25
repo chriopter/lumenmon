@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { deleteMessage, fetchAgentMessages, fetchMessage } from '../api';
 import { emailLocalPart, formatMessageTime } from '../lib';
@@ -12,6 +12,7 @@ type Props = {
 export function MessagesWidget({ agentId, onLog }: Props) {
     const queryClient = useQueryClient();
     const [selectedId, setSelectedId] = useState<number | null>(null);
+    const rowRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
     const messagesQuery = useQuery({
         queryKey: ['agent-messages', agentId],
@@ -30,7 +31,71 @@ export function MessagesWidget({ agentId, onLog }: Props) {
 
     useEffect(() => {
         setSelectedId(null);
+        rowRefs.current = [];
     }, [agentId]);
+
+    useEffect(() => {
+        if (selectedId === null) {
+            return;
+        }
+        if (!messages.some((message) => message.id === selectedId)) {
+            setSelectedId(null);
+        }
+    }, [messages, selectedId]);
+
+    function focusRow(index: number) {
+        const row = rowRefs.current[index];
+        if (!row) {
+            return;
+        }
+        row.focus();
+        row.scrollIntoView({ block: 'nearest' });
+    }
+
+    function onListKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
+        if (!messages.length) {
+            return;
+        }
+
+        const key = event.key.toLowerCase();
+        const currentIndex = messages.findIndex((message) => message.id === selectedId);
+
+        if (key === 'arrowdown' || key === 'j') {
+            event.preventDefault();
+            const nextIndex = currentIndex < 0 ? 0 : Math.min(currentIndex + 1, messages.length - 1);
+            setSelectedId(messages[nextIndex].id);
+            focusRow(nextIndex);
+            return;
+        }
+
+        if (key === 'arrowup' || key === 'k') {
+            event.preventDefault();
+            const nextIndex = currentIndex < 0 ? messages.length - 1 : Math.max(currentIndex - 1, 0);
+            setSelectedId(messages[nextIndex].id);
+            focusRow(nextIndex);
+            return;
+        }
+
+        if (key === 'home') {
+            event.preventDefault();
+            setSelectedId(messages[0].id);
+            focusRow(0);
+            return;
+        }
+
+        if (key === 'end') {
+            event.preventDefault();
+            const nextIndex = messages.length - 1;
+            setSelectedId(messages[nextIndex].id);
+            focusRow(nextIndex);
+            return;
+        }
+
+        if (key === 'escape') {
+            event.preventDefault();
+            setSelectedId(null);
+        }
+    }
 
     async function onDelete(message: Message) {
         try {
@@ -58,15 +123,20 @@ export function MessagesWidget({ agentId, onLog }: Props) {
                     {messages.length === 0 ? (
                         <p className="mail-empty">No mail for this host.</p>
                     ) : (
-                        <div className="mail-list">
-                            {messages.map((message) => {
+                        <div className="mail-list" tabIndex={0} onKeyDown={onListKeyDown} aria-label="Mail messages list">
+                            {messages.map((message, index) => {
                                 const selected = selectedId === message.id;
                                 return (
                                     <button
                                         type="button"
                                         key={message.id}
+                                        ref={(node) => {
+                                            rowRefs.current[index] = node;
+                                        }}
+                                        tabIndex={selected ? 0 : -1}
                                         className={`mail-row ${selected ? 'selected' : ''}`}
                                         onClick={() => setSelectedId(selected ? null : message.id)}
+                                        onFocus={() => setSelectedId(message.id)}
                                     >
                                         <span className={`mail-dot ${message.read ? 'read' : 'unread'}`} />
                                         <span className="mail-from">{emailLocalPart(message)}</span>
