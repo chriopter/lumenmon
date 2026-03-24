@@ -83,6 +83,27 @@ intel_gpu_busy_from_top_text() {
     '
 }
 
+intel_gpu_busy_from_nvtop() {
+    # nvtop is an interactive TUI; capture output via script(1) for one sample.
+    # Only useful when intel_gpu_top is unavailable but nvtop is installed.
+    command -v nvtop >/dev/null 2>&1 || return 1
+
+    local raw=""
+    # Use script to capture curses output; TERM=dumb simplifies parsing
+    raw="$(TERM=dumb script -qc 'timeout 3 nvtop' /dev/null 2>/dev/null || true)"
+    [ -n "$raw" ] || return 1
+
+    # nvtop shows GPU usage as "XX%" in the device row.
+    # Parse first percentage value found (GPU utilization).
+    local value=""
+    value=$(printf '%s\n' "$raw" | grep -oP '[0-9]+%' | head -1 | tr -d '%')
+    [ -n "$value" ] || return 1
+
+    if [ "$value" -lt 0 ] 2>/dev/null; then value=0; fi
+    if [ "$value" -gt 100 ] 2>/dev/null; then value=100; fi
+    echo "$value"
+}
+
 intel_gpu_busy_from_sysfs() {
     local card=""
     local vendor=""
@@ -112,6 +133,8 @@ while true; do
     if gpu_busy="$(intel_gpu_busy_from_top)"; then
         :
     elif gpu_busy="$(intel_gpu_busy_from_top_text)"; then
+        :
+    elif gpu_busy="$(intel_gpu_busy_from_nvtop)"; then
         :
     elif gpu_busy="$(intel_gpu_busy_from_sysfs)"; then
         :

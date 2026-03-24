@@ -1,5 +1,26 @@
 # Changelog
 
+## v1.16.0 — 2026-03-24
+
+### MQTT Spool-Queue (agent-side buffering)
+
+- Added local spool-queue to `agent/core/mqtt/publish.sh`: failed publishes are buffered to `$LUMENMON_DATA/mqtt/spool.jsonl` and replayed on next successful publish.
+- Spool file is bounded to 1000 entries (oldest dropped when exceeded).
+- Ensures no metric data is lost during broker restarts or network outages.
+
+### Reconnect-Aware Collector Triggering
+
+- Added background MQTT connection monitor to `agent/agent.sh` that pings the broker every 30 seconds.
+- On DOWN→UP transition, writes `$LUMENMON_DATA/mqtt/reconnected` trigger file.
+- Long-interval collectors (e.g., `debian/updates.sh` with REPORT=3600s) check for the trigger file and run immediately on reconnect instead of waiting up to 1 hour.
+- Prevents stale update sensor data after server restarts.
+
+### Intel nvtop GPU Monitoring
+
+- Added `nvtop` as a fallback GPU utilization source in `agent/collectors/hardware/intel_gpu.sh`.
+- Priority chain is now: `intel_gpu_top` (JSON) → `intel_gpu_top` (text) → `nvtop` → sysfs.
+- Captures nvtop TUI output via `script(1)` and parses GPU busy percentage.
+
 ## 2026-02-17
 
 ### Health, Deploy, and API/UI compatibility hardening

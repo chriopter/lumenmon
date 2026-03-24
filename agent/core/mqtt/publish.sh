@@ -57,11 +57,77 @@ publish_metric() {
 
     # Publish via mosquitto_pub with TLS
     # Note: --insecure skips hostname verification (we use cert pinning instead)
-    mosquitto_pub \
+    if mosquitto_pub \
         -h "$_MQTT_HOST" -p "$_MQTT_PORT" \
         -u "$_MQTT_USER" -P "$_MQTT_PASS" \
         --cafile "$_MQTT_CERT" --insecure \
         -t "$topic" \
-        -m "$payload" 2>/dev/null || \
-        echo "[collector] WARNING: Failed to publish $metric_name" >&2
+        -m "$payload" 2>/dev/null; then
+        # Success — drain spool if entries exist
+        _spool_drain
+    else
+        echo "[collector] WARNING: Failed to publish $metric_name, spooling" >&2
+        _spool_enqueue "$topic" "$payload"
+    fi
+}
+
+# --- Spool-queue helpers (buffer failed publishes for replay) ---
+
+_SPOOL_MAX_LINES=1000
+
+_spool_file() {
+    printf '%s/mqtt/spool.jsonl' "$LUMENMON_DATA"
+}
+
+_spool_enqueue() {
+    local topic="$1"
+    local payload="$2"
+    local spool
+    spool="$(_spool_file)"
+
+    mkdir -p "$(dirname "$spool")"
+    printf '%s\t%s\n' "$topic" "$payload" >> "$spool"
+
+    # Trim to max lines (drop oldest)
+    local count
+    count=$(wc -l < "$spool" 2>/dev/null || echo 0)
+    if [ "$count" -gt "$_SPOOL_MAX_LINES" ]; then
+        local excess=$((count - _SPOOL_MAX_LINES))
+        local tmp="${spool}.tmp"
+        tail -n +"$((excess + 1))" "$spool" > "$tmp" && mv "$tmp" "$spool"
+    fi
+}
+
+_spool_drain() {
+    local spool
+    spool="$(_spool_file)"
+
+    [ -s "$spool" ] || return 0
+
+    local tmp="${spool}.draining"
+    mv "$spool" "$tmp" 2>/dev/null || return 0
+
+    local sent=0
+    local total
+    total=$(wc -l < "$tmp")
+    local topic payload
+    while IFS=$'\t' read -r topic payload; do
+        [ -z "$topic" ] && continue
+        if ! mosquitto_pub \
+            -h "$_MQTT_HOST" -p "$_MQTT_PORT" \
+            -u "$_MQTT_USER" -P "$_MQTT_PASS" \
+            --cafile "$_MQTT_CERT" --insecure \
+            -t "$topic" \
+            -m "$payload" 2>/dev/null; then
+            # Broker down again — re-enqueue this line + remaining lines
+            { printf '%s\t%s\n' "$topic" "$payload"
+              tail -n +"$((sent + 2))" "$tmp"
+            } >> "$spool" 2>/dev/null || true
+            rm -f "$tmp"
+            return 0
+        fi
+        sent=$((sent + 1))
+    done < "$tmp"
+
+    rm -f "$tmp"
 }

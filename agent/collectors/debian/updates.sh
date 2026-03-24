@@ -136,11 +136,27 @@ while true; do
 
     [ "${LUMENMON_TEST_MODE:-}" = "1" ] && exit 0
 
-    # Wait for next interval OR until apt lists change (whichever comes first)
-    # inotifywait returns immediately if apt update runs, otherwise times out after REPORT seconds
+    # Wait for next interval OR until apt lists change OR broker reconnect
+    # Check reconnect trigger periodically during the long sleep
+    RECONNECT_TRIGGER="$LUMENMON_DATA/mqtt/reconnected"
     if command -v inotifywait &>/dev/null; then
         inotifywait -t $REPORT -qq -e modify -e create -e delete /var/lib/apt/lists 2>/dev/null || true
     else
-        sleep $REPORT
+        # Sleep in shorter increments to catch reconnect trigger
+        elapsed=0
+        while [ "$elapsed" -lt "$REPORT" ]; do
+            if [ -f "$RECONNECT_TRIGGER" ]; then
+                echo "[debian/updates] Reconnect detected, running immediately" >&2
+                rm -f "$RECONNECT_TRIGGER"
+                break
+            fi
+            sleep 30
+            elapsed=$((elapsed + 30))
+        done
+    fi
+    # Also check trigger after inotifywait returns (may have been a timeout)
+    if [ -f "$RECONNECT_TRIGGER" ]; then
+        echo "[debian/updates] Reconnect detected, running immediately" >&2
+        rm -f "$RECONNECT_TRIGGER"
     fi
 done

@@ -70,6 +70,42 @@ for i in 1 2 3; do
     fi
 done
 
+# Start connection monitor (detects broker reconnections)
+_mqtt_monitor() {
+    local cert="$MQTT_DATA_DIR/server.crt"
+    local state_file="$LUMENMON_DATA/mqtt/connection_state"
+    local trigger_file="$LUMENMON_DATA/mqtt/reconnected"
+    local prev_state="UNKNOWN"
+
+    mkdir -p "$LUMENMON_DATA/mqtt"
+
+    # Read previous state if persisted
+    [ -f "$state_file" ] && prev_state=$(cat "$state_file" 2>/dev/null || echo "UNKNOWN")
+
+    while true; do
+        if mosquitto_pub -h "$MQTT_HOST" -p "$MQTT_PORT" \
+            -u "$MQTT_USERNAME" -P "$MQTT_PASSWORD" \
+            --cafile "$cert" --insecure \
+            -t "metrics/$AGENT_ID/ping" \
+            -m '{"value":1,"type":"INTEGER","interval":0}' 2>/dev/null; then
+            if [ "$prev_state" = "DOWN" ]; then
+                echo "[agent] MQTT reconnected — triggering long-interval collectors"
+                touch "$trigger_file"
+            fi
+            prev_state="UP"
+        else
+            if [ "$prev_state" != "DOWN" ]; then
+                echo "[agent] MQTT connection lost"
+            fi
+            prev_state="DOWN"
+        fi
+        printf '%s' "$prev_state" > "$state_file"
+        sleep 30
+    done
+}
+_mqtt_monitor &
+echo "[agent] ✓ Connection monitor started"
+
 # Start collectors (background jobs)
 cd "$LUMENMON_HOME"
 source "$LUMENMON_HOME/core/connection/collectors.sh"
