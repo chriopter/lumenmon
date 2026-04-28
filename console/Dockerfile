@@ -1,6 +1,14 @@
 # syntax=docker/dockerfile:1
 
 ARG RUBY_VERSION=4.0.2
+
+FROM node:22-slim AS css-builder
+WORKDIR /build
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY app/assets/tailwind/ ./app/assets/tailwind/
+RUN mkdir -p app/assets/stylesheets && npm run build
+
 FROM ruby:${RUBY_VERSION}-slim
 
 WORKDIR /app
@@ -38,6 +46,7 @@ COPY Gemfile Gemfile.lock* ./
 RUN bundle install
 
 COPY . .
+COPY --from=css-builder /build/app/assets/stylesheets/application.css ./app/assets/stylesheets/application.css
 COPY config/Caddyfile /etc/caddy/Caddyfile
 
 RUN chmod +x console.sh core/setup/*.sh core/enrollment/*.sh script/*.rb

@@ -1,0 +1,54 @@
+<main class="shell">
+  <section class="header">
+    <pre class="logo-ascii">lumenmon</pre>
+    <span class="status">console: online</span>
+  </section>
+
+  <section class="layout">
+    <aside class="agents-section">
+      <h1>hostname</h1>
+      <table>
+        <tbody>
+          <% if @agents.any? %>
+            <% @agents.each_with_index do |(agent_id, samples), index| %>
+              <% hostname = samples.find { |sample| sample.metric_name == "generic_hostname" }&.typed_value || agent_id %>
+              <tr class="agent-row <%= "selected" if index.zero? %>">
+                <td><%= hostname %></td>
+                <td><%= agent_id %></td>
+              </tr>
+            <% end %>
+          <% else %>
+            <tr class="agent-row selected">
+              <td>waiting-for-agent</td>
+              <td>no metrics yet</td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </aside>
+
+    <section id="detail-panel">
+      <h2>All Values</h2>
+      <% if @agents.any? %>
+        <% @agents.first.last.each do |sample| %>
+          <div class="metric-row">
+            <span><%= sample.metric_name %></span>
+            <strong><%= sample.typed_value %></strong>
+          </div>
+        <% end %>
+      <% else %>
+        <p class="muted">No metrics received yet.</p>
+      <% end %>
+    </section>
+  </section>
+</main>
+
+<script>
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'r') {
+      const entry = document.createElement('div');
+      entry.textContent = 'manual refresh';
+      document.body.appendChild(entry);
+    }
+  });
+</script>
