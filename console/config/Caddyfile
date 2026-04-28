@@ -1,0 +1,24 @@
+# Caddy configuration for the Rails console.
+
+{
+}
+
+:8080 {
+    reverse_proxy localhost:5000
+    encode gzip
+    log {
+        output file /tmp/caddy.log
+        format console
+    }
+}
+
+localhost:8443, {$CONSOLE_HOST:localhost}:8443 {
+    tls internal
+    reverse_proxy localhost:5000
+    encode gzip
+    log {
+        output file /tmp/caddy-https.log
+        format console
+    }
+}
+

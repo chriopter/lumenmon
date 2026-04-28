@@ -1,0 +1,2 @@
+# Agents may only publish their own metric topics.
+pattern write metrics/%u/#
