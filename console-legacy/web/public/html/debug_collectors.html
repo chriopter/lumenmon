@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lumenmon Collector Debug</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="stylesheet" href="/css/styles.css?v={{ v }}">
+    <style>
+        html, body { height: auto; overflow: auto; }
+        body { display: block; margin: 0.75rem; }
+        .debug-wrap { max-width: 1280px; margin: 0 auto; padding: 1rem; }
+        .debug-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; }
+        .debug-title { font-size: 1.05rem; color: #cdd6f4; }
+        .debug-sub { color: #bac2de; font-size: 0.85rem; }
+        .debug-back { color: #89b4fa; text-decoration: none; }
+        .debug-card { border: 1px solid #313244; border-radius: 8px; padding: 0.65rem; margin-bottom: 0.75rem; background: rgba(17, 17, 27, 0.4); }
+        .debug-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.6rem; }
+        .debug-kv { color: #bac2de; }
+        .matrix { width: 100%; border-collapse: collapse; font-size: 0.86rem; }
+        .matrix th, .matrix td { border-bottom: 1px solid #313244; padding: 0.38rem 0.45rem; text-align: left; vertical-align: top; }
+        .matrix th { color: #a6adc8; text-transform: uppercase; font-size: 0.70rem; letter-spacing: 0.04em; }
+        .collector-name { color: #cdd6f4; white-space: nowrap; }
+        .collector-badges { color: #a6adc8; font-size: 0.75rem; }
+        .collector-agents { color: #94e2d5; }
+        .bar-wrap { width: 180px; border: 1px solid #313244; border-radius: 5px; height: 10px; overflow: hidden; background: #181825; }
+        .bar-fill { height: 100%; background: linear-gradient(90deg, #89b4fa, #94e2d5); }
+        .status-has_data { color: #a6e3a1; }
+        .status-no_data { color: #f38ba8; }
+        .status-event_only { color: #f9e2af; }
+        .names-list { color: #bac2de; font-size: 0.78rem; }
+        .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; }
+    </style>
+</head>
+<body>
+    <div class="debug-wrap">
+        <div class="debug-header">
+            <div>
+                <div class="debug-title">Collector Coverage Matrix</div>
+                <div class="debug-sub">How many agents emit each collector at least once.</div>
+            </div>
+            <a class="debug-back" href="/">← back to dashboard</a>
+        </div>
+
+        <div id="summary" class="debug-card debug-grid"></div>
+
+        <div class="debug-card">
+            <table class="matrix" id="matrix-table">
+                <thead>
+                    <tr>
+                        <th>Collector</th>
+                        <th>Status</th>
+                        <th>Agents Using</th>
+                        <th>Coverage</th>
+                        <th>Matched Metrics</th>
+                        <th>Agents</th>
+                    </tr>
+                </thead>
+                <tbody id="matrix-body">
+                    <tr><td colspan="6">Loading...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        async function loadCoverageMatrix() {
+            const summaryEl = document.getElementById('summary');
+            const bodyEl = document.getElementById('matrix-body');
+
+            try {
+                const response = await fetch('/api/collectors/coverage');
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                const summary = data.summary || {};
+                const collectors = (data.collectors || []).slice().sort((a, b) => {
+                    const rank = { no_data: 0, has_data: 1, event_only: 2 };
+                    if ((rank[a.status] || 9) !== (rank[b.status] || 9)) {
+                        return (rank[a.status] || 9) - (rank[b.status] || 9);
+                    }
+                    return a.collector.localeCompare(b.collector);
+                });
+
+                summaryEl.innerHTML = `
+                    <div class="debug-kv"><strong>Total collectors:</strong> <span class="mono">${summary.total_collectors || 0}</span></div>
+                    <div class="debug-kv"><strong>Metric collectors:</strong> <span class="mono">${summary.metric_collectors || 0}</span></div>
+                    <div class="debug-kv"><strong>Agents seen:</strong> <span class="mono">${summary.agents_seen || 0}</span></div>
+                    <div class="debug-kv"><strong>With data:</strong> <span class="mono">${summary.metric_collectors_with_data || 0}</span></div>
+                    <div class="debug-kv"><strong>Without data:</strong> <span class="mono status-no_data">${summary.metric_collectors_without_data || 0}</span></div>
+                    <div class="debug-kv"><strong>Event-only:</strong> <span class="mono">${summary.event_only_collectors || 0}</span></div>
+                `;
+
+                let rows = '';
+                collectors.forEach((item) => {
+                    const status = item.status || 'no_data';
+                    const count = Number(item.agents_count || 0);
+                    const pct = Number(item.coverage_pct || 0);
+                    const matched = (item.matched_metrics || []).slice(0, 6);
+                    const extraMatched = (item.matched_metrics || []).length - matched.length;
+                    const names = (item.agents_with_data || []).map(a => a.name || a.id).join(', ') || '-';
+
+                    rows += `
+                        <tr>
+                            <td>
+                                <div class="collector-name mono">${item.collector}</div>
+                                <div class="collector-badges mono">${(item.patterns || []).join(', ') || '-'}</div>
+                            </td>
+                            <td class="status-${status} mono">${status}</td>
+                            <td class="collector-agents mono">${count}</td>
+                            <td>
+                                <div class="bar-wrap"><div class="bar-fill" style="width:${Math.max(0, Math.min(100, pct))}%;"></div></div>
+                                <div class="mono">${pct.toFixed(1)}%</div>
+                            </td>
+                            <td class="mono">${matched.join(', ')}${extraMatched > 0 ? ` (+${extraMatched})` : ''}${matched.length === 0 ? '-' : ''}</td>
+                            <td class="names-list">${names}</td>
+                        </tr>
+                    `;
+                });
+
+                bodyEl.innerHTML = rows || '<tr><td colspan="6">No collector definitions found.</td></tr>';
+            } catch (error) {
+                summaryEl.innerHTML = `<div class="status-no_data">Failed to load coverage: ${error.message}</div>`;
+                bodyEl.innerHTML = '<tr><td colspan="6">Failed to load matrix.</td></tr>';
+            }
+        }
+
+        loadCoverageMatrix();
+        setInterval(loadCoverageMatrix, 30000);
+    </script>
+</body>
+</html>
