@@ -72,6 +72,10 @@ yarn-debug.log*
 # Lumenmon data directories - ignore ALL data except .gitkeep files
 console/data/**
 !console/data/**/.gitkeep
+console/config/master.key
+console/config/credentials.yml.enc
+console-legacy/data/**
+!console-legacy/data/**/.gitkeep
 agent/data/**
 !agent/data/**/.gitkeep
 docker-compose.override.yml

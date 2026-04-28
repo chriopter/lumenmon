@@ -25,37 +25,21 @@ jobs:
       uses: peter-evans/create-pull-request@v6
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
-        commit-message: |
-          chore: update vendored dependencies
-
-          Automated update of vendored web dependencies:
-          - Chart.js
-          - MQTT.js
+        commit-message: chore: update Rails dependencies
         branch: auto/update-deps
         delete-branch: true
-        title: 'chore: update vendored dependencies'
+        title: 'chore: update Rails dependencies'
         body: |
           ## Automated Dependency Update
 
-          This PR updates vendored web dependencies from unpkg.com CDN:
+          This PR refreshes the Rails bundle lockfile.
 
-          - **Chart.js** - Latest version
-          - **MQTT.js** - Latest version
-
-          ### What changed?
-
-          Run `./dev/updatedeps` to fetch the latest versions of:
-          - `console/web/public/js/vendor/chart.js`
-          - `console/web/public/js/vendor/mqtt.min.js`
-
-          > **Note:** CSS is now managed via Tailwind CSS (see `console/package.json`).
-          > To update Tailwind: `cd console && npm update tailwindcss @tailwindcss/cli`
+          Run `./dev/updatedeps` locally to reproduce.
 
           ### Testing
 
-          - [ ] Verify web dashboard loads correctly
-          - [ ] Check Chart.js visualizations render properly
-          - [ ] Test MQTT live stream (press `L` key)
+          - [ ] Verify the Rails console container builds
+          - [ ] Verify the dashboard loads
 
           ---
 
