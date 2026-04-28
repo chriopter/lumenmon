@@ -1,8 +1,26 @@
-#!/bin/bash -e
+#!/bin/bash
+# Container entrypoint for the single-container Lumenmon appliance.
+# Persists SECRET_KEY_BASE in /data and prepares Rails before boot.
+set -euo pipefail
 
-# If running the rails server then create or migrate existing database
-if [ "${@: -2:1}" == "./bin/rails" ] && [ "${@: -1:1}" == "server" ]; then
-  ./bin/rails db:prepare
+generated_env_file="/data/docker.env"
+
+mkdir -p /data
+
+if [ -f "$generated_env_file" ]; then
+  set -a
+  # shellcheck disable=SC1090
+  . "$generated_env_file"
+  set +a
 fi
+
+if [ -z "${SECRET_KEY_BASE:-}" ]; then
+  SECRET_KEY_BASE="$(openssl rand -hex 64)"
+  umask 077
+  printf 'SECRET_KEY_BASE=%s\n' "$SECRET_KEY_BASE" > "$generated_env_file"
+  export SECRET_KEY_BASE
+fi
+
+bundle exec rails db:prepare
 
 exec "${@}"

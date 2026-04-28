@@ -1,6 +1,6 @@
 #!/bin/bash
-# Lumenmon Console installer (Docker) - installs the Rails console runtime.
-# Downloads compose/CLI files and starts the published console image.
+# Optional convenience installer for the Lumenmon console container.
+# Direct docker run or docker compose usage is the primary deployment path.
 set -e
 
 INSTALL_DIR="$HOME/.lumenmon"

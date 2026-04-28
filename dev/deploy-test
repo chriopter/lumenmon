@@ -80,7 +80,7 @@ deploy_console() {
     remote "docker build -t lumenmon-console:dev /tmp/lumenmon-console"
     remote "docker stop lumenmon-console 2>/dev/null || true"
     remote "docker rm lumenmon-console 2>/dev/null || true"
-    remote "docker run -d --name lumenmon-console --network host --restart unless-stopped -v /opt/lumenmon/console-data:/data -e CONSOLE_HOST=\$(hostname -f 2>/dev/null || hostname) lumenmon-console:dev"
+    remote "docker run -d --name lumenmon-console --restart unless-stopped -p 8080:8080 -p 8443:8443 -p 8884:8884 -v /opt/lumenmon/console-data:/data -e CONSOLE_HOST=\$(hostname -f 2>/dev/null || hostname) lumenmon-console:dev"
 
     sleep 3
     echo "==> Console status:"

@@ -1,24 +1,40 @@
-# README
+# Lumenmon Console
 
-This README would normally document whatever steps are necessary to get the
-application up and running.
+Rails 8 based console packaged as a single container. The image starts:
 
-Things you may want to cover:
+- Rails on an internal Puma port
+- Caddy on `8080` and `8443`
+- Mosquitto MQTT on `8884`
+- Ruby MQTT ingest into SQLite
 
-* Ruby version
+Persistent data lives in `/data`.
 
-* System dependencies
+## Run
 
-* Configuration
+```sh
+docker run -d \
+  --name lumenmon-console \
+  --restart unless-stopped \
+  -p 8080:8080 \
+  -p 8443:8443 \
+  -p 8884:8884 \
+  -v lumenmon-data:/data \
+  -e CONSOLE_HOST=your-hostname-or-ip \
+  ghcr.io/chriopter/lumenmon-console:latest
+```
 
-* Database creation
+Open `http://your-hostname-or-ip:8080`.
 
-* Database initialization
+Generate an agent invite:
 
-* How to run the test suite
+```sh
+docker exec lumenmon-console /app/core/enrollment/invite_create.sh
+```
 
-* Services (job queues, cache servers, search engines, etc.)
+## Local Build
 
-* Deployment instructions
+```sh
+docker build -t test-console:ci ./console
+```
 
-* ...
+Tailwind CSS is built in the Docker build using Tailwind v4 from `package-lock.json`.
