@@ -1,0 +1,11 @@
+<% value = metric_number(agent, "generic_memory") %>
+<article class="widget tui-box">
+  <h3>memory</h3>
+  <div class="tui-metric-value <%= metric_tone(agent, "generic_memory") %>">
+    <%= value ? format("%.1f", value) : "-" %><span class="tui-unit">%</span>
+  </div>
+  <% sample = metric_sample(agent, "generic_memory") %>
+  <% if sample && (sample.warn_max || sample.max) %>
+    <div class="tui-metric-bounds">warn <%= sample.warn_max || "-" %> · max <%= sample.max || "-" %></div>
+  <% end %>
+</article>

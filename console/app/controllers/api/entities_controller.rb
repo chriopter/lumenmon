@@ -2,7 +2,14 @@ module Api
   class EntitiesController < BaseController
     def index
       samples_by_agent = MetricSample.order(:agent_id, :metric_name).group_by(&:agent_id)
-      render json: samples_by_agent.map { |agent_id, samples| serialize_agent(agent_id, samples) }
+      entities = samples_by_agent.map { |agent_id, samples| serialize_agent(agent_id, samples) }
+
+      render json: {
+        entities: entities,
+        count: entities.count,
+        timestamp: Time.current.to_i,
+        source: "rails"
+      }
     end
 
     private
@@ -11,13 +18,38 @@ module Api
       hostname = samples.find { |sample| sample.metric_name == "generic_hostname" }&.typed_value || agent_id
       {
         id: agent_id,
-        agent_id: agent_id,
+        type: "agent",
+        valid: samples.any?,
+        has_mqtt_user: mqtt_user?(agent_id),
+        has_table: samples.any?,
         hostname: hostname,
         display_name: hostname,
         status: status_for(samples),
         last_seen: samples.map(&:observed_at).max&.to_i,
+        cpu: samples.find { |sample| sample.metric_name == "generic_cpu" }&.typed_value,
+        memory: samples.find { |sample| sample.metric_name == "generic_memory" }&.typed_value,
+        disk: samples.find { |sample| sample.metric_name == "generic_disk" }&.typed_value,
+        heartbeat: samples.find { |sample| sample.metric_name == "generic_heartbeat" }&.typed_value,
+        total_collectors: samples.count,
+        failed_collectors: failed_count(samples),
+        warning_collectors: 0,
+        pending_invite: PendingInvite.fetch(agent_id),
         metrics: samples.map { |sample| serialize_metric(sample) }
       }
+    end
+
+    def failed_count(samples)
+      now = Time.current.to_i
+      samples.count do |sample|
+        sample.interval.positive? && now - sample.observed_at.to_i > sample.interval + 1
+      end
+    end
+
+    def mqtt_user?(agent_id)
+      passwd_file = Pathname("/data/mqtt/passwd")
+      return false unless passwd_file.exist?
+
+      passwd_file.each_line.any? { |line| line.start_with?("#{agent_id}:") }
     end
 
     def serialize_metric(sample)

@@ -1,0 +1,13 @@
+<article class="widget tui-box span-2">
+  <h3>proxmox runtime</h3>
+  <div class="split-metrics">
+    <div>
+      <span>vms</span>
+      <strong><%= runtime[:vms_running] || "-" %><span class="tui-unit">/<%= runtime[:vms_total] || "-" %> running</span></strong>
+    </div>
+    <div>
+      <span>containers</span>
+      <strong><%= runtime[:containers_running] || "-" %><span class="tui-unit">/<%= runtime[:containers_total] || "-" %> running</span></strong>
+    </div>
+  </div>
+</article>

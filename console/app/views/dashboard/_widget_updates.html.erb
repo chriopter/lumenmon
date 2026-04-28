@@ -1,0 +1,11 @@
+<article class="widget tui-box span-2">
+  <h3>debian updates</h3>
+  <div class="kv-list">
+    <div><span>total</span><strong><%= updates[:total] %> available</strong></div>
+    <div><span>security</span><strong class="<%= "warn-text" if updates[:security].positive? %>"><%= updates[:security] %></strong></div>
+    <div><span>release</span><strong class="<%= "crit-text" if updates[:release].positive? %>"><%= updates[:release].positive? ? "upgrade available" : "current" %></strong></div>
+    <% if updates[:age] %>
+      <div><span>age</span><strong><%= updates[:age] %>h</strong></div>
+    <% end %>
+  </div>
+</article>

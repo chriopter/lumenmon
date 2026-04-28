@@ -1,0 +1,17 @@
+<article class="widget tui-box span-2">
+  <h3>smart</h3>
+  <div class="kv-list">
+    <% smarts.each do |disk| %>
+      <div>
+        <span><%= disk[:name] %></span>
+        <strong class="<%= disk[:healthy] ? "ok-text" : "crit-text" %>">
+          <% if disk[:healthy] %>
+            ok<%= " · #{disk[:temp]}C" if disk[:temp] %><%= " · wear #{disk[:wear]}%" if disk[:wear] %>
+          <% else %>
+            error
+          <% end %>
+        </strong>
+      </div>
+    <% end %>
+  </div>
+</article>

@@ -1,0 +1,14 @@
+<article class="widget tui-box span-2">
+  <h3>zfs pools</h3>
+  <div class="kv-list">
+    <% zfs.each do |pool| %>
+      <% degraded = pool[:drives] && pool[:online] && pool[:online] < pool[:drives] %>
+      <div>
+        <span><%= pool[:name] %></span>
+        <strong class="<%= degraded ? "crit-text" : "ok-text" %>">
+          <%= pool[:online] || "-" %>/<%= pool[:drives] || "-" %> online · <%= pool[:capacity] || "-" %>% used
+        </strong>
+      </div>
+    <% end %>
+  </div>
+</article>

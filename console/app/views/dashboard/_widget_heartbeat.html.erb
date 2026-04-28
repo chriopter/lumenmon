@@ -1,0 +1,7 @@
+<article class="widget tui-box">
+  <h3>heartbeat</h3>
+  <div class="tui-metric-value">
+    <%= metric_value(agent, "generic_heartbeat") %>
+  </div>
+  <div class="tui-metric-bounds">last seen <%= time_ago_in_words(agent[:last_seen]) rescue "-" %> ago</div>
+</article>

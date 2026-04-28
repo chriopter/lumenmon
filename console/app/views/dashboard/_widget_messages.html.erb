@@ -1,0 +1,20 @@
+<article class="messages-widget tui-box" data-messages-for="<%= agent[:id] %>">
+  <h3>mail</h3>
+  <div class="messages-header">
+    <span class="messages-count" data-role="count">0 unread</span>
+  </div>
+  <div class="mail-list" tabindex="0" data-role="list">
+    <p class="mail-empty">no mail for this host</p>
+  </div>
+  <div class="mail-expanded hidden" data-role="expanded">
+    <header>
+      <strong data-role="subject"></strong>
+      <button type="button" class="action-link danger" data-role="delete">delete</button>
+    </header>
+    <div class="mail-meta">
+      <span data-role="from"></span>
+      <span data-role="time"></span>
+    </div>
+    <pre data-role="body"></pre>
+  </div>
+</article>

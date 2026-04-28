@@ -1,0 +1,13 @@
+<article class="widget tui-box span-2">
+  <h3>zpool health</h3>
+  <div class="kv-list">
+    <% zpools.each do |pool| %>
+      <div>
+        <span><%= pool[:name] %></span>
+        <strong class="<%= pool[:degraded] ? "crit-text" : pool[:upgrade_needed] ? "warn-text" : "ok-text" %>">
+          <%= pool[:degraded] ? "degraded" : "online" %><%= " · upgrade needed" if pool[:upgrade_needed] %>
+        </strong>
+      </div>
+    <% end %>
+  </div>
+</article>

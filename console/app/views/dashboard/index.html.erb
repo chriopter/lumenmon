@@ -1,54 +1,384 @@
-<main class="shell">
-  <section class="header">
-    <pre class="logo-ascii">lumenmon</pre>
-    <span class="status">console: online</span>
-  </section>
+<% metric_time = ->(time) { time ? "#{time_ago_in_words(time)} ago" : "never" } %>
 
-  <section class="layout">
-    <aside class="agents-section">
-      <h1>hostname</h1>
-      <table>
-        <tbody>
-          <% if @agents.any? %>
-            <% @agents.each_with_index do |(agent_id, samples), index| %>
-              <% hostname = samples.find { |sample| sample.metric_name == "generic_hostname" }&.typed_value || agent_id %>
-              <tr class="agent-row <%= "selected" if index.zero? %>">
-                <td><%= hostname %></td>
-                <td><%= agent_id %></td>
+<main class="legacy-layout">
+  <div class="main-content">
+    <aside class="left-column">
+      <section class="log-box" id="log-box">
+        <pre class="logo-ascii">  ██╗     ██╗   ██╗███╗   ███╗███████╗███╗   ██╗███╗   ███╗ ██████╗ ███╗   ██╗
+  ██║     ██║   ██║████╗ ████║██╔════╝████╗  ██║████╗ ████║██╔═══██╗████╗  ██║
+  ██║     ██║   ██║██╔████╔██║█████╗  ██╔██╗ ██║██╔████╔██║██║   ██║██╔██╗ ██║
+  ██║     ██║   ██║██║╚██╔╝██║██╔══╝  ██║╚██╗██║██║╚██╔╝██║██║   ██║██║╚██╗██║
+  ███████╗╚██████╔╝██║ ╚═╝ ██║███████╗██║ ╚████║██║ ╚═╝ ██║╚██████╔╝██║ ╚████║
+  ╚══════╝ ╚═════╝ ╚═╝     ╚═╝╚══════╝╚═╝  ╚═══╝╚═╝     ╚═╝ ╚═════╝ ╚═╝  ╚═══╝</pre>
+        <div class="log-list" id="log-entries">
+          <p><span>[<%= Time.current.strftime("%H:%M:%S") %>]</span> <span class="lvl-info">console ready</span></p>
+          <p><span>[<%= Time.current.strftime("%H:%M:%S") %>]</span> <span class="lvl-success"><%= @stats[:agents] %> agents · <%= @stats[:online] %> online · <%= @stats[:metrics] %> metrics</span></p>
+        </div>
+      </section>
+
+      <section class="agents-section tui-box">
+        <h3>hosts</h3>
+        <% if @agents.any? %>
+          <table class="agents-table">
+            <thead>
+              <tr>
+                <td>hostname</td>
+                <td>cpu</td>
+                <td>mem</td>
+                <td>disk</td>
               </tr>
-            <% end %>
-          <% else %>
-            <tr class="agent-row selected">
-              <td>waiting-for-agent</td>
-              <td>no metrics yet</td>
-            </tr>
-          <% end %>
-        </tbody>
-      </table>
+            </thead>
+            <tbody>
+              <% @agents.each_with_index do |agent, index| %>
+                <tr class="agent-row <%= "selected" if index.zero? %>" data-agent-target="<%= agent[:id] %>">
+                  <td>
+                    <div class="agent-name">
+                      <span class="status-dot <%= agent[:status] %>"></span>
+                      <strong><%= agent[:hostname] %></strong>
+                    </div>
+                  </td>
+                  <td><%= metric_percent(agent, "generic_cpu") %></td>
+                  <td><%= metric_percent(agent, "generic_memory") %></td>
+                  <td><%= metric_percent(agent, "generic_disk") %></td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        <% else %>
+          <div class="empty-state">waiting for first agent</div>
+        <% end %>
+      </section>
     </aside>
 
-    <section id="detail-panel">
-      <h2>All Values</h2>
-      <% if @agents.any? %>
-        <% @agents.first.last.each do |sample| %>
-          <div class="metric-row">
-            <span><%= sample.metric_name %></span>
-            <strong><%= sample.typed_value %></strong>
+    <section class="detail-column">
+      <div class="detail-stack">
+        <% if @agents.any? %>
+          <div class="detail-panel">
+            <% @agents.each_with_index do |agent, index| %>
+              <%= render "agent_detail", agent: agent, hidden: !index.zero?, metric_time: metric_time %>
+            <% end %>
           </div>
+        <% else %>
+          <section class="tui-box empty-state">
+            <h3>detail</h3>
+            no metrics received yet — create an invite and register an agent
+          </section>
         <% end %>
-      <% else %>
-        <p class="muted">No metrics received yet.</p>
-      <% end %>
+      </div>
     </section>
-  </section>
+  </div>
+
+  <footer class="shortcut-footer">
+    <div class="footer-left">
+      <span>↑/k</span>
+      <span>↓/j</span>
+      <span>select</span>
+      <span>·</span>
+      <button class="kbd-clickable" id="invite-button" type="button">i invite</button>
+      <span>·</span>
+      <button class="kbd-clickable" id="email-button" type="button">m email</button>
+      <span>·</span>
+      <button class="kbd-clickable" id="refresh-button" type="button">r refresh</button>
+      <span>·</span>
+      <button class="kbd-clickable" id="reset-button" type="button">x reset</button>
+      <span>·</span>
+      <button class="kbd-clickable" id="delete-button" type="button">d delete</button>
+      <span>·</span>
+      <span>esc close</span>
+    </div>
+    <div class="footer-right">
+      <span class="status-compact online">console online</span>
+      <span class="status-compact">agents <%= @stats[:agents] %></span>
+      <span class="status-compact">invites <%= @stats[:pending_invites] %></span>
+    </div>
+  </footer>
+
+  <div class="modal-backdrop hidden" id="invite-modal">
+    <section class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="invite-title">
+      <div class="panel-heading">
+        <h2 id="invite-title">agent invite</h2>
+        <button class="icon-button" id="invite-close" type="button" aria-label="Close">×</button>
+      </div>
+      <div class="invite-body" id="invite-body">
+        <p class="muted">creating invite...</p>
+      </div>
+    </section>
+  </div>
 </main>
 
 <script>
-  document.addEventListener('keydown', (event) => {
-    if (event.key === 'r') {
-      const entry = document.createElement('div');
-      entry.textContent = 'manual refresh';
-      document.body.appendChild(entry);
+  (() => {
+    const buttons = Array.from(document.querySelectorAll('[data-agent-target]'));
+    const details = Array.from(document.querySelectorAll('[data-agent-detail]'));
+    const inviteButton = document.getElementById('invite-button');
+    const emailButton = document.getElementById('email-button');
+    const refreshButton = document.getElementById('refresh-button');
+    const resetButton = document.getElementById('reset-button');
+    const deleteButton = document.getElementById('delete-button');
+    const modal = document.getElementById('invite-modal');
+    const closeModalBtn = document.getElementById('invite-close');
+    const body = document.getElementById('invite-body');
+    const logList = document.getElementById('log-entries');
+
+    function pad(n) { return n < 10 ? '0' + n : n; }
+    function nowTs() {
+      const d = new Date();
+      return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
     }
-  });
+    function log(text, level = 'info') {
+      if (!logList) return;
+      const p = document.createElement('p');
+      p.innerHTML = `<span>[${nowTs()}]</span> <span class="lvl-${level}">${text}</span>`;
+      logList.prepend(p);
+      while (logList.children.length > 50) logList.removeChild(logList.lastChild);
+    }
+
+    function selectedAgentId() {
+      const selected = buttons.find((button) => button.classList.contains('selected'));
+      return selected ? selected.dataset.agentTarget : null;
+    }
+
+    function selectAgent(agentId) {
+      buttons.forEach((button) => button.classList.toggle('selected', button.dataset.agentTarget === agentId));
+      details.forEach((detail) => detail.classList.toggle('hidden', detail.dataset.agentDetail !== agentId));
+      window.history.replaceState(null, '', `#agent=${agentId}`);
+      loadMessages(agentId);
+    }
+
+    function fmtMailTime(iso) {
+      try {
+        const d = new Date(iso);
+        const now = new Date();
+        const sameDay = d.toDateString() === now.toDateString();
+        return sameDay
+          ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          : d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+      } catch (e) { return ''; }
+    }
+    function emailLocal(addr) {
+      if (!addr) return '';
+      const at = addr.indexOf('@');
+      return at === -1 ? addr : addr.slice(0, at);
+    }
+    const messageState = new Map();
+
+    function renderMessages(widget, messages) {
+      const list = widget.querySelector('[data-role="list"]');
+      const count = widget.querySelector('[data-role="count"]');
+      const expanded = widget.querySelector('[data-role="expanded"]');
+      const unread = messages.filter((m) => !m.read).length;
+      if (count) count.textContent = `${unread} unread`;
+      if (!list) return;
+
+      if (!messages.length) {
+        list.innerHTML = '<p class="mail-empty">no mail for this host</p>';
+        if (expanded) expanded.classList.add('hidden');
+        return;
+      }
+      list.innerHTML = messages.map((m) => `
+        <button type="button" class="mail-row" data-message-id="${m.id}">
+          <span class="mail-dot ${m.read ? 'read' : 'unread'}"></span>
+          <span class="mail-from">${emailLocal(m.mail_from || m.from || '')}</span>
+          <span class="mail-subject">${(m.subject || '(no subject)').replace(/</g, '&lt;')}</span>
+          <span class="mail-time">${fmtMailTime(m.received_at)}</span>
+        </button>
+      `).join('');
+
+      list.querySelectorAll('[data-message-id]').forEach((row) => {
+        row.addEventListener('click', () => openMessage(widget, Number(row.dataset.messageId)));
+      });
+    }
+
+    async function loadMessages(agentId) {
+      const widget = document.querySelector(`[data-messages-for="${agentId}"]`);
+      if (!widget) return;
+      try {
+        const res = await fetch(`/api/agents/${agentId}/messages`);
+        const data = await res.json();
+        const messages = data.messages || [];
+        messageState.set(agentId, messages);
+        renderMessages(widget, messages);
+      } catch (error) {
+        log(`mail load failed: ${error.message}`, 'error');
+      }
+    }
+
+    async function openMessage(widget, messageId) {
+      const expanded = widget.querySelector('[data-role="expanded"]');
+      if (!expanded) return;
+      widget.querySelectorAll('.mail-row').forEach((row) => {
+        row.classList.toggle('selected', Number(row.dataset.messageId) === messageId);
+      });
+      try {
+        const res = await fetch(`/api/messages/${messageId}`);
+        if (!res.ok) {
+          expanded.classList.add('hidden');
+          return;
+        }
+        const data = await res.json();
+        expanded.querySelector('[data-role="subject"]').textContent = data.subject || '(no subject)';
+        expanded.querySelector('[data-role="from"]').textContent = `from ${data.mail_from || data.from || ''}`;
+        expanded.querySelector('[data-role="time"]').textContent = data.received_at ? new Date(data.received_at).toLocaleString() : '';
+        expanded.querySelector('[data-role="body"]').textContent = data.body || '(empty)';
+        const delBtn = expanded.querySelector('[data-role="delete"]');
+        delBtn.onclick = () => deleteMessage(widget, messageId);
+        expanded.classList.remove('hidden');
+      } catch (error) {
+        log(`mail open failed: ${error.message}`, 'error');
+      }
+    }
+
+    async function deleteMessage(widget, messageId) {
+      try {
+        const csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
+        const res = await fetch(`/api/messages/${messageId}`, {
+          method: 'DELETE',
+          headers: { 'X-CSRF-Token': csrf }
+        });
+        const data = await res.json();
+        if (data.success) {
+          log('message deleted', 'success');
+          const expanded = widget.querySelector('[data-role="expanded"]');
+          if (expanded) expanded.classList.add('hidden');
+          const agentId = widget.dataset.messagesFor;
+          loadMessages(agentId);
+        } else {
+          log(`mail delete failed: ${data.message || 'unknown'}`, 'error');
+        }
+      } catch (error) {
+        log(`mail delete failed: ${error.message}`, 'error');
+      }
+    }
+
+    function moveSelection(delta) {
+      if (!buttons.length) return;
+      const idx = buttons.findIndex((b) => b.classList.contains('selected'));
+      const next = Math.min(buttons.length - 1, Math.max(0, (idx === -1 ? 0 : idx) + delta));
+      selectAgent(buttons[next].dataset.agentTarget);
+    }
+
+    function openModal() { modal.classList.remove('hidden'); }
+    function closeModal() { modal.classList.add('hidden'); }
+
+    function renderInvite(payload) {
+      if (!payload.success) {
+        body.innerHTML = `<p class="error-text">${payload.error || 'invite creation failed'}</p>`;
+        log(`invite failed: ${payload.error || 'unknown'}`, 'error');
+        return;
+      }
+      body.innerHTML = `
+        <div class="invite-meta">
+          <div><span>username</span><strong>${payload.username}</strong></div>
+          <div><span>email</span><strong>${payload.email_address}</strong></div>
+        </div>
+        <label class="invite-label" for="invite-command">install command</label>
+        <textarea id="invite-command" readonly rows="4">${payload.install_command || ''}</textarea>
+        <div class="modal-actions">
+          <button class="pill" id="copy-invite" type="button">copy command</button>
+          <button class="pill" id="reload-page" type="button">refresh</button>
+        </div>
+      `;
+      document.getElementById('copy-invite')?.addEventListener('click', async () => {
+        await navigator.clipboard.writeText(payload.install_command || payload.invite_url || '');
+        log('install command copied', 'success');
+      });
+      document.getElementById('reload-page')?.addEventListener('click', () => window.location.reload());
+      log(`invite created: ${payload.username}`, 'success');
+    }
+
+    async function createInvite() {
+      openModal();
+      body.innerHTML = '<p class="muted">creating invite...</p>';
+      try {
+        const response = await fetch('/api/invites/create/full', { method: 'POST' });
+        renderInvite(await response.json());
+      } catch (error) {
+        body.innerHTML = `<p class="error-text">${error.message}</p>`;
+        log(`invite error: ${error.message}`, 'error');
+      }
+    }
+
+    async function copyEmail() {
+      const id = selectedAgentId();
+      if (!id) { log('no agent selected', 'error'); return; }
+      try {
+        const res = await fetch(`/api/agents/${id}/email`);
+        const data = await res.json();
+        await navigator.clipboard.writeText(data.email);
+        log(`email copied: ${data.email}`, 'success');
+      } catch (error) {
+        log(`email copy failed: ${error.message}`, 'error');
+      }
+    }
+
+    async function resetAgent() {
+      const id = selectedAgentId();
+      if (!id) { log('no agent selected', 'error'); return; }
+      if (!confirm(`reset metrics for ${id}?`)) return;
+      try {
+        const res = await fetch(`/api/agents/${id}/reset`, { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+          log(`metrics reset: ${id}`, 'success');
+          window.location.reload();
+        } else {
+          log(`reset failed: ${data.message || 'unknown'}`, 'error');
+        }
+      } catch (error) {
+        log(`reset failed: ${error.message}`, 'error');
+      }
+    }
+
+    async function deleteAgent() {
+      const id = selectedAgentId();
+      if (!id) { log('no agent selected', 'error'); return; }
+      if (!confirm(`delete agent ${id}?`)) return;
+      try {
+        const res = await fetch(`/api/agents/${id}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.success) {
+          log(`agent deleted: ${id}`, 'success');
+          window.location.reload();
+        } else {
+          log(`delete failed: ${data.message || 'unknown'}`, 'error');
+        }
+      } catch (error) {
+        log(`delete failed: ${error.message}`, 'error');
+      }
+    }
+
+    buttons.forEach((button) => {
+      button.addEventListener('click', () => selectAgent(button.dataset.agentTarget));
+    });
+
+    const hashAgent = window.location.hash.startsWith('#agent=') ? window.location.hash.replace('#agent=', '') : null;
+    if (hashAgent && buttons.some((b) => b.dataset.agentTarget === hashAgent)) {
+      selectAgent(hashAgent);
+    } else {
+      const initial = selectedAgentId();
+      if (initial) loadMessages(initial);
+    }
+
+    inviteButton?.addEventListener('click', createInvite);
+    emailButton?.addEventListener('click', copyEmail);
+    refreshButton?.addEventListener('click', () => window.location.reload());
+    resetButton?.addEventListener('click', resetAgent);
+    deleteButton?.addEventListener('click', deleteAgent);
+    closeModalBtn?.addEventListener('click', closeModal);
+    modal?.addEventListener('click', (event) => { if (event.target === modal) closeModal(); });
+
+    document.addEventListener('keydown', (event) => {
+      const target = event.target;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return;
+      const k = event.key.toLowerCase();
+      if (k === 'arrowdown' || k === 'j') { event.preventDefault(); moveSelection(1); return; }
+      if (k === 'arrowup' || k === 'k')   { event.preventDefault(); moveSelection(-1); return; }
+      if (k === 'i') { event.preventDefault(); createInvite(); return; }
+      if (k === 'm') { event.preventDefault(); copyEmail(); return; }
+      if (k === 'r' && !event.ctrlKey && !event.metaKey) { event.preventDefault(); window.location.reload(); return; }
+      if (k === 'x') { event.preventDefault(); resetAgent(); return; }
+      if (k === 'd') { event.preventDefault(); deleteAgent(); return; }
+      if (k === 'escape') { event.preventDefault(); closeModal(); return; }
+    });
+  })();
 </script>

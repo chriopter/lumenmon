@@ -1,0 +1,11 @@
+<article class="widget tui-box span-2">
+  <h3>hardware temps</h3>
+  <div class="kv-list">
+    <% temps.each do |row| %>
+      <div>
+        <span><%= row[:name] %></span>
+        <strong class="<%= temp_tone(row[:value]) %>"><%= format("%.1f", row[:value]) %> C</strong>
+      </div>
+    <% end %>
+  </div>
+</article>

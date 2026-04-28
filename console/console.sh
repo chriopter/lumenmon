@@ -12,9 +12,11 @@ mkdir -p /data/mqtt
 if [ ! -f /data/mqtt/passwd ]; then
     touch /data/mqtt/passwd
 fi
+chmod 755 /data /data/mqtt
+chmod 644 /data/mqtt/passwd
 
 if [ -f /data/mqtt/server.crt ]; then
-    chown mosquitto:mosquitto /data/mqtt/server.crt /data/mqtt/server.key
+    chown mosquitto:mosquitto /data/mqtt/server.crt /data/mqtt/server.key /data/mqtt/passwd
 fi
 
 echo "[console] Preparing Rails database..."

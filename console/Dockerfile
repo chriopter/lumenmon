@@ -67,6 +67,8 @@ RUN --mount=type=cache,target=/usr/local/bundle/cache \
 COPY . .
 COPY --from=css-builder /build/app/assets/stylesheets/application.css ./app/assets/stylesheets/application.css
 
+RUN SECRET_KEY_BASE_DUMMY=1 bundle exec rails assets:precompile
+
 RUN --mount=type=cache,target=/tmp/bootsnap-cache \
     bundle exec bootsnap precompile -j 1 app/ lib/
 

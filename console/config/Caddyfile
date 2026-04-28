@@ -1,6 +1,7 @@
 # Caddy configuration for the Rails console.
 
 {
+    auto_https disable_redirects
 }
 
 :8080 {
@@ -21,4 +22,3 @@ localhost:8443, {$CONSOLE_HOST:localhost}:8443 {
         format console
     }
 }
-

@@ -1,0 +1,10 @@
+<article class="widget tui-box span-2">
+  <h3>system</h3>
+  <div class="kv-list">
+    <div><span>os</span><strong><%= metric_value(agent, "generic_sys_os") %></strong></div>
+    <div><span>kernel</span><strong><%= metric_value(agent, "generic_sys_kernel") %></strong></div>
+    <div><span>uptime</span><strong><%= metric_value(agent, "generic_sys_uptime") %></strong></div>
+    <div><span>version</span><strong><%= metric_value(agent, "generic_agent_version", metric_value(agent, "generic_lumenmon_version", "-")) %></strong></div>
+    <div><span>mail</span><strong><%= agent_mail_address(agent) %></strong></div>
+  </div>
+</article>
