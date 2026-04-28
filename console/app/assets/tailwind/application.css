@@ -1,0 +1,89 @@
+@import "tailwindcss";
+
+@layer base {
+  html,
+  body {
+    background: #111827;
+    color: #d1d5db;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    margin: 0;
+  }
+}
+
+@layer components {
+  .shell {
+    padding: 16px;
+  }
+
+  .header {
+    align-items: baseline;
+    border-bottom: 1px solid #374151;
+    display: flex;
+    gap: 24px;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+  }
+
+  .logo-ascii {
+    color: #93c5fd;
+    font-size: 18px;
+    margin: 0;
+  }
+
+  .status {
+    color: #86efac;
+  }
+
+  .layout {
+    display: grid;
+    gap: 16px;
+    grid-template-columns: minmax(280px, 35%) 1fr;
+  }
+
+  .agents-section,
+  #detail-panel {
+    border: 1px solid #4b5563;
+    border-radius: 4px;
+    padding: 12px;
+  }
+
+  h1,
+  h2 {
+    color: #f9fafb;
+    font-size: 14px;
+    margin: 0 0 12px;
+    text-transform: lowercase;
+  }
+
+  table {
+    border-collapse: collapse;
+    width: 100%;
+  }
+
+  td {
+    border-top: 1px solid #1f2937;
+    padding: 6px 4px;
+  }
+
+  .agent-row.selected {
+    background: #1f2937;
+    color: #bfdbfe;
+  }
+
+  .metric-row {
+    border-top: 1px solid #1f2937;
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+  }
+
+  .muted {
+    color: #9ca3af;
+  }
+}
+
+@media (max-width: 700px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}
