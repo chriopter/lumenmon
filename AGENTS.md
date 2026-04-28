@@ -3,10 +3,10 @@ Guide for coding agents working in `lumenmon`.
 Focus: build/lint/test commands and practical code conventions.
 
 ## Repository Layout
-- `console/`: Dockerized console (Flask API, Mosquitto, Caddy, SQLite).
+- `console/`: Dockerized Rails 8 console (Rails API/UI, Mosquitto, Caddy, SQLite).
 - `agent/`: Bash collectors and MQTT publishing runtime.
 - `dev/`: local automation, deployment helpers, Playwright E2E tests.
-- Languages: Bash, Python, JavaScript, TypeScript.
+- Languages: Bash, Ruby, JavaScript, TypeScript.
 
 ## Build, Lint, and Test Commands
 
@@ -26,8 +26,8 @@ Run in `console/`:
 - `npm run build`
 - `npm run dev`
 Files:
-- Source: `console/web/public/css/input.css`
-- Output: `console/web/public/css/styles.css` (generated)
+- Source: `console/app/assets/tailwind/application.css`
+- Output: `console/app/assets/stylesheets/application.css` (generated)
 
 ### Console image build
 - `docker build -t test-console:ci ./console`
@@ -107,28 +107,20 @@ Use the narrowest target matching changed files.
   - `proxmox_*` (Proxmox)
   - optional collectors are opt-in
 
-### Python conventions (Flask blueprints)
-- Keep modules function-oriented and straightforward.
-- Naming: `snake_case` for functions/vars, lowercase module files.
-- Imports: keep grouped and stable (stdlib, third-party, local).
-- Database usage:
-  - Parameterize value inputs (`?` placeholders).
-  - If interpolating identifiers, validate with strict regex first.
-- API responses:
-  - Return JSON via `jsonify(...)`.
-  - Use clear status codes (`400`, `404`, `500`).
-- Error handling:
-  - Catch exceptions at route boundaries.
-  - Return generic client-facing error messages.
-  - Close DB connections reliably (often in `finally`).
+### Ruby/Rails conventions
+- Keep controllers thin and helper/model logic straightforward.
+- Naming: `snake_case` for methods/vars, `CamelCase` for classes/modules.
+- Use ActiveRecord query APIs for value inputs; validate dynamic identifiers before use.
+- API responses should return JSON with `render json:` and clear status codes (`400`, `404`, `500`).
+- Keep client-facing error payloads generic; log internals server-side.
 
 ### JavaScript/TypeScript conventions
-- Keep dashboard code modular (widget registry pattern is standard here).
+- Keep dashboard code modular and colocated with the Rails/Tailwind view when possible.
 - Prefer descriptive names for UI/data state.
 - Use semicolons consistently.
 - Preserve file-local formatting:
   - `dev/tests/*.ts`: 2-space indent, single quotes.
-  - `console/web/public/js/widgets.js`: 4-space indent, single quotes.
+  - Rails inline dashboard scripts: 4-space indent, single quotes.
 - Avoid formatter-only churn unless requested.
 
 ### Types and contracts
@@ -139,11 +131,11 @@ Use the narrowest target matching changed files.
 - Frontend mail widget must stay host-scoped (no cross-host/global fallback when selected host has no messages).
 - Frontend collector summary legend: `total`, `fail`, `warn`, `stale`.
 - Agent ID pattern used by APIs: `id_<hex...>`.
-- SQLite metric table naming: `<agent_id>_<metric_name>`.
+- Rails stores latest metric values in `metric_samples` keyed by `agent_id` + `metric_name`.
 
 ### Error handling and logging
 - Shell: emit actionable warnings to stderr; keep non-critical failures non-fatal when possible.
-- Python: log internals server-side, keep API error payloads generic.
+- Rails: log internals server-side, keep API error payloads generic.
 - Preserve security checks around input validation and SQL construction.
 
 ## Security-Sensitive Expectations

@@ -1,6 +1,6 @@
 # UI/API Contract Notes
 
-This is a lightweight compatibility guide for the dashboard UI and unified API.
+This is a lightweight compatibility guide for the Rails dashboard UI and API.
 Use it during refactors to avoid silent frontend breakage.
 
 ## Entities API (`GET /api/entities`)
@@ -55,10 +55,10 @@ Each table entry should include:
 - `history` array
 
 Notes:
-- Frontend detail table still renders legacy typed columns; do not remove `value_real/value_int/value_text` without frontend migration.
+- Frontend detail widgets still render typed compatibility columns; do not remove `value_real/value_int/value_text` without a UI migration.
 
 ## Known footguns
 
-- Changing field names in unified API without updating `console/web/public/html/*.html` can render `-` values while health still fails.
-- `console/core/status.sh` online count should prefer unified API over raw SQLite timestamps (SQLite is persisted in batches).
+- Changing field names in Rails API responses without updating `console/app/views/dashboard/*.erb` can render `-` values while health still fails.
+- `console/core/status.sh` should prefer Rails health/API checks over raw SQLite timestamps.
 - Invite rows should open detail view; avoid frontend calls to non-existent invite retrieval endpoints.

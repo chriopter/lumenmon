@@ -9,18 +9,14 @@ Rails 8 based console packaged as a single container. The image starts:
 
 Persistent data lives in `/data`.
 
-## Run
+## Run With Docker Compose
 
 ```sh
-docker run -d \
-  --name lumenmon-console \
-  --restart unless-stopped \
-  -p 8080:8080 \
-  -p 8443:8443 \
-  -p 8884:8884 \
-  -v lumenmon-data:/data \
-  -e CONSOLE_HOST=your-hostname-or-ip \
-  ghcr.io/chriopter/lumenmon-console:latest
+mkdir -p lumenmon-console
+cd lumenmon-console
+curl -fsSLO https://raw.githubusercontent.com/chriopter/lumenmon/main/console/docker-compose.yml
+printf 'CONSOLE_HOST=%s\n' "your-hostname-or-ip" > .env
+docker compose up -d
 ```
 
 Open `http://your-hostname-or-ip:8080`.
@@ -30,6 +26,21 @@ Generate an agent invite:
 ```sh
 docker exec lumenmon-console /app/core/enrollment/invite_create.sh
 ```
+
+Update:
+
+```sh
+docker compose pull
+docker compose up -d
+```
+
+Stop without deleting data:
+
+```sh
+docker compose down
+```
+
+The optional `console/install.sh` only wraps this compose flow for convenience.
 
 ## Local Build
 

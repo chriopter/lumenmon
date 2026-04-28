@@ -15,7 +15,17 @@
 
 **Console** (central dashboard):
 ```bash
-curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/console/install.sh | bash
+mkdir -p lumenmon-console
+cd lumenmon-console
+curl -fsSLO https://raw.githubusercontent.com/chriopter/lumenmon/main/console/docker-compose.yml
+printf 'CONSOLE_HOST=%s\n' "$(hostname -f 2>/dev/null || hostname)" > .env
+docker compose up -d
+```
+
+Open `http://<console-host>:8080`, then create an invite from the UI or run:
+
+```bash
+docker exec lumenmon-console /app/core/enrollment/invite_create.sh
 ```
 
 **Agent** (on each monitored host):
@@ -33,7 +43,7 @@ lumenmon-agent start
 ├─────────────┤  MQTT/TLS     ├─────────────┤
 │ Collectors  │──────────────►│ • MQTT 8884 │──► Web :8080
 │ (see below) │               │ • SQLite    │
-└─────────────┘               │ • Flask     │
+└─────────────┘               │ • Rails 8   │
   (bare metal)                └─────────────┘
                                  (Docker)
 ```
@@ -131,14 +141,16 @@ Non-collector checks also exist in the console API/UI layer:
 
 ## Commands
 
-**Console** (`lumenmon`):
+**Console** (Docker Compose):
 ```bash
-lumenmon            # Show status
-lumenmon invite     # Generate agent invite
-lumenmon logs       # View logs
-lumenmon update     # Update container
-lumenmon uninstall  # Remove everything
+docker compose ps
+docker compose logs -f
+docker compose pull && docker compose up -d
+docker exec lumenmon-console /app/core/status.sh
+docker exec lumenmon-console /app/core/enrollment/invite_create.sh
 ```
+
+The optional `console/install.sh` installs a small `lumenmon` wrapper around the same compose/container workflow.
 
 **Agent** (`lumenmon-agent`):
 ```bash
@@ -153,13 +165,13 @@ lumenmon-agent uninstall    # Remove agent
 <details>
 <summary>Console</summary>
 
-Docker container running MQTT broker (Mosquitto), SQLite database, and web dashboard (Flask + Caddy).
+Docker Compose starts one appliance-style container with Rails 8, Caddy, Mosquitto, MQTT ingest, and SQLite.
 
-**Install:** Downloads `docker-compose.yml`, pulls image from GitHub Container Registry, starts container.
+**Install:** Create a directory, download `console/docker-compose.yml`, set `CONSOLE_HOST` in `.env`, and run `docker compose up -d`.
 
-**Update:** `lumenmon update` pulls latest image and restarts container. Data in `~/.lumenmon/console/data/` is preserved.
+**Update:** From the compose directory, run `docker compose pull && docker compose up -d`. Data in `./data/` is preserved.
 
-**Uninstall:** `lumenmon uninstall` stops container, removes image and all data.
+**Uninstall:** `docker compose down` stops the console. Remove `./data/` only if you want to delete metrics, MQTT credentials, and certificates.
 
 </details>
 

@@ -5,7 +5,7 @@ async function openDashboard(page: Page) {
   await expect(page.getByText('console: online')).toBeVisible();
 }
 
-test.describe('Lumenmon legacy-style dashboard', () => {
+test.describe('Lumenmon Rails dashboard', () => {
   test('loads shell with logger and list', async ({ page }) => {
     await openDashboard(page);
     await expect(page.locator('.logo-ascii')).toBeVisible();
