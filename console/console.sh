@@ -45,9 +45,9 @@ echo "[console] Lumenmon Rails Console Ready"
 echo "[console] ======================================"
 echo "[console] Console Host: ${CONSOLE_HOST:-localhost}"
 echo "[console] MQTT Broker: lumenmon-console:8884 (TLS)"
-echo "[console] Web Interface: Port 8080 (HTTP), 8443 (HTTPS)"
+echo "[console] Web Interface: Port 8080 (HTTP)"
 echo "[console] Database: ${LUMENMON_DB_PATH:-/data/lumenmon.sqlite3}"
-echo "[console] Access WebTUI: https://localhost:8443 or http://localhost:8080"
+echo "[console] Access Web UI: http://localhost:8080"
 
 terminate() {
     echo "[console] Stopping services..."

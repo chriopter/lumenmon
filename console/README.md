@@ -3,11 +3,12 @@
 Rails 8 based console packaged as a single container. The image starts:
 
 - Rails on an internal Puma port
-- Caddy on `8080` and `8443`
+- Caddy on `8080` for HTTP UI traffic
 - Mosquitto MQTT on `8884`
 - Ruby MQTT ingest into SQLite
 
 Persistent data lives in `/data`.
+Terminate HTTPS in your reverse proxy and forward to container port `8080`.
 
 ## Run With Docker Compose
 
