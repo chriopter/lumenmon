@@ -7,7 +7,7 @@
   ╚══════╝ ╚═════╝ ╚═╝     ╚═╝╚══════╝╚═╝  ╚═══╝╚═╝     ╚═╝ ╚═════╝ ╚═╝  ╚═══╝
 ```
 
-> Lightweight system monitoring with MQTT transport. Pure push architecture — agents send metrics, the console never reaches into your systems. Sets up as docker server in 60 seconds, add clients via one magic command in 10 seconds to start monitoring. No dashboard config, no hassle.
+> Lightweight system monitoring with MQTT transport. Pure push architecture — agents send metrics, the console never reaches into your systems. Run the console as a Docker container, add clients with one invite command, and get monitoring without dashboard config.
 
 <img width="400" alt="image" src="https://github.com/user-attachments/assets/6e9a1e4c-59ca-4b34-bfa5-269ab3f99b37" />
 
@@ -145,40 +145,7 @@ Note: on virtualized guests, hardware collectors stay disabled by default. If GP
 
 </details>
 
-#### Quick policy note
-
-Collector health is computed from:
-- metric stale timeout (`interval` exceeded), and/or
-- min/max bounds violations (`min_value`, `max_value`).
-
-Entity (host) health rolls up from metric health. If any metric fails, entity status becomes degraded.
-
-Non-collector checks also exist in the console API/UI layer:
-- Mail staleness endpoint: `/api/messages/staleness` (default 14 days / 336h, warning)
-- Alerting status endpoint: `/api/alerts/status`
-
-## Commands
-
-**Console** (Docker Compose):
-```bash
-docker compose ps
-docker compose logs -f
-docker compose pull && docker compose up -d
-docker exec lumenmon-console /app/core/status.sh
-docker exec lumenmon-console /app/core/enrollment/invite_create.sh
-```
-
-The optional `console/install.sh` installs a small `lumenmon` wrapper around the same compose/container workflow.
-
-**Agent** (`lumenmon-agent`):
-```bash
-lumenmon-agent              # Show status
-lumenmon-agent debug        # Run all collectors once (test output)
-lumenmon-agent register     # Register with invite URL
-lumenmon-agent start/stop   # Control service
-lumenmon-agent logs         # View logs
-lumenmon-agent uninstall    # Remove agent
-```
+## Operations
 
 <details>
 <summary>Console</summary>
@@ -188,7 +155,9 @@ The console is one Docker container with Rails 8, Caddy, Mosquitto, MQTT ingest,
 ```bash
 docker compose up -d
 docker compose logs -f
+docker compose pull && docker compose up -d
 docker exec lumenmon-console /app/core/status.sh
+docker exec lumenmon-console /app/core/enrollment/invite_create.sh
 ```
 
 Persist `./data:/data`. The web UI listens on `8080`; MQTT/TLS for agents listens on `8884`.
@@ -204,6 +173,8 @@ Bash collectors run on each host and publish metrics with `mosquitto_pub` over T
 curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/agent/install.sh | bash
 lumenmon-agent register '<invite-url>'
 lumenmon-agent start
+lumenmon-agent logs
+lumenmon-agent debug
 ```
 
 The installer uses `/opt/lumenmon/`, creates `lumenmon-agent.service`, and installs the `lumenmon-agent` CLI.

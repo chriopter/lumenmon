@@ -1,7 +1,6 @@
 services:
   console:
     image: ${LUMENMON_IMAGE:-ghcr.io/chriopter/lumenmon-console:latest}
-    build: .
     container_name: lumenmon-console
     hostname: lumenmon-console
     restart: unless-stopped

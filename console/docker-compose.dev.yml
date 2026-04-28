@@ -1,4 +1,5 @@
 services:
   console:
+    build: .
     volumes:
       - ./data:/data
