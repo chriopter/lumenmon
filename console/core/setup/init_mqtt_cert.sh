@@ -1,43 +1,34 @@
 #!/bin/bash
-# Generates self-signed certificate for MQTT TLS (20 year validity).
-# Creates server certificate with user-provided hostname and calculates fingerprint for agent registration.
+# Generate the MQTT TLS certificate and fingerprint used by agent invites.
+# Reuses an existing certificate when present in the persistent data volume.
 set -euo pipefail
 
 CERT_DIR="/data/mqtt"
 FINGERPRINT_FILE="$CERT_DIR/fingerprint"
-CONSOLE_HOST="${CONSOLE_HOST:-localhost}"  # Read from environment (set by docker-compose from .env)
+CONSOLE_HOST="${CONSOLE_HOST:-localhost}"
 
-# Create cert directory
 mkdir -p "$CERT_DIR"
 
-# Check if certificate already exists
 if [ -f "$CERT_DIR/server.crt" ]; then
     echo "[mqtt-cert] Certificate already exists, skipping generation"
     exit 0
 fi
 
-echo "[mqtt-cert] Generating self-signed certificate (20 year validity)..."
-echo "[mqtt-cert] Including hostname: $CONSOLE_HOST"
-
-# Generate private key
+echo "[mqtt-cert] Generating self-signed certificate..."
 openssl genrsa -out "$CERT_DIR/server.key" 4096 2>/dev/null
 
-# Detect if CONSOLE_HOST is an IP address
 if [[ "$CONSOLE_HOST" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-    # IP address - add as IP SAN
-    IP_SAN="IP.1 = $CONSOLE_HOST
-IP.2 = 127.0.0.1"
     DNS_SAN="DNS.1 = lumenmon-console
 DNS.2 = localhost"
+    IP_SAN="IP.1 = $CONSOLE_HOST
+IP.2 = 127.0.0.1"
 else
-    # Hostname - add as DNS SAN
     DNS_SAN="DNS.1 = lumenmon-console
 DNS.2 = localhost
 DNS.3 = $CONSOLE_HOST"
     IP_SAN="IP.1 = 127.0.0.1"
 fi
 
-# Create config file for Subject Alternative Names
 cat > "$CERT_DIR/openssl.cnf" <<EOF
 [req]
 distinguished_name = req_distinguished_name
@@ -57,7 +48,6 @@ $DNS_SAN
 $IP_SAN
 EOF
 
-# Generate self-signed certificate with SANs (20 years = 7300 days)
 openssl req -new -x509 \
     -key "$CERT_DIR/server.key" \
     -out "$CERT_DIR/server.crt" \
@@ -66,27 +56,11 @@ openssl req -new -x509 \
     -extensions v3_req \
     2>/dev/null
 
-# Cleanup config file
 rm "$CERT_DIR/openssl.cnf"
 
-# Calculate SHA256 fingerprint
-FINGERPRINT=$(openssl x509 -in "$CERT_DIR/server.crt" \
-    -noout -fingerprint -sha256 | cut -d= -f2)
+openssl x509 -in "$CERT_DIR/server.crt" -noout -fingerprint -sha256 | cut -d= -f2 > "$FINGERPRINT_FILE"
 
-# Save fingerprint to file
-echo "$FINGERPRINT" > "$FINGERPRINT_FILE"
-
-echo "[mqtt-cert] ✓ Certificate generated successfully"
-echo "[mqtt-cert] CN: $CONSOLE_HOST"
-echo "[mqtt-cert] Fingerprint: $FINGERPRINT"
-if [[ "$CONSOLE_HOST" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-    echo "[mqtt-cert] SANs: lumenmon-console, localhost, $CONSOLE_HOST (IP)"
-else
-    echo "[mqtt-cert] SANs: lumenmon-console, localhost, $CONSOLE_HOST (DNS)"
-fi
-echo "[mqtt-cert] This fingerprint will be included in agent invite URLs"
-
-# Set permissions
 chmod 600 "$CERT_DIR/server.key"
-chmod 644 "$CERT_DIR/server.crt"
-chmod 644 "$FINGERPRINT_FILE"
+chmod 644 "$CERT_DIR/server.crt" "$FINGERPRINT_FILE"
+
+echo "[mqtt-cert] Fingerprint: $(cat "$FINGERPRINT_FILE")"

@@ -1,24 +1,13 @@
 #!/bin/bash
-# Downloads latest vendored web dependencies (JS libraries) to console/web/public/.
-# Run this to update Chart.js and MQTT.js from unpkg.com CDN.
-# CSS is now managed via Tailwind (see console/package.json).
+# Refreshes the Rails dependency lockfile for the console app.
+# Run this before dependency PRs so Docker builds stay reproducible.
 
 set -e
 
-echo "Updating vendored dependencies..."
+cd "$(dirname "$0")/.."
 
-# Create directories if they don't exist
-mkdir -p console/web/public/js/vendor
+echo "Updating console Rails dependencies..."
 
-# Update Chart.js
-echo "  Downloading Chart.js..."
-curl -sL https://unpkg.com/chart.js@latest/dist/chart.umd.js -o console/web/public/js/vendor/chart.js
-
-# Update MQTT.js
-echo "  Downloading MQTT.js..."
-curl -sL https://unpkg.com/mqtt@latest/dist/mqtt.min.js -o console/web/public/js/vendor/mqtt.min.js
+(cd console && bundle update)
 
 echo "Done! Dependencies updated successfully."
-echo ""
-echo "Note: CSS is now managed via Tailwind CSS."
-echo "To update Tailwind: cd console && npm update tailwindcss @tailwindcss/cli"

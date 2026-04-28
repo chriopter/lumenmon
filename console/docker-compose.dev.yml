@@ -2,4 +2,3 @@ services:
   console:
     volumes:
       - ./data:/data
-      - ./web/public:/app/public:ro  # Mount public files for hot reload
