@@ -1,0 +1,100 @@
+#!/usr/bin/env ruby
+# Refreshes dependency locks and runs the project quality gate.
+# Adapted from UncleDoc's update helper for this Rails-console repository.
+require "bundler"
+require "open3"
+
+APP_ROOT = File.expand_path("..", __dir__)
+
+def sh(*command, chdir: APP_ROOT)
+  system(*command, chdir: chdir, exception: true)
+end
+
+def capture(*command, chdir: APP_ROOT)
+  Open3.capture2e(*command, chdir: chdir)
+end
+
+def console_root
+  File.join(APP_ROOT, "console")
+end
+
+def lockfile
+  @lockfile ||= Bundler::LockfileParser.new(Bundler.read_file(File.join(console_root, "Gemfile.lock")))
+end
+
+def installed_gems
+  lockfile.specs.to_h { |spec| [spec.name, spec.version.to_s] }
+end
+
+def direct_gems
+  lockfile.dependencies.keys.sort
+end
+
+def outdated_gems
+  output, = capture("bundle", "outdated", "--parseable", chdir: console_root)
+
+  output.lines.filter_map do |line|
+    match = line.match(/\A(?<name>\S+) \(newest (?<latest>[^,]+), installed (?<current>[^\),]+)/)
+    next unless match
+
+    [match[:name], { current: match[:current], latest: match[:latest] }]
+  end.to_h
+end
+
+def package_versions
+  package = File.read(File.join(console_root, "package.json"))
+  package.scan(/"(?<name>tailwindcss|@tailwindcss\/cli)":\s*"(?<version>[^"]+)"/).to_h
+end
+
+def print_summary(before_gems, after_gems, before_packages, after_packages)
+  gem_updates = before_gems.filter_map do |name, before|
+    current = after_gems[name]
+    next if current == before
+
+    "#{name}: #{before} -> #{current}"
+  end
+
+  package_updates = before_packages.filter_map do |name, before|
+    current = after_packages[name]
+    next if current == before
+
+    "#{name}: #{before} -> #{current}"
+  end
+
+  puts "\nDependency summary"
+  puts gem_updates.empty? ? "  gems: unchanged" : "  gems:\n  - #{gem_updates.join("\n  - ")}"
+  puts package_updates.empty? ? "  npm: unchanged" : "  npm:\n  - #{package_updates.join("\n  - ")}"
+
+  remaining = outdated_gems
+  if remaining.empty?
+    puts "  outdated gems: none"
+  else
+    puts "  outdated gems:"
+    remaining.each do |name, versions|
+      puts "  - #{name}: #{versions[:current]} < #{versions[:latest]}"
+    end
+  end
+end
+
+Dir.chdir(APP_ROOT) do
+  before_gems = installed_gems
+  before_packages = package_versions
+
+  puts "\n==> Updating Rails bundle"
+  sh("bundle", "update", "--all", chdir: console_root)
+  sh("bundle", "update", "--bundler", chdir: console_root)
+  sh("bundle", "lock", chdir: console_root)
+
+  puts "\n==> Updating Tailwind packages"
+  sh("npm", "update", chdir: console_root)
+  sh("npm", "install", chdir: console_root)
+
+  puts "\n==> Preparing Rails database"
+  sh("bundle", "exec", "rails", "db:prepare", chdir: console_root)
+
+  puts "\n==> Running quality checks"
+  sh("bin/quality")
+
+  print_summary(before_gems, installed_gems, before_packages, package_versions)
+  puts "\nNext: git diff"
+end

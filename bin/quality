@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# Runs the local quality gate for the Rails console and shell runtime.
+# Mirrors CI checks plus fast Rails/Tailwind validation.
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+echo "==> Shell syntax"
+find . -name "*.sh" -type f -exec bash -n {} \;
+
+echo "==> Rails tests"
+(
+    cd console
+    bundle exec rails test
+)
+
+echo "==> Tailwind build"
+(
+    cd console
+    npm run build
+)
+
+echo "==> Console Docker build"
+docker build -t test-console:ci ./console
+
+echo "==> Quality checks passed"
