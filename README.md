@@ -145,12 +145,9 @@ Note: on virtualized guests, hardware collectors stay disabled by default. If GP
 
 </details>
 
-## Operations
+## Dev / Architecture / Operations
 
-<details>
-<summary>Console</summary>
-
-The console is one Docker container with Rails 8, Caddy, Mosquitto, MQTT ingest, and SQLite.
+The console is one Docker container with Rails 8, Caddy, Mosquitto, MQTT ingest, and SQLite. Persist `./data:/data`; the web UI listens on `8080`, and MQTT/TLS for agents listens on `8884`.
 
 ```bash
 docker compose up -d
@@ -160,14 +157,7 @@ docker exec lumenmon-console /app/core/status.sh
 docker exec lumenmon-console /app/core/enrollment/invite_create.sh
 ```
 
-Persist `./data:/data`. The web UI listens on `8080`; MQTT/TLS for agents listens on `8884`.
-
-</details>
-
-<details>
-<summary>Agent</summary>
-
-Bash collectors run on each host and publish metrics with `mosquitto_pub` over TLS.
+Bash collectors run on each host and publish metrics with `mosquitto_pub` over TLS. The installer uses `/opt/lumenmon/`, creates `lumenmon-agent.service`, and installs the `lumenmon-agent` CLI.
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/agent/install.sh | bash
@@ -177,73 +167,13 @@ lumenmon-agent logs
 lumenmon-agent debug
 ```
 
-The installer uses `/opt/lumenmon/`, creates `lumenmon-agent.service`, and installs the `lumenmon-agent` CLI.
+Security model: agents connect outbound only, MQTT uses TLS and per-agent credentials, and invites create individual MQTT users. Do not expose Rails directly; put public HTTPS in front of `8080` with a reverse proxy.
 
-</details>
+Rails owns `/data/lumenmon.sqlite3`. Data flows from `agent collector -> Mosquitto :8884 -> Ruby MQTT ingest -> ActiveRecord -> metric_samples`; `metric_samples` stores the latest value per `agent_id` + `metric_name`, including `data_type`, interval, bounds, and `observed_at`. Observation history is retained separately for seven days.
 
-<details>
-<summary>Security</summary>
+The Rails UI reads latest metric state from SQLite and refreshes live. Status is based on stale intervals and metric bounds: `fail` = hard failure, `warn` = warning threshold, `stale` = no fresh update. Local system mail can be forwarded as `mail_message` metrics and is shown host-scoped in the UI.
 
-- Agents connect outbound only.
-- MQTT uses TLS and per-agent credentials.
-- Invites create individual MQTT users.
-- Do not expose Rails directly; put any public HTTPS in front of `8080` with a reverse proxy.
-
-</details>
-
-<details>
-<summary>Mail Forwarding</summary>
-
-The agent can forward local system mail as `mail_message` metrics. In the UI, mail is host-scoped: selecting a host shows only messages for that host.
-
-</details>
-
-<details>
-<summary>Web UI Notes</summary>
-
-The Rails UI reads from the latest metric state in SQLite and refreshes live. Status is based on stale intervals and metric bounds.
-
-Legend: `fail` = hard failure, `warn` = warning threshold, `stale` = no fresh update.
-
-</details>
-
-<details>
-<summary>Data</summary>
-
-Rails owns the SQLite database at `/data/lumenmon.sqlite3`.
-
-MQTT data flow:
-
-```text
-agent collector -> Mosquitto :8884 -> Ruby MQTT ingest -> ActiveRecord -> metric_samples
-```
-
-`metric_samples` stores the latest value per `agent_id` + `metric_name`, including `data_type`, interval, bounds, and `observed_at`.
-
-</details>
-
-<details>
-<summary>Writing Custom Collectors</summary>
-
-Collectors are Bash scripts in `agent/collectors/` and publish through `publish_metric`:
-
-```bash
-#!/bin/bash
-# Publish one example metric.
-# Supports test mode for status/debug commands.
-
-METRIC="generic_example"
-TYPE="REAL"
-
-source "$LUMENMON_HOME/core/mqtt/publish.sh"
-
-while true; do
-    value=$(LC_ALL=C some_command)
-    publish_metric "$METRIC" "$value" "$TYPE" "$BREATHE" 0 100
-    [ "${LUMENMON_TEST_MODE:-}" = "1" ] && exit 0
-    sleep "$BREATHE"
-done
-```
+Custom collectors are Bash scripts in `agent/collectors/` and publish through:
 
 ```bash
 publish_metric "name" "value" "TYPE" interval [min] [max] [warn_min] [warn_max]
@@ -251,10 +181,7 @@ publish_metric "name" "value" "TYPE" interval [min] [max] [warn_min] [warn_max]
 
 Use `REAL`, `INTEGER`, or `TEXT`. Use `LC_ALL=C` when parsing command output. Prefix metrics by collector family: `generic_`, `proxmox_`, `pbs_`, `hardware_`, or `optional_`.
 
-</details>
-
-<details>
-<summary>Development</summary>
+Local development:
 
 ```bash
 ./dev/console
@@ -265,8 +192,6 @@ Use `REAL`, `INTEGER`, or `TEXT`. Use `LC_ALL=C` when parsing command output. Pr
 ```
 
 Rails/Tailwind work happens in `console/`. Release tags (`v*`) trigger the GitHub Actions container build.
-
-</details>
 
 ---
 
