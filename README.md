@@ -257,9 +257,11 @@ Use `REAL`, `INTEGER`, or `TEXT`. Use `LC_ALL=C` when parsing command output. Pr
 <summary>Development</summary>
 
 ```bash
+bin/dev
+bin/dev --reset
 ./dev/auto
 ./dev/add3
-./dev/check-collectors
+bin/check-collectors
 bin/quality
 ```
 

@@ -11,14 +11,16 @@ Focus: build/lint/test commands and practical code conventions.
 ## Build, Lint, and Test Commands
 
 ### Core dev commands (repo root)
-- `./dev/auto` - full local reset + console + dev agent + virtual agent.
+- `bin/dev` or `./dev/console` - live-edit console dev server (Rails, Mosquitto, MQTT ingest, Tailwind watch).
+- `bin/dev --reset` - clear local console data before starting.
+- `./dev/auto` - full local demo stack: starts `bin/dev --reset`, then `./dev/add3`.
 - `./dev/add3` - spawn extra test agents.
-- `./dev/check-collectors` - validate collector script contract assumptions.
-- `./dev/sensor-inventory` - list current sensor coverage/failures on target host.
-- `./dev/sandboxer-maintain --once` - run one local auto-maintenance pass.
-- `./dev/lumenmon-diagnose` - end-to-end runtime and health propagation checks.
-- `./dev/updatedeps` - refresh vendored frontend dependencies.
-- `./dev/release` - create release tag workflow.
+- `bin/check-collectors` - validate collector script contract assumptions.
+- `bin/sensor-inventory` - list current sensor coverage/failures on target host.
+- `bin/sandboxer-maintain --once` - run one local auto-maintenance pass.
+- `bin/lumenmon-diagnose` - end-to-end runtime and health propagation checks.
+- `bin/update` - refresh dependencies and run the quality gate.
+- `bin/release` - create release tag workflow.
 
 ### Frontend CSS (Tailwind v4)
 Run in `console/`:
@@ -37,10 +39,10 @@ No dedicated lint config found (no ruff/eslint/shellcheck config files).
 Current checks are:
 - `find . -name "*.sh" -type f -exec bash -n {} \;`
 - `docker build -t test-console:ci ./console`
-- Optional local guard: `./dev/check-collectors`
+- Optional local guard: `bin/check-collectors`
 
 ### Playwright E2E tests
-Run in `dev/tests/`:
+Run in `tests/e2e/`:
 - `npm install`
 - `npm test`
 - `npm run test:headed`
@@ -51,7 +53,7 @@ Optional target URL:
 - `LUMENMON_TEST_URL=http://localhost:8080 npm test`
 
 ### Running a single test (important)
-From `dev/tests/`:
+From `tests/e2e/`:
 - Single spec file: `npx playwright test lumenmon.spec.ts`
 - Single test title pattern: `npx playwright test -g "loads dashboard within 3 seconds"`
 - Single test in a file: `npx playwright test lumenmon.spec.ts -g "Page Load & Initial State"`
@@ -73,12 +75,12 @@ Set host first:
 - Store real host values only in gitignored env files (for example repo-root `.env`) or shell-local exports.
 - Agents should read `LUMENMON_TEST_HOST` from environment (or repo-root `.env` loaded by scripts) when running deploy helpers.
 Deploy commands:
-- `./dev/deploy-test web`
-- `./dev/deploy-test agent`
-- `./dev/deploy-test console`
-- `./dev/deploy-test all`
-- `./dev/deploy-test status`
-- `./dev/deploy-test check`
+- `bin/deploy-test web`
+- `bin/deploy-test agent`
+- `bin/deploy-test console`
+- `bin/deploy-test all`
+- `bin/deploy-test status`
+- `bin/deploy-test check`
 Use the narrowest target matching changed files.
 
 ## Code Style Guidelines
@@ -119,7 +121,7 @@ Use the narrowest target matching changed files.
 - Prefer descriptive names for UI/data state.
 - Use semicolons consistently.
 - Preserve file-local formatting:
-  - `dev/tests/*.ts`: 2-space indent, single quotes.
+  - `tests/e2e/*.ts`: 2-space indent, single quotes.
   - Rails inline dashboard scripts: 4-space indent, single quotes.
 - Avoid formatter-only churn unless requested.
 
@@ -154,7 +156,7 @@ Result: none of these files currently exist in this repo.
 ## Recommended Agent Workflow
 - Read touched files first and mirror local conventions.
 - After edits, run the smallest command set that validates your change.
-- Prefer targeted deploy/test loops (`./dev/deploy-test ...`) during active development.
+- Prefer targeted deploy/test loops (`bin/deploy-test ...`) during active development.
 - Do not push commits unless explicitly asked.
 
 ## UI/API Contract Notes
@@ -203,10 +205,10 @@ Frontend detail widgets still render typed compatibility columns; do not remove 
 ## Fast Direct Deploy Strategy
 - Keep host in gitignored env (`LUMENMON_TEST_HOST` in repo `.env` or shell export).
 - Iterate with narrow targets:
-  - `./dev/deploy-test agent` for agent/runtime script changes.
-  - `./dev/deploy-test web` for frontend/public asset changes.
-  - `./dev/deploy-test console` for backend/console app changes.
-- Verify with `./dev/deploy-test status` / `./dev/deploy-test check` plus `lumenmon` and `lumenmon-agent` checks.
+  - `bin/deploy-test agent` for agent/runtime script changes.
+  - `bin/deploy-test web` for frontend/public asset changes.
+  - `bin/deploy-test console` for backend/console app changes.
+- Verify with `bin/deploy-test status` / `bin/deploy-test check` plus `lumenmon` and `lumenmon-agent` checks.
 - After successful real-server validation, commit and promote via normal release flow.
 
 ## Release Notes Safety (Important)
