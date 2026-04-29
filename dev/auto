@@ -10,6 +10,7 @@ MQTT_PORT="${MQTT_PORT:-8884}"
 CONSOLE_HOST="${CONSOLE_HOST:-localhost}"
 LUMENMON_WEB_PORT="${LUMENMON_WEB_PORT:-8080}"
 DEV_PID=""
+VIRTUAL_PID=""
 
 export LUMENMON_WEB_PORT
 
@@ -76,6 +77,11 @@ wait_for_port() {
 }
 
 cleanup() {
+    if [ -n "$VIRTUAL_PID" ]; then
+        kill "$VIRTUAL_PID" 2>/dev/null || true
+        wait "$VIRTUAL_PID" 2>/dev/null || true
+    fi
+
     if [ -n "$DEV_PID" ]; then
         kill "$DEV_PID" 2>/dev/null || true
         wait "$DEV_PID" 2>/dev/null || true
@@ -152,6 +158,82 @@ start_agents() {
     done
 }
 
+start_virtual_agent() {
+    local agent_data="dev/data/agents/virtual"
+    local invite
+
+    rm -rf "$agent_data"
+    mkdir -p "$agent_data/mqtt"
+
+    invite="$(create_invite)"
+    if [ -z "$invite" ]; then
+        echo "Failed to create invite for virtual agent" >&2
+        exit 1
+    fi
+
+    docker run --rm \
+        --network host \
+        -e LUMENMON_AUTO_ACCEPT=1 \
+        -v "$PWD/$agent_data:/opt/lumenmon/data" \
+        lumenmon-dev-agent \
+        /opt/lumenmon/core/setup/register.sh "$invite" >/dev/null 2>&1
+
+    virtual_agent_loop &
+    VIRTUAL_PID="$!"
+    echo "  Started virtual (synthetic ticker, pid $VIRTUAL_PID)"
+}
+
+virtual_agent_loop() {
+    export LC_ALL=C  # keep printf/awk decimals as periods, not locale commas
+    local data="dev/data/agents/virtual/mqtt"
+    local log="dev/data/agents/virtual/publish.log"
+    local user pass host port
+    user=$(cat "$data/username")
+    pass=$(cat "$data/password")
+    host=$(cat "$data/host")
+    port=$(cat "$data/port")
+
+    _pub() {
+        local metric="$1" value="$2" type="$3" interval="${4:-1}"
+        local min="${5:-}" max="${6:-}" warn_min="${7:-}" warn_max="${8:-}"
+        local jv="$value"
+        [ "$type" = "TEXT" ] && jv="\"$value\""
+        local payload="{\"value\":$jv,\"type\":\"$type\",\"interval\":$interval"
+        [ -n "$min" ] && payload="$payload,\"min\":$min"
+        [ -n "$max" ] && payload="$payload,\"max\":$max"
+        [ -n "$warn_min" ] && payload="$payload,\"warn_min\":$warn_min"
+        [ -n "$warn_max" ] && payload="$payload,\"warn_max\":$warn_max"
+        payload="$payload}"
+        mosquitto_pub -h "$host" -p "$port" -u "$user" -P "$pass" \
+            --cafile "$data/server.crt" --insecure \
+            -t "metrics/$user/$metric" -m "$payload" 2>>"$log" || true
+    }
+
+    _pub "generic_hostname"      "virtual-tick"     TEXT 60
+    _pub "generic_agent_version" "v0.0-virtual"     TEXT 60
+    _pub "generic_sys_os"        "synthetic linux"  TEXT 60
+    _pub "generic_sys_kernel"    "0.0.0-virtual"    TEXT 60
+
+    local boot_ts now uptime cpu mem disk
+    boot_ts=$(date +%s)
+    while :; do
+        now=$(date +%s)
+        uptime=$((now - boot_ts))
+        # Pure-bash arithmetic — locale-safe (no awk/printf decimals)
+        cpu="$((RANDOM % 60 + 20)).$((RANDOM % 10))"
+        mem="$((RANDOM % 40 + 30)).$((RANDOM % 10))"
+        disk="$((RANDOM % 25 + 50)).$((RANDOM % 10))"
+
+        _pub "generic_cpu"        "$cpu"     REAL    1 0 100 0 90
+        _pub "generic_memory"     "$mem"     REAL    1 0 100 0 90
+        _pub "generic_disk"       "$disk"    REAL    1 0 100 0 85
+        _pub "generic_heartbeat"  "$now"     INTEGER 1
+        _pub "generic_sys_uptime" "$uptime"  INTEGER 60
+
+        sleep 1
+    done
+}
+
 cd "$APP_ROOT"
 
 preflight
@@ -165,6 +247,7 @@ wait_for_file "$DATA_ROOT/mqtt/fingerprint" "local MQTT certificate"
 wait_for_port "127.0.0.1" "$MQTT_PORT" "local MQTT TLS listener"
 
 start_agents
+start_virtual_agent
 
 echo ""
 echo "Full dev stack is running. Stop with Ctrl-C."

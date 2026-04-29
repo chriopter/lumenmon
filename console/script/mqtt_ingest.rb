@@ -52,6 +52,8 @@ client.get do |topic, payload|
     sample.warn_max = warn_max
     sample.observed_at = observed_at
     sample.save!
+
+    MetricObservation.purge_expired!
   end
 rescue JSON::ParserError => e
   warn "invalid JSON on #{topic}: #{e.message}"

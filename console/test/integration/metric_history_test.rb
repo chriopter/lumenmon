@@ -65,4 +65,28 @@ class MetricHistoryTest < ActionDispatch::IntegrationTest
     assert_empty MetricSample.where(agent_id: agent_id)
     assert_empty MetricObservation.where(agent_id: agent_id)
   end
+
+  test "observation retention purges values older than seven days" do
+    agent_id = "id_abc123"
+    MetricObservation.create!(
+      agent_id: agent_id,
+      metric_name: "generic_disk",
+      value: "50",
+      data_type: "REAL",
+      interval: 60,
+      observed_at: 8.days.ago
+    )
+    fresh = MetricObservation.create!(
+      agent_id: agent_id,
+      metric_name: "generic_disk",
+      value: "51",
+      data_type: "REAL",
+      interval: 60,
+      observed_at: 6.days.ago
+    )
+
+    MetricObservation.purge_expired!
+
+    assert_equal [fresh], MetricObservation.where(agent_id: agent_id).to_a
+  end
 end

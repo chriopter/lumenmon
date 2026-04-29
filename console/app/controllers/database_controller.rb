@@ -1,4 +1,6 @@
 class DatabaseController < ApplicationController
+  ROW_LIMIT = 1_000
+
   helper_method :database_cell_value
 
   def index
@@ -43,7 +45,7 @@ class DatabaseController < ApplicationController
   def last_rows(table_name, columns)
     quoted_table = connection.quote_table_name(table_name)
     order_clause = order_clause_for(columns)
-    connection.select_all("SELECT * FROM #{quoted_table} #{order_clause} LIMIT 100").to_a
+    connection.select_all("SELECT * FROM #{quoted_table} #{order_clause} LIMIT #{ROW_LIMIT}").to_a
   rescue ActiveRecord::StatementInvalid
     []
   end
