@@ -218,7 +218,7 @@ MQTT data flow:
 agent collector -> Mosquitto :8884 -> Ruby MQTT ingest -> ActiveRecord -> metric_samples
 ```
 
-`metric_samples` stores the latest value per `agent_id` + `metric_name`, including type, interval, bounds, and `observed_at`.
+`metric_samples` stores the latest value per `agent_id` + `metric_name`, including `data_type`, interval, bounds, and `observed_at`.
 
 </details>
 

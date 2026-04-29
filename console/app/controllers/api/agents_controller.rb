@@ -54,14 +54,12 @@ module Api
         columns: {
           timestamp: timestamp,
           value: value,
-          value_real: sample.data_type == "REAL" ? value : nil,
-          value_int: sample.data_type == "INTEGER" ? value : nil,
-          value_text: sample.data_type == "TEXT" ? value : nil,
+          data_type: sample.data_type,
           interval: sample.interval,
-          min_value: sample.min,
-          max_value: sample.max,
-          warn_min_value: sample.warn_min,
-          warn_max_value: sample.warn_max
+          min: sample.min,
+          max: sample.max,
+          warn_min: sample.warn_min,
+          warn_max: sample.warn_max
         },
         history: history_for(sample),
         staleness: {

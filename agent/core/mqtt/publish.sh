@@ -23,10 +23,10 @@ publish_metric() {
     local value="$2"
     local type="$3"
     local interval="${4:-60}"  # Default 60s if not specified
-    local min_value="${5:-}"   # Optional min bound
-    local max_value="${6:-}"   # Optional max bound
-    local warn_min_value="${7:-}"  # Optional warning min bound
-    local warn_max_value="${8:-}"  # Optional warning max bound
+    local min_bound="${5:-}"   # Optional min bound
+    local max_bound="${6:-}"   # Optional max bound
+    local warn_min_bound="${7:-}"  # Optional warning min bound
+    local warn_max_bound="${8:-}"  # Optional warning max bound
 
     # Test mode: print instead of publish
     if [ "${LUMENMON_TEST_MODE:-}" = "1" ]; then
@@ -46,10 +46,10 @@ publish_metric() {
     local payload="{\"value\":$json_value,\"type\":\"$type\",\"interval\":$interval"
 
     # Add optional min/max if provided
-    [ -n "$min_value" ] && payload="$payload,\"min\":$min_value"
-    [ -n "$max_value" ] && payload="$payload,\"max\":$max_value"
-    [ -n "$warn_min_value" ] && payload="$payload,\"warn_min\":$warn_min_value"
-    [ -n "$warn_max_value" ] && payload="$payload,\"warn_max\":$warn_max_value"
+    [ -n "$min_bound" ] && payload="$payload,\"min\":$min_bound"
+    [ -n "$max_bound" ] && payload="$payload,\"max\":$max_bound"
+    [ -n "$warn_min_bound" ] && payload="$payload,\"warn_min\":$warn_min_bound"
+    [ -n "$warn_max_bound" ] && payload="$payload,\"warn_max\":$warn_max_bound"
 
     payload="$payload}"
 

@@ -34,8 +34,33 @@ class MetricHistoryTest < ActionDispatch::IntegrationTest
     get "/api/agents/#{agent_id}/tables"
 
     assert_response :success
-    history = response.parsed_body.fetch("tables").first.fetch("history")
+    table = response.parsed_body.fetch("tables").first
+    columns = table.fetch("columns")
+    history = table.fetch("history")
+
+    assert_equal "REAL", columns.fetch("data_type")
+    assert_equal 42.5, columns.fetch("value")
+    assert_equal %w[data_type interval max min timestamp value warn_max warn_min], columns.keys.sort
     assert_equal [12.5, 42.5], history.map { |point| point.fetch("value") }
+  end
+
+  test "entities api exposes canonical metric data type" do
+    agent_id = "id_abc123"
+    MetricSample.create!(
+      agent_id: agent_id,
+      metric_name: "generic_hostname",
+      value: "devbox",
+      data_type: "TEXT",
+      interval: 60,
+      observed_at: Time.current
+    )
+
+    get "/api/entities"
+
+    assert_response :success
+    metric = response.parsed_body.fetch("entities").first.fetch("metrics").first
+    assert_equal "TEXT", metric.fetch("data_type")
+    assert_not metric.key?("type")
   end
 
   test "agent reset clears latest values and history" do

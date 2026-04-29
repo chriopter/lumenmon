@@ -26,7 +26,7 @@
 ### Health, Deploy, and API/UI compatibility hardening
 
 - Fixed host health rollup so out-of-bounds metrics propagate to entity status (not only stale metrics).
-- Fixed detail-table compatibility by restoring typed value fields (`value_real`, `value_int`, `value_text`) alongside canonical `value`.
+- Fixed detail-table rendering by aligning the API response with the dashboard value contract.
 - Added missing API fields used by detail UI (`staleness.next_update_in`, `metadata.data_span`) to prevent misleading table output.
 - Normalized MQTT TLS certificate fingerprints (strip separators + uppercase) to avoid false mismatch warnings.
 - Unified MQTT port handling end-to-end (register, status, publish path, collectors, runtime) with backward-compatible `8884` fallback.

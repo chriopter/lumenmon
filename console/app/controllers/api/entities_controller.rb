@@ -57,7 +57,7 @@ module Api
       {
         name: sample.metric_name,
         value: sample.typed_value,
-        type: sample.data_type,
+        data_type: sample.data_type,
         interval: sample.interval,
         timestamp: sample.observed_at.to_i,
         min: sample.min,

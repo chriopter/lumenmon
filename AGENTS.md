@@ -140,42 +140,38 @@ Result: none of these files currently exist in this repo.
 - Do not push commits unless explicitly asked.
 
 ## UI/API Contract Notes
-Use this compatibility guide during dashboard/API refactors to avoid silent frontend breakage.
+Use this contract during dashboard/API refactors to avoid silent frontend breakage.
 
 ### Entities API (`GET /api/entities`)
 For agent rows, the UI expects these fields:
 - `id` (string, `id_<hex...>`)
-- `type` (`agent` or `invite`)
-- `status` (`online`, `degraded`, `offline`, `mail-only`)
+- `type` (`agent`)
+- `status` (`online`, `stale`, `offline`)
 - `valid` (boolean)
-- `display_name` (optional string)
 - `hostname` (display hostname)
-- `original_hostname` (raw hostname when present)
-- `group` (optional string)
+- `display_name` (display hostname)
+- `last_seen` (unix timestamp)
 - `failed_collectors` (int)
 - `total_collectors` (int)
-- `cpu`, `memory`, `disk` (numbers)
-- `cpuSparkline`, `memSparkline`, `diskSparkline` (strings)
-- `cpuHistory`, `memHistory`, `diskHistory` (arrays)
-- `mail_only` (boolean compatibility alias)
-- `is_mail_only` (boolean canonical field)
+- `warning_collectors` (int)
+- `cpu`, `memory`, `disk`, `heartbeat` (latest values)
+- `metrics` (array with `name`, `value`, `data_type`, `interval`, `timestamp`, optional bounds)
 - `pending_invite` (optional object)
 
-Keep both `mail_only` and `is_mail_only` for compatibility. If bounds or staleness logic changes, ensure `status` still rolls up metric failures.
+If bounds or staleness logic changes, ensure `status` still rolls up metric failures.
 
 ### Agent Tables API (`GET /api/agents/<agent_id>/tables`)
 Each table entry should include:
 - `metric_name`
 - `columns.timestamp`
-- `columns.value` (canonical)
-- `columns.value_real`, `columns.value_int`, `columns.value_text` (compat fields)
-- `columns.interval`, `columns.min_value`, `columns.max_value`
+- `columns.value`
+- `columns.data_type`
+- `columns.interval`, `columns.min`, `columns.max`
+- `columns.warn_min`, `columns.warn_max`
 - `staleness.age`, `staleness.is_stale`, `staleness.next_update_in`
-- `health.is_failed`, `health.is_stale`, `health.out_of_bounds`, `health.bounds_error`
-- `metadata.type`, `metadata.timestamp_age`, `metadata.data_span`, `metadata.line_count`
+- `health.is_failed`, `health.is_warning`, `health.is_stale`, `health.out_of_bounds`
+- `health.warning_out_of_bounds`
 - `history` array
-
-Frontend detail widgets still render typed compatibility columns; do not remove `value_real`, `value_int`, or `value_text` without a UI migration.
 
 ### UI/API Footguns
 - Changing field names in Rails API responses without updating `console/app/views/dashboard/*.erb` can render `-` values while health still fails.
