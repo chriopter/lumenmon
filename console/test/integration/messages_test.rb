@@ -24,14 +24,7 @@ class MessagesTest < ActionDispatch::IntegrationTest
 
   test "smtp mail is matched by recipient and stored" do
     agent_id = "id_abc123"
-    MetricSample.create!(
-      agent_id: agent_id,
-      metric_name: "generic_hostname",
-      value: "mailbox",
-      data_type: "TEXT",
-      interval: 60,
-      observed_at: Time.current
-    )
+    AgentProfile.create!(agent_id: agent_id)
 
     message = Message.ingest_smtp!(
       mail_from: "sender@example.test",

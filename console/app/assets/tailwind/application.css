@@ -202,6 +202,17 @@
   .agent-name strong { font-weight: 500; color: var(--foreground0); }
   .agent-name .issues-inline { color: var(--yellow); margin-left: 0.25rem; font-size: 0.7rem; }
   .agent-name .mail-indicator { color: var(--accent2); margin-left: 0.3rem; display: inline-flex; align-items: center; }
+  .host-edit-button {
+    cursor: pointer;
+    color: var(--foreground2);
+    background: transparent;
+    border: 0;
+    padding: 0 0.15rem;
+    font-size: 0.66rem;
+    line-height: 1;
+    opacity: 0.75;
+  }
+  .host-edit-button:hover { color: var(--accent2); opacity: 1; }
 
   .status-dot {
     width: 0.5rem;
@@ -212,10 +223,11 @@
     flex-shrink: 0;
   }
   .status-dot.online { background: var(--accent3); }
-  .status-dot.stale,
+  .status-dot.stale { background: var(--accent4); }
   .status-dot.degraded { background: var(--yellow); }
   .status-dot.warning { background: var(--peach); }
   .status-dot.critical { background: var(--accent4); }
+  .status-dot.mail-only { background: var(--accent2); }
   .status-dot.offline { background: var(--foreground2); }
 
   .detail-stack {
@@ -243,7 +255,7 @@
   .agent-detail {
     display: flex;
     flex-direction: column;
-    gap: 0.85rem;
+    gap: 1.3rem;
     flex: 1;
     min-height: 0;
   }
@@ -345,6 +357,7 @@
   .ok-text { color: var(--accent3); }
   .warn-text { color: var(--yellow); }
   .crit-text { color: var(--accent4); }
+  .stale-text { color: var(--accent4); }
   .muted { color: var(--foreground2); font-size: 0.74rem; }
   .error-text { color: var(--accent4); }
 
@@ -425,6 +438,7 @@
   .metrics-row strong { font-weight: 500; color: var(--foreground0); }
   .metrics-row.warning { background: rgba(249, 226, 175, 0.07); }
   .metrics-row.critical { background: rgba(243, 139, 168, 0.08); }
+  .metrics-row.stale { background: rgba(243, 139, 168, 0.08); }
   .metric-cell { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .metric-cell.value,
   .metric-cell.bounds,
@@ -444,10 +458,11 @@
     color: var(--foreground1);
   }
   .health-badge.online { color: var(--accent3); border-color: var(--accent3); }
-  .health-badge.stale { color: var(--yellow); border-color: var(--yellow); }
+  .health-badge.stale { color: var(--accent4); border-color: var(--accent4); }
   .health-badge.offline { color: var(--foreground2); }
   .health-badge.critical { color: var(--accent4); border-color: var(--accent4); }
   .health-badge.warning { color: var(--peach); border-color: var(--peach); }
+  .health-badge.mail-only { color: var(--accent2); border-color: var(--accent2); }
 
   .summary-row {
     display: flex;

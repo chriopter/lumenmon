@@ -1,13 +1,23 @@
 <section class="agent-detail <%= "hidden" if hidden %>" data-agent-detail="<%= agent[:id] %>">
-  <%= turbo_frame_tag "agent_#{agent[:id]}_metrics",
+  <%= turbo_frame_tag "agent_#{agent[:id]}_top",
                       refresh: "morph",
                       data: {
                         controller: "poll",
                         poll_interval_value: 1000,
-                        poll_url_value: agent_metrics_path(agent[:id])
+                        poll_url_value: agent_metrics_path(agent[:id], part: "top")
                       } do %>
-    <%= render "agent_metrics", agent: agent %>
+    <%= render "agent_metrics_top", agent: agent %>
   <% end %>
 
   <%= render "widget_messages", agent: agent %>
+
+  <%= turbo_frame_tag "agent_#{agent[:id]}_bottom",
+                      refresh: "morph",
+                      data: {
+                        controller: "poll",
+                        poll_interval_value: 1000,
+                        poll_url_value: agent_metrics_path(agent[:id], part: "bottom")
+                      } do %>
+    <%= render "agent_metrics_bottom", agent: agent %>
+  <% end %>
 </section>

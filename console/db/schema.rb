@@ -10,7 +10,16 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_29_010000) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_29_020000) do
+  create_table "agent_profiles", force: :cascade do |t|
+    t.string "agent_id", null: false
+    t.datetime "created_at", null: false
+    t.string "display_name"
+    t.datetime "invited_at"
+    t.datetime "updated_at", null: false
+    t.index ["agent_id"], name: "index_agent_profiles_on_agent_id", unique: true
+  end
+
   create_table "messages", force: :cascade do |t|
     t.string "agent_id", null: false
     t.text "body"

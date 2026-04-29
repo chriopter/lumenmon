@@ -50,7 +50,7 @@ class Message < ApplicationRecord
   end
 
   def self.known_agent_ids
-    ids = MetricSample.distinct.pluck(:agent_id) | distinct.pluck(:agent_id)
+    ids = MetricSample.distinct.pluck(:agent_id) | AgentProfile.distinct.pluck(:agent_id) | distinct.pluck(:agent_id)
     passwd_file = Pathname(ENV.fetch("LUMENMON_DATA_DIR", "/data")).join("mqtt", "passwd")
 
     if passwd_file.exist?

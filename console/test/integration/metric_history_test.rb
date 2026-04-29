@@ -63,6 +63,48 @@ class MetricHistoryTest < ActionDispatch::IntegrationTest
     assert_not metric.key?("type")
   end
 
+  test "entities api includes mail only profiles without metrics" do
+    AgentProfile.create!(agent_id: "id_abc123", display_name: "mail relay")
+
+    get "/api/entities"
+
+    assert_response :success
+    entity = response.parsed_body.fetch("entities").first
+    assert_equal "mail relay", entity.fetch("hostname")
+    assert_equal "mail-only", entity.fetch("status")
+    assert_equal true, entity.fetch("is_mail_only")
+    assert_empty entity.fetch("metrics")
+  end
+
+  test "entities api cascades failed metric to critical host status" do
+    agent_id = "id_abc123"
+    now = Time.current
+    MetricSample.create!(
+      agent_id: agent_id,
+      metric_name: "generic_heartbeat",
+      value: "1",
+      data_type: "INTEGER",
+      interval: 60,
+      observed_at: now
+    )
+    MetricSample.create!(
+      agent_id: agent_id,
+      metric_name: "generic_cpu",
+      value: "101",
+      data_type: "REAL",
+      interval: 60,
+      max: 100,
+      observed_at: now
+    )
+
+    get "/api/entities"
+
+    assert_response :success
+    entity = response.parsed_body.fetch("entities").first
+    assert_equal "critical", entity.fetch("status")
+    assert_equal 1, entity.fetch("failed_collectors")
+  end
+
   test "agent reset clears latest values and history" do
     agent_id = "id_abc123"
     observed_at = Time.current

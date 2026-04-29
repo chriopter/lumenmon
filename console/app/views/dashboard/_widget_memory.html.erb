@@ -1,6 +1,6 @@
 <% value = metric_number(agent, "generic_memory") %>
 <% tone = metric_tone(agent, "generic_memory") %>
-<% bar_class = tone == "warn-text" ? "warn" : (tone == "crit-text" ? "crit" : "") %>
+<% bar_class = tone == "warn-text" ? "warn" : (%w[crit-text stale-text].include?(tone) ? "crit" : "") %>
 <article class="widget tui-box">
   <h3>memory</h3>
   <div class="tui-metric-value <%= tone %>">

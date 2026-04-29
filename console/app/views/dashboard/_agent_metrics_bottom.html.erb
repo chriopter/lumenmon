@@ -1,0 +1,42 @@
+<section class="tui-box">
+  <h3>all metrics</h3>
+  <div class="metrics-table">
+    <div class="metrics-headline-row">
+      <div class="metric-cell">name</div>
+      <div class="metric-cell value">value</div>
+      <div class="metric-cell bounds">range</div>
+      <div class="metric-cell next">next</div>
+      <div class="metric-cell status">status</div>
+    </div>
+    <% agent[:samples].each do |sample| %>
+      <%
+        health = sample.health
+        status_class = sample.health_status
+        bounds = if sample.min || sample.max
+          "#{sample.min || "-"}..#{sample.max || "-"}"
+        else
+          "-"
+        end
+        status_label = case status_class
+                       when "critical" then "crit"
+                       when "warning"  then "warn"
+                       when "stale"    then "stale"
+                       else "ok"
+                       end
+        status_tone = case status_class
+                      when "online"   then "ok-text"
+                      when "warning"  then "warn-text"
+                      when "critical" then "crit-text"
+                      when "stale"    then "stale-text"
+                      end
+      %>
+      <div class="metrics-row <%= status_class %>">
+        <div class="metric-cell" title="<%= sample.metric_name %>"><%= sample.metric_name %></div>
+        <div class="metric-cell value"><strong><%= sample.typed_value %></strong></div>
+        <div class="metric-cell bounds"><%= bounds %></div>
+        <div class="metric-cell next"><%= metric_next_update(sample) %></div>
+        <div class="metric-cell status <%= status_tone %>" title="<%= health[:bounds_error] %>"><%= status_label %></div>
+      </div>
+    <% end %>
+  </div>
+</section>

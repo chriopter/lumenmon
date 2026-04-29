@@ -1,0 +1,51 @@
+<%
+  runtime = proxmox_runtime(agent)
+  storages = storage_pools(agent)
+  zfs = zfs_pools(agent)
+  zpools = zpool_health(agent)
+  temps = hardware_temps(agent)
+  smarts = smart_disks(agent)
+%>
+
+<header class="detail-header">
+  <h2>
+    <span class="status-dot <%= agent[:status] %>"></span>
+    <%= agent[:hostname] %>
+  </h2>
+  <div class="detail-header-right">
+    <span class="detail-status"><%= agent[:id] %> · last seen <%= metric_time(agent[:last_seen]) %></span>
+    <span class="health-badge <%= agent[:status] %>"><%= agent[:status] %></span>
+  </div>
+</header>
+
+<section class="widget-grid" aria-label="metric widgets">
+  <%= render "widget_cpu", agent: agent %>
+  <%= render "widget_memory", agent: agent %>
+  <%= render "widget_disk", agent: agent %>
+
+  <%= render "widget_system", agent: agent %>
+
+  <% if runtime %>
+    <%= render "widget_proxmox_runtime", runtime: runtime %>
+  <% end %>
+
+  <% if temps.any? %>
+    <%= render "widget_hardware_temps", temps: temps %>
+  <% end %>
+
+  <% if smarts.any? %>
+    <%= render "widget_smart", smarts: smarts %>
+  <% end %>
+
+  <% if storages.any? %>
+    <%= render "widget_proxmox_storage", storages: storages %>
+  <% end %>
+
+  <% if zfs.any? %>
+    <%= render "widget_proxmox_zfs", zfs: zfs %>
+  <% end %>
+
+  <% if zpools.any? %>
+    <%= render "widget_proxmox_zpool", zpools: zpools %>
+  <% end %>
+</section>

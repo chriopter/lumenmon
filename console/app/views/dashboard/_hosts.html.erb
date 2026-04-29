@@ -15,6 +15,12 @@
             <div class="agent-name">
               <span class="status-dot <%= agent[:status] %>"></span>
               <strong><%= agent[:hostname] %></strong>
+              <button class="host-edit-button"
+                      type="button"
+                      title="edit display name"
+                      aria-label="Edit display name for <%= agent[:hostname] %>"
+                      data-agent-edit="<%= agent[:id] %>"
+                      data-agent-name="<%= agent[:hostname] %>">✎</button>
               <% if agent[:unread_mail].to_i > 0 %>
                 <span class="mail-indicator" title="<%= agent[:unread_mail] %> unread">
                   <svg width="13" height="10" viewBox="0 0 16 12" aria-hidden="true">

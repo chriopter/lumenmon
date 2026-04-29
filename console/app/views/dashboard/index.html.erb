@@ -306,6 +306,27 @@
       }
     }
 
+    async function editAgentName(agentId, currentName) {
+      const name = prompt('display name', currentName || agentId);
+      if (name === null) return;
+      try {
+        const res = await fetch(`/api/agents/${agentId}/name`, {
+          method: 'PUT',
+          headers: { ...csrfHeaders(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name })
+        });
+        const data = await res.json();
+        if (data.success) {
+          log(`display name saved: ${data.display_name || agentId}`, 'success');
+          window.location.reload();
+        } else {
+          log(`name update failed: ${data.error || 'unknown'}`, 'error');
+        }
+      } catch (error) {
+        log(`name update failed: ${error.message}`, 'error');
+      }
+    }
+
     async function resetAgent() {
       const id = selectedAgentId();
       if (!id) { log('no agent selected', 'error'); return; }
@@ -349,6 +370,13 @@
     }
 
     document.querySelector('.agents-section')?.addEventListener('click', (event) => {
+      const editButton = event.target.closest('[data-agent-edit]');
+      if (editButton) {
+        event.preventDefault();
+        event.stopPropagation();
+        editAgentName(editButton.dataset.agentEdit, editButton.dataset.agentName);
+        return;
+      }
       const row = event.target.closest('[data-agent-target]');
       if (row) selectAgent(row.dataset.agentTarget);
     });

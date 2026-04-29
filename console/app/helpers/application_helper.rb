@@ -52,18 +52,13 @@ module ApplicationHelper
     sample = metric_sample(agent, name)
     return "unknown" unless sample
 
-    value = metric_number(agent, name)
-    return "unknown" unless value
-
-    return "critical" if (!sample.min.nil? && value < sample.min) || (!sample.max.nil? && value > sample.max)
-    return "warning" if (!sample.warn_min.nil? && value < sample.warn_min) || (!sample.warn_max.nil? && value > sample.warn_max)
-
-    "online"
+    sample.health_status
   end
 
   def metric_tone(agent, name)
     case metric_health_class(agent, name)
     when "critical" then "crit-text"
+    when "stale"    then "stale-text"
     when "warning"  then "warn-text"
     when "online"   then "ok-text"
     else nil

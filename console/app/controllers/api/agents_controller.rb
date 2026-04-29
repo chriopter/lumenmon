@@ -18,7 +18,13 @@ module Api
     def name
       return render(json: { error: "invalid agent_id" }, status: :bad_request) unless valid_agent_id?
 
-      render json: { success: true, agent_id: params[:agent_id], display_name: params[:name].presence }
+      profile = AgentProfile.ensure!(params[:agent_id])
+      profile.update!(display_name: params[:name])
+
+      render json: { success: true, agent_id: params[:agent_id], display_name: profile.display_name }
+    rescue ActiveRecord::RecordInvalid => error
+      Rails.logger.warn("agent name update failed for #{params[:agent_id]}: #{error.message}")
+      render json: { success: false, error: "invalid display name" }, status: :bad_request
     end
 
     def reset
@@ -35,6 +41,7 @@ module Api
 
       MetricSample.where(agent_id: params[:agent_id]).delete_all
       MetricObservation.where(agent_id: params[:agent_id]).delete_all
+      AgentProfile.where(agent_id: params[:agent_id]).delete_all
       PendingInvite.delete(params[:agent_id])
       render json: { success: true }
     end
@@ -47,8 +54,8 @@ module Api
 
     def serialize_table(sample)
       timestamp = sample.observed_at.to_i
-      age = [Time.current.to_i - timestamp, 0].max
       value = sample.typed_value
+      health = sample.health
       {
         metric_name: sample.metric_name,
         columns: {
@@ -63,11 +70,11 @@ module Api
         },
         history: history_for(sample),
         staleness: {
-          age: age,
-          is_stale: sample.interval.positive? && age > sample.interval + 1,
-          next_update_in: sample.interval.positive? ? [sample.interval - age, 0].max : 0
+          age: health[:age],
+          is_stale: health[:is_stale],
+          next_update_in: sample.interval.positive? ? [sample.observed_at.to_i + sample.interval - Time.current.to_i, 0].max : 0
         },
-        health: health_for(sample, value, age)
+        health: health.except(:age)
       }
     end
 
@@ -93,24 +100,5 @@ module Api
       end
     end
 
-    def health_for(sample, value, age)
-      number = numeric_history_value(value)
-      stale = sample.interval.positive? && age > sample.interval + 1
-      out_of_bounds = false
-      warning_out_of_bounds = false
-
-      if number
-        out_of_bounds = (!sample.min.nil? && number < sample.min) || (!sample.max.nil? && number > sample.max)
-        warning_out_of_bounds = (!sample.warn_min.nil? && number < sample.warn_min) || (!sample.warn_max.nil? && number > sample.warn_max)
-      end
-
-      {
-        is_failed: stale || out_of_bounds,
-        is_warning: warning_out_of_bounds,
-        is_stale: stale,
-        out_of_bounds: out_of_bounds,
-        warning_out_of_bounds: warning_out_of_bounds
-      }
-    end
   end
 end

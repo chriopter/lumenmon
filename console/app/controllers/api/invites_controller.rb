@@ -11,7 +11,7 @@ module Api
     end
 
     def create
-      output, status = Open3.capture2e({ "CONSOLE_HOST" => console_host }, invite_script.to_s)
+      output, status = Open3.capture2e({ "CONSOLE_HOST" => console_host, "LUMENMON_SKIP_PROFILE" => "1" }, invite_script.to_s)
 
       unless status.success?
         Rails.logger.error("invite_create failed: #{output}")
@@ -37,6 +37,7 @@ module Api
         email_address: email_address
       }
       PendingInvite.store(username, payload)
+      AgentProfile.ensure!(username, invited_at: Time.current)
 
       render json: payload.merge(success: true, message: "Invite created. Copy it now; the password is only returned once.")
     end

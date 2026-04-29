@@ -2,7 +2,9 @@ module Api
   class EntitiesController < BaseController
     def index
       samples_by_agent = MetricSample.order(:agent_id, :metric_name).group_by(&:agent_id)
-      entities = samples_by_agent.map { |agent_id, samples| serialize_agent(agent_id, samples) }
+      profiles_by_agent = AgentProfile.all.index_by(&:agent_id)
+      agent_ids = samples_by_agent.keys | profiles_by_agent.keys
+      entities = agent_ids.sort.map { |agent_id| serialize_agent(agent_id, samples_by_agent.fetch(agent_id, []), profiles_by_agent[agent_id]) }
 
       render json: {
         entities: entities,
@@ -14,17 +16,21 @@ module Api
 
     private
 
-    def serialize_agent(agent_id, samples)
-      hostname = samples.find { |sample| sample.metric_name == "generic_hostname" }&.typed_value || agent_id
+    def serialize_agent(agent_id, samples, profile = nil)
+      original_hostname = samples.find { |sample| sample.metric_name == "generic_hostname" }&.typed_value
+      hostname = (profile || AgentProfile.new(agent_id: agent_id)).visible_name(original_hostname)
+      status = status_for(samples)
+      mail_only = samples.empty?
       {
         id: agent_id,
         type: "agent",
-        valid: samples.any?,
+        valid: true,
         has_mqtt_user: mqtt_user?(agent_id),
         has_table: samples.any?,
         hostname: hostname,
+        original_hostname: original_hostname,
         display_name: hostname,
-        status: status_for(samples),
+        status: status,
         last_seen: samples.map(&:observed_at).max&.to_i,
         cpu: samples.find { |sample| sample.metric_name == "generic_cpu" }&.typed_value,
         memory: samples.find { |sample| sample.metric_name == "generic_memory" }&.typed_value,
@@ -32,17 +38,20 @@ module Api
         heartbeat: samples.find { |sample| sample.metric_name == "generic_heartbeat" }&.typed_value,
         total_collectors: samples.count,
         failed_collectors: failed_count(samples),
-        warning_collectors: 0,
+        warning_collectors: warning_count(samples),
+        mail_only: mail_only,
+        is_mail_only: mail_only,
         pending_invite: PendingInvite.fetch(agent_id),
         metrics: samples.map { |sample| serialize_metric(sample) }
       }
     end
 
     def failed_count(samples)
-      now = Time.current.to_i
-      samples.count do |sample|
-        sample.interval.positive? && now - sample.observed_at.to_i > sample.interval + 1
-      end
+      MetricSample.failed_count(samples)
+    end
+
+    def warning_count(samples)
+      MetricSample.warning_count(samples)
     end
 
     def mqtt_user?(agent_id)
@@ -54,6 +63,7 @@ module Api
     end
 
     def serialize_metric(sample)
+      health = sample.health
       {
         name: sample.metric_name,
         value: sample.typed_value,
@@ -63,15 +73,15 @@ module Api
         min: sample.min,
         max: sample.max,
         warn_min: sample.warn_min,
-        warn_max: sample.warn_max
+        warn_max: sample.warn_max,
+        health: health
       }.compact
     end
 
     def status_for(samples)
-      latest = samples.map(&:observed_at).max
-      return "offline" unless latest
+      return "mail-only" if samples.empty?
 
-      Time.current - latest > 120 ? "stale" : "online"
+      MetricSample.rollup_status(samples)
     end
   end
 end

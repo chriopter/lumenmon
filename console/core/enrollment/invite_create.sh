@@ -8,6 +8,7 @@ MQTT_PORT="${MQTT_PORT:-8884}"
 FINGERPRINT_FILE="$DATA_DIR/mqtt/fingerprint"
 PASSWORD_FILE="$DATA_DIR/mqtt/passwd"
 CONSOLE_HOST="${CONSOLE_HOST:-localhost}"
+APP_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 
 if [ ! -f "$FINGERPRINT_FILE" ]; then
     echo "ERROR: Certificate fingerprint not found. Run init_mqtt_cert.sh first."
@@ -30,3 +31,10 @@ INVITE_URL="lumenmon://$USERNAME:$PASSWORD@$CONSOLE_HOST:$MQTT_PORT#$FINGERPRINT
 
 echo "$INVITE_URL"
 echo "{\"username\":\"$USERNAME\",\"url\":\"$INVITE_URL\",\"fingerprint\":\"$FINGERPRINT\"}" > /tmp/last_invite.json
+
+if [ "${LUMENMON_SKIP_PROFILE:-0}" != "1" ] && [ -x "$APP_ROOT/bin/rails" ]; then
+    (
+        cd "$APP_ROOT"
+        bundle exec rails runner "AgentProfile.ensure!(\"$USERNAME\", invited_at: Time.current)" >/dev/null 2>&1
+    ) || true
+fi

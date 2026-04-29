@@ -1,0 +1,3 @@
+<%= turbo_frame_tag "agent_#{agent[:id]}_bottom", refresh: "morph" do %>
+  <%= render "agent_metrics_bottom", agent: agent %>
+<% end %>
