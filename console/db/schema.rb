@@ -39,7 +39,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_29_010000) do
     t.text "value"
     t.float "warn_max"
     t.float "warn_min"
-    t.index ["agent_id", "metric_name", "observed_at"], name: "idx_on_agent_id_metric_name_observed_at_03480a0f0e"
+    t.index ["agent_id", "metric_name", "observed_at"], name: "index_metric_observations_on_metric_time"
     t.index ["observed_at"], name: "index_metric_observations_on_observed_at"
   end
 

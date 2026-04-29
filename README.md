@@ -37,13 +37,14 @@ lumenmon-agent start
 ## Architecture
 
 ```
-┌─────────────┐               ┌─────────────┐
-│   Agent     │──────────────►│   Console   │
-├─────────────┤  MQTT/TLS     ├─────────────┤
-│ Collectors  │──────────────►│ • MQTT 8884 │──► Web :8080
-│ (see below) │               │ • SQLite    │
+┌─────────────┐  MQTT/TLS     ┌─────────────┐
+│   Agent     │──────────────►│   Console   │──► Web :8080
+├─────────────┤               ├─────────────┤
+│ Collectors  │               │ • MQTT 8884 │
+│ Mail spool  │               │ • SMTP 25   │◄── Direct mail
 └─────────────┘               │ • Rails 8   │
-  (bare metal)                └─────────────┘
+  (bare metal)                │ • SQLite    │
+                              └─────────────┘
                                  (Docker)
 ```
 
