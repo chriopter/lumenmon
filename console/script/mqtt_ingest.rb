@@ -5,7 +5,10 @@ require_relative "../config/environment"
 require "json"
 require "mqtt"
 
-client = MQTT::Client.connect(host: "127.0.0.1", port: 1883)
+client = MQTT::Client.connect(
+  host: ENV.fetch("MQTT_PLAIN_HOST", "127.0.0.1"),
+  port: ENV.fetch("MQTT_PLAIN_PORT", "1883").to_i
+)
 client.subscribe("metrics/+/+")
 
 puts "subscribed to metrics/+/+"
