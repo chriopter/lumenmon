@@ -2,6 +2,7 @@ Rails.application.routes.draw do
   root "dashboard#index"
 
   get "agents/:agent_id/metrics" => "dashboard#agent_metrics", as: :agent_metrics
+  get "hosts" => "dashboard#hosts", as: :hosts
   get "database" => "database#index"
   get "health" => "health#show"
   get "up" => "rails/health#show", as: :rails_health_check

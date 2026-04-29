@@ -16,34 +16,14 @@
 
       <section class="agents-section tui-box">
         <h3>hosts</h3>
-        <% if @agents.any? %>
-          <table class="agents-table">
-            <thead>
-              <tr>
-                <td>hostname</td>
-                <td>cpu</td>
-                <td>mem</td>
-                <td>disk</td>
-              </tr>
-            </thead>
-            <tbody>
-              <% @agents.each_with_index do |agent, index| %>
-                <tr class="agent-row <%= "selected" if index.zero? %>" data-agent-target="<%= agent[:id] %>">
-                  <td>
-                    <div class="agent-name">
-                      <span class="status-dot <%= agent[:status] %>"></span>
-                      <strong><%= agent[:hostname] %></strong>
-                    </div>
-                  </td>
-                  <td><%= metric_percent(agent, "generic_cpu") %></td>
-                  <td><%= metric_percent(agent, "generic_memory") %></td>
-                  <td><%= metric_percent(agent, "generic_disk") %></td>
-                </tr>
-              <% end %>
-            </tbody>
-          </table>
-        <% else %>
-          <div class="empty-state">waiting for first agent</div>
+        <%= turbo_frame_tag "hosts",
+                            refresh: "morph",
+                            data: {
+                              controller: "poll",
+                              poll_interval_value: 1000,
+                              poll_url_value: hosts_path
+                            } do %>
+          <%= render "hosts", agents: @agents %>
         <% end %>
       </section>
     </aside>
@@ -108,8 +88,8 @@
 
 <script>
   (() => {
-    const buttons = Array.from(document.querySelectorAll('[data-agent-target]'));
-    const details = Array.from(document.querySelectorAll('[data-agent-detail]'));
+    const getButtons = () => Array.from(document.querySelectorAll('[data-agent-target]'));
+    const getDetails = () => Array.from(document.querySelectorAll('[data-agent-detail]'));
     const inviteButton = document.getElementById('invite-button');
     const emailButton = document.getElementById('email-button');
     const refreshButton = document.getElementById('refresh-button');
@@ -138,13 +118,21 @@
     }
 
     function selectedAgentId() {
-      const selected = buttons.find((button) => button.classList.contains('selected'));
+      const hash = window.location.hash.startsWith('#agent=')
+        ? window.location.hash.replace('#agent=', '')
+        : null;
+      if (hash) return hash;
+      const selected = getButtons().find((button) => button.classList.contains('selected'));
       return selected ? selected.dataset.agentTarget : null;
     }
 
+    function applyHighlight(agentId) {
+      getButtons().forEach((button) => button.classList.toggle('selected', button.dataset.agentTarget === agentId));
+    }
+
     function selectAgent(agentId) {
-      buttons.forEach((button) => button.classList.toggle('selected', button.dataset.agentTarget === agentId));
-      details.forEach((detail) => detail.classList.toggle('hidden', detail.dataset.agentDetail !== agentId));
+      applyHighlight(agentId);
+      getDetails().forEach((detail) => detail.classList.toggle('hidden', detail.dataset.agentDetail !== agentId));
       window.history.replaceState(null, '', `#agent=${agentId}`);
       loadMessages(agentId);
     }
@@ -254,6 +242,7 @@
     }
 
     function moveSelection(delta) {
+      const buttons = getButtons();
       if (!buttons.length) return;
       const idx = buttons.findIndex((b) => b.classList.contains('selected'));
       const next = Math.min(buttons.length - 1, Math.max(0, (idx === -1 ? 0 : idx) + delta));
@@ -359,16 +348,25 @@
       }
     }
 
-    buttons.forEach((button) => {
-      button.addEventListener('click', () => selectAgent(button.dataset.agentTarget));
+    document.querySelector('.agents-section')?.addEventListener('click', (event) => {
+      const row = event.target.closest('[data-agent-target]');
+      if (row) selectAgent(row.dataset.agentTarget);
+    });
+
+    document.addEventListener('turbo:before-frame-render', (event) => {
+      if (event.target.id !== 'hosts') return;
+      const id = selectedAgentId();
+      if (!id) return;
+      const row = event.detail.newFrame.querySelector(`[data-agent-target="${id}"]`);
+      if (row) row.classList.add('selected');
     });
 
     const hashAgent = window.location.hash.startsWith('#agent=') ? window.location.hash.replace('#agent=', '') : null;
-    if (hashAgent && buttons.some((b) => b.dataset.agentTarget === hashAgent)) {
+    if (hashAgent && getButtons().some((b) => b.dataset.agentTarget === hashAgent)) {
       selectAgent(hashAgent);
     } else {
-      const initial = selectedAgentId();
-      if (initial) loadMessages(initial);
+      const first = getButtons()[0];
+      if (first) selectAgent(first.dataset.agentTarget);
     }
 
     inviteButton?.addEventListener('click', createInvite);

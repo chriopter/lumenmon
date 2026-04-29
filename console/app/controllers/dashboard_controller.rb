@@ -1,9 +1,6 @@
 class DashboardController < ApplicationController
   def index
-    @agents = MetricSample.order(:agent_id, :metric_name).group_by(&:agent_id).map do |agent_id, samples|
-      build_agent(agent_id, samples)
-    end.sort_by { |agent| [agent[:status] == "online" ? 0 : 1, agent[:hostname].to_s] }
-
+    @agents = load_agents
     @selected_agent = @agents.first
     @pending_invites = PendingInvite.all
     @stats = {
@@ -22,7 +19,17 @@ class DashboardController < ApplicationController
     render partial: "dashboard/agent_metrics_frame", locals: { agent: @agent }
   end
 
+  def hosts
+    render partial: "dashboard/hosts_frame", locals: { agents: load_agents }
+  end
+
   private
+
+  def load_agents
+    MetricSample.order(:agent_id, :metric_name).group_by(&:agent_id).map do |agent_id, samples|
+      build_agent(agent_id, samples)
+    end.sort_by { |agent| [agent[:status] == "online" ? 0 : 1, agent[:hostname].to_s] }
+  end
 
   def build_agent(agent_id, samples)
     metric_map = samples.index_by(&:metric_name)

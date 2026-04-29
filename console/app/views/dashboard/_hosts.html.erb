@@ -1,0 +1,29 @@
+<% if agents.any? %>
+  <table class="agents-table">
+    <thead>
+      <tr>
+        <td>hostname</td>
+        <td>cpu</td>
+        <td>mem</td>
+        <td>disk</td>
+      </tr>
+    </thead>
+    <tbody>
+      <% agents.each do |agent| %>
+        <tr class="agent-row" id="agent-row-<%= agent[:id] %>" data-agent-target="<%= agent[:id] %>">
+          <td>
+            <div class="agent-name">
+              <span class="status-dot <%= agent[:status] %>"></span>
+              <strong><%= agent[:hostname] %></strong>
+            </div>
+          </td>
+          <td><%= metric_percent(agent, "generic_cpu") %></td>
+          <td><%= metric_percent(agent, "generic_memory") %></td>
+          <td><%= metric_percent(agent, "generic_disk") %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+<% else %>
+  <div class="empty-state">waiting for first agent</div>
+<% end %>
