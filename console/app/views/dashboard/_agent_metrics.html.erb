@@ -1,5 +1,4 @@
 <%
-  updates = update_widget(agent)
   runtime = proxmox_runtime(agent)
   storages = storage_pools(agent)
   zfs = zfs_pools(agent)
@@ -25,10 +24,6 @@
   <%= render "widget_disk", agent: agent %>
 
   <%= render "widget_system", agent: agent %>
-
-  <% if updates %>
-    <%= render "widget_updates", updates: updates %>
-  <% end %>
 
   <% if runtime %>
     <%= render "widget_proxmox_runtime", runtime: runtime %>
@@ -62,6 +57,7 @@
       <div class="metric-cell">name</div>
       <div class="metric-cell value">value</div>
       <div class="metric-cell bounds">range</div>
+      <div class="metric-cell next">next</div>
       <div class="metric-cell status">status</div>
     </div>
     <% agent[:samples].each do |sample| %>
@@ -89,6 +85,7 @@
         <div class="metric-cell" title="<%= sample.metric_name %>"><%= sample.metric_name %></div>
         <div class="metric-cell value"><strong><%= sample.typed_value %></strong></div>
         <div class="metric-cell bounds"><%= bounds %></div>
+        <div class="metric-cell next"><%= metric_next_update(sample) %></div>
         <div class="metric-cell status <%= "ok-text" if status_class.empty? %><%= "warn-text" if status_class == "warning" %><%= "crit-text" if status_class == "critical" %>"><%= status_label %></div>
       </div>
     <% end %>

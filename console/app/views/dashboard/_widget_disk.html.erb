@@ -1,11 +1,12 @@
 <% value = metric_number(agent, "generic_disk") %>
+<% tone = metric_tone(agent, "generic_disk") %>
+<% bar_class = tone == "warn-text" ? "warn" : (tone == "crit-text" ? "crit" : "") %>
 <article class="widget tui-box">
   <h3>disk</h3>
-  <div class="tui-metric-value <%= metric_tone(agent, "generic_disk") %>">
+  <div class="tui-metric-value <%= tone %>">
     <%= value ? format("%.1f", value) : "-" %><span class="tui-unit">%</span>
   </div>
-  <% sample = metric_sample(agent, "generic_disk") %>
-  <% if sample && (sample.warn_max || sample.max) %>
-    <div class="tui-metric-bounds">warn <%= sample.warn_max || "-" %> · max <%= sample.max || "-" %></div>
+  <% if value %>
+    <div class="tui-metric-bar <%= bar_class %>"><span style="width: <%= [value, 100].min %>%"></span></div>
   <% end %>
 </article>

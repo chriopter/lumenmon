@@ -121,11 +121,27 @@
     padding: 0 0.45rem;
     font-size: 0.7rem;
     font-weight: normal;
-    text-transform: lowercase;
+    text-transform: uppercase;
     color: var(--foreground2);
     background: var(--background0);
-    letter-spacing: 0.04em;
+    letter-spacing: 0.06em;
   }
+
+  .tui-metric-bar {
+    margin-top: 0.5rem;
+    height: 0.45rem;
+    border-radius: 2px;
+    background: rgba(186, 194, 222, 0.1);
+    overflow: hidden;
+  }
+  .tui-metric-bar > span {
+    display: block;
+    height: 100%;
+    background: var(--accent3);
+    transition: width 0.3s ease;
+  }
+  .tui-metric-bar.warn > span { background: var(--yellow); }
+  .tui-metric-bar.crit > span { background: var(--accent4); }
 
   .log-box {
     border: 1px solid var(--accent1);
@@ -185,6 +201,7 @@
   .agent-name { display: flex; align-items: center; gap: 0.4rem; min-width: 0; }
   .agent-name strong { font-weight: 500; color: var(--foreground0); }
   .agent-name .issues-inline { color: var(--yellow); margin-left: 0.25rem; font-size: 0.7rem; }
+  .agent-name .mail-indicator { color: var(--accent2); margin-left: 0.3rem; font-size: 0.85rem; line-height: 1; }
 
   .status-dot {
     width: 0.5rem;
@@ -317,9 +334,12 @@
   .kv-list > div > strong {
     font-size: 0.74rem;
     font-weight: 500;
-    overflow-wrap: anywhere;
     text-align: left;
     color: var(--foreground0);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
   }
 
   .ok-text { color: var(--accent3); }
@@ -385,7 +405,7 @@
   .metrics-headline-row,
   .metrics-row {
     display: grid;
-    grid-template-columns: minmax(0, 2fr) minmax(0, 0.8fr) minmax(0, 0.9fr) minmax(0, 0.7fr);
+    grid-template-columns: minmax(0, 2fr) minmax(0, 0.8fr) minmax(0, 0.9fr) minmax(0, 0.8fr) minmax(0, 0.7fr);
     gap: 0.35rem;
     padding: 0.18rem 0.32rem;
     align-items: center;
@@ -408,6 +428,7 @@
   .metric-cell { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .metric-cell.value,
   .metric-cell.bounds,
+  .metric-cell.next,
   .metric-cell.status {
     font-variant-numeric: tabular-nums;
     white-space: nowrap;

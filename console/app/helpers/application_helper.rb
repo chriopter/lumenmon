@@ -3,6 +3,32 @@ module ApplicationHelper
     time ? "#{time_ago_in_words(time)} ago" : "never"
   end
 
+  def metric_next_update(sample)
+    return "-" unless sample
+    return "once" unless sample.interval.to_i.positive?
+
+    next_at = sample.observed_at + sample.interval.seconds
+    if next_at.future?
+      "in #{compact_duration(next_at - Time.current)}"
+    else
+      "#{compact_duration(Time.current - next_at)} ago"
+    end
+  end
+
+  def compact_duration(seconds)
+    seconds = seconds.to_i.abs
+    return "#{seconds}s" if seconds < 60
+    return "#{seconds / 60}m" if seconds < 1.hour
+
+    "#{seconds / 1.hour}h"
+  end
+
+  def updates_compact(agent)
+    upd = update_widget(agent)
+    return nil unless upd
+    "#{upd[:total]}/#{upd[:security]}s"
+  end
+
   def metric_sample(agent, name)
     agent&.dig(:metrics, name)
   end

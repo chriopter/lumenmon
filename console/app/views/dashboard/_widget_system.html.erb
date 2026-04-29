@@ -1,11 +1,13 @@
+<% upd = update_widget(agent) %>
 <article class="widget tui-box">
   <h3>system</h3>
   <div class="kv-list">
-    <div><span>os</span><strong><%= metric_value(agent, "generic_sys_os") %></strong></div>
-    <div><span>kernel</span><strong><%= metric_value(agent, "generic_sys_kernel") %></strong></div>
-    <div><span>uptime</span><strong><%= metric_value(agent, "generic_sys_uptime") %></strong></div>
-    <div><span>version</span><strong><%= metric_value(agent, "generic_agent_version", metric_value(agent, "generic_lumenmon_version", "-")) %></strong></div>
+    <div><span>os</span><strong title="<%= metric_value(agent, "generic_sys_os") %>"><%= metric_value(agent, "generic_sys_os") %></strong></div>
+    <div><span>kernel</span><strong title="<%= metric_value(agent, "generic_sys_kernel") %>"><%= metric_value(agent, "generic_sys_kernel") %></strong></div>
+    <div><span>agent</span><strong><%= metric_value(agent, "generic_agent_version", metric_value(agent, "generic_lumenmon_version", "-")) %></strong></div>
+    <% if upd %>
+      <div><span>updates</span><strong class="<%= "warn-text" if upd[:status] == "warning" %><%= "crit-text" if upd[:status] == "critical" %>"><%= upd[:total] %>/<%= upd[:security] %>s</strong></div>
+    <% end %>
     <div><span>hb</span><strong><%= metric_value(agent, "generic_heartbeat") %></strong></div>
-    <div><span>mail</span><strong><%= agent_mail_address(agent) %></strong></div>
   </div>
 </article>

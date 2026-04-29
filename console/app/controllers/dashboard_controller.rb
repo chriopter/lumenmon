@@ -26,8 +26,9 @@ class DashboardController < ApplicationController
   private
 
   def load_agents
+    unread_counts = Message.unread.group(:agent_id).count
     MetricSample.order(:agent_id, :metric_name).group_by(&:agent_id).map do |agent_id, samples|
-      build_agent(agent_id, samples)
+      build_agent(agent_id, samples).merge(unread_mail: unread_counts[agent_id].to_i)
     end.sort_by { |agent| [agent[:status] == "online" ? 0 : 1, agent[:hostname].to_s] }
   end
 
