@@ -2,18 +2,48 @@
 # Spawns 3 dev agent containers for testing.
 
 set -euo pipefail
-cd "$(dirname "$0")/.."
+APP_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+CONSOLE_ROOT="$APP_ROOT/console"
+DATA_ROOT="${LUMENMON_DEV_DATA_DIR:-$APP_ROOT/dev/data/local-console}"
+MQTT_PORT="${MQTT_PORT:-8884}"
+CONSOLE_HOST="${CONSOLE_HOST:-localhost}"
+
+cd "$APP_ROOT"
 
 echo "Adding 3 dev agents..."
 
-# Check if console is running
-if ! docker ps | grep -q lumenmon-console; then
-    echo "Console not running. Start it first with ./dev/auto"
+if ! docker info >/dev/null 2>&1; then
+    echo "Docker daemon is not reachable; check that Docker is running and your user can access it" >&2
     exit 1
 fi
 
+create_invite() {
+    if docker ps --format '{{.Names}}' | grep -qx lumenmon-console; then
+        docker exec lumenmon-console /app/core/enrollment/invite_create.sh 2>&1 | grep "^lumenmon://" | head -1 || true
+        return
+    fi
+
+    if [ ! -f "$DATA_ROOT/mqtt/fingerprint" ]; then
+        echo "Console not running. Start it first with bin/dev" >&2
+        return 1
+    fi
+
+    if ! (echo > "/dev/tcp/127.0.0.1/$MQTT_PORT") >/dev/null 2>&1; then
+        echo "Local MQTT listener is not reachable. Start the console first with bin/dev" >&2
+        return 1
+    fi
+
+    (
+        cd "$CONSOLE_ROOT"
+        CONSOLE_HOST="$CONSOLE_HOST" \
+        LUMENMON_DATA_DIR="$DATA_ROOT" \
+        MQTT_PORT="$MQTT_PORT" \
+            core/enrollment/invite_create.sh
+    ) 2>&1 | grep "^lumenmon://" | head -1 || true
+}
+
 # Build agent image if needed
-if ! docker images | grep -q lumenmon-dev-agent; then
+if ! docker image inspect lumenmon-dev-agent >/dev/null 2>&1; then
     echo "Building dev agent image..."
     docker build -t lumenmon-dev-agent -f dev/Dockerfile.agent .
 fi
@@ -35,7 +65,7 @@ for i in 1 2 3; do
     mkdir -p "$AGENT_DATA/mqtt"
 
     # Get invite
-    INVITE=$(docker exec lumenmon-console /app/core/enrollment/invite_create.sh 2>&1 | grep "^lumenmon://" | head -1)
+    INVITE=$(create_invite)
     if [ -z "$INVITE" ]; then
         echo "Failed to create invite for $AGENT_NAME"
         continue
