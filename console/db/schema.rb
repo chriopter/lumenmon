@@ -10,7 +10,24 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_28_000000) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_29_000000) do
+  create_table "metric_observations", force: :cascade do |t|
+    t.string "agent_id", null: false
+    t.datetime "created_at", null: false
+    t.string "data_type", default: "TEXT", null: false
+    t.integer "interval", default: 60, null: false
+    t.float "max"
+    t.string "metric_name", null: false
+    t.float "min"
+    t.datetime "observed_at", null: false
+    t.datetime "updated_at", null: false
+    t.text "value"
+    t.float "warn_max"
+    t.float "warn_min"
+    t.index ["agent_id", "metric_name", "observed_at"], name: "index_metric_observations_on_metric_time"
+    t.index ["observed_at"], name: "index_metric_observations_on_observed_at"
+  end
+
   create_table "metric_samples", force: :cascade do |t|
     t.string "agent_id", null: false
     t.datetime "created_at", null: false

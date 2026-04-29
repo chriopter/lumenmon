@@ -19,16 +19,40 @@ client.get do |topic, payload|
   next unless metric_name&.match?(MetricSample::METRIC_NAME_PATTERN)
 
   data = JSON.parse(payload)
-  sample = MetricSample.find_or_initialize_by(agent_id: agent_id, metric_name: metric_name)
-  sample.value = data.fetch("value").to_s
-  sample.data_type = data.fetch("type", "TEXT").to_s
-  sample.interval = data.fetch("interval", 60).to_i
-  sample.min = data["min"]
-  sample.max = data["max"]
-  sample.warn_min = data["warn_min"]
-  sample.warn_max = data["warn_max"]
-  sample.observed_at = Time.current
-  sample.save!
+  observed_at = Time.current
+  value = data.fetch("value").to_s
+  data_type = data.fetch("type", "TEXT").to_s
+  interval = data.fetch("interval", 60).to_i
+  min = data["min"]
+  max = data["max"]
+  warn_min = data["warn_min"]
+  warn_max = data["warn_max"]
+
+  MetricSample.transaction do
+    MetricObservation.create!(
+      agent_id: agent_id,
+      metric_name: metric_name,
+      value: value,
+      data_type: data_type,
+      interval: interval,
+      min: min,
+      max: max,
+      warn_min: warn_min,
+      warn_max: warn_max,
+      observed_at: observed_at
+    )
+
+    sample = MetricSample.find_or_initialize_by(agent_id: agent_id, metric_name: metric_name)
+    sample.value = value
+    sample.data_type = data_type
+    sample.interval = interval
+    sample.min = min
+    sample.max = max
+    sample.warn_min = warn_min
+    sample.warn_max = warn_max
+    sample.observed_at = observed_at
+    sample.save!
+  end
 rescue JSON::ParserError => e
   warn "invalid JSON on #{topic}: #{e.message}"
 rescue ActiveRecord::RecordInvalid => e

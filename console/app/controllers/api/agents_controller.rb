@@ -25,6 +25,7 @@ module Api
       return render(json: { error: "invalid agent_id" }, status: :bad_request) unless valid_agent_id?
 
       MetricSample.where(agent_id: params[:agent_id]).delete_all
+      MetricObservation.where(agent_id: params[:agent_id]).delete_all
       PendingInvite.delete(params[:agent_id])
       render json: { success: true, status: "ok" }
     end
@@ -33,6 +34,7 @@ module Api
       return render(json: { error: "invalid agent_id" }, status: :bad_request) unless valid_agent_id?
 
       MetricSample.where(agent_id: params[:agent_id]).delete_all
+      MetricObservation.where(agent_id: params[:agent_id]).delete_all
       PendingInvite.delete(params[:agent_id])
       render json: { success: true }
     end
@@ -61,7 +63,7 @@ module Api
           warn_min_value: sample.warn_min,
           warn_max_value: sample.warn_max
         },
-        history: [{ timestamp: timestamp, value: numeric_history_value(value) }].compact,
+        history: history_for(sample),
         staleness: {
           age: age,
           is_stale: sample.interval.positive? && age > sample.interval + 1,
@@ -75,6 +77,22 @@ module Api
       Float(value)
     rescue ArgumentError, TypeError
       nil
+    end
+
+    def history_for(sample)
+      observations = MetricObservation
+        .where(agent_id: sample.agent_id, metric_name: sample.metric_name)
+        .newest_first
+        .limit(100)
+        .to_a
+
+      observations = [sample] if observations.empty?
+      observations.reverse.filter_map do |observation|
+        value = numeric_history_value(observation.typed_value)
+        next unless value
+
+        { timestamp: observation.observed_at.to_i, value: value }
+      end
     end
 
     def health_for(sample, value, age)
