@@ -1,16 +1,12 @@
 #!/bin/bash
-# Initialize persistent SQLite files and permissions for Rails.
-# Keeps the data volume writable for the app and MQTT runtime.
+# Ensure the persistent volumes for MQTT and Rails storage are writable.
 set -euo pipefail
 
 DATA_DIR="${LUMENMON_DATA_DIR:-/data}"
 MQTT_DIR="$DATA_DIR/mqtt"
+STORAGE_DIR="${RAILS_STORAGE_DIR:-/app/storage}"
 
-mkdir -p "$DATA_DIR" "$MQTT_DIR"
-chmod 775 "$DATA_DIR"
+mkdir -p "$DATA_DIR" "$MQTT_DIR" "$STORAGE_DIR"
+chmod 775 "$DATA_DIR" "$STORAGE_DIR"
 
-DB_PATH="${LUMENMON_DB_PATH:-$DATA_DIR/lumenmon.sqlite3}"
-touch "$DB_PATH"
-chmod 664 "$DB_PATH"
-
-echo "[db] SQLite database initialized at $DB_PATH"
+echo "[db] Rails storage directory ready at $STORAGE_DIR"

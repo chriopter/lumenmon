@@ -47,7 +47,6 @@ ENV RAILS_ENV="production" \
     BUNDLE_WITHOUT="development:test" \
     RAILS_LOG_TO_STDOUT="1" \
     RAILS_SERVE_STATIC_FILES="1" \
-    LUMENMON_DB_PATH="/data/lumenmon.sqlite3" \
     LD_PRELOAD="/usr/local/lib/libjemalloc.so"
 
 FROM base AS build
@@ -81,6 +80,7 @@ COPY config/Caddyfile /etc/caddy/Caddyfile
 RUN chmod +x bin/docker-entrypoint console.sh core/setup/*.sh core/enrollment/*.sh script/*.rb
 
 VOLUME /data
+VOLUME /app/storage
 
 EXPOSE 8080 8884 25
 

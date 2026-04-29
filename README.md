@@ -192,7 +192,7 @@ lumenmon-agent debug
 <details>
 <summary>Data and UI</summary>
 
-Rails owns `/data/lumenmon.sqlite3`.
+Rails owns `/app/storage/production.sqlite3` (plus `production_cache.sqlite3` and `production_queue.sqlite3`), persisted via the `/app/storage` volume.
 
 ```text
 agent collector -> Mosquitto :8884 -> Ruby MQTT ingest -> ActiveRecord -> metric_samples

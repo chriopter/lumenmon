@@ -11,7 +11,7 @@ default: &default
 
 development:
   <<: *default
-  database: <%= ENV.fetch("LUMENMON_DB_PATH", "storage/development.sqlite3") %>
+  database: storage/development.sqlite3
 
 # Warning: The database defined as "test" will be erased and
 # re-generated from your development database when you run "rake".
@@ -29,12 +29,12 @@ test:
 production:
   primary:
     <<: *default
-    database: <%= ENV.fetch("LUMENMON_DB_PATH", "/data/lumenmon.sqlite3") %>
+    database: storage/production.sqlite3
   cache:
     <<: *default
-    database: <%= ENV.fetch("LUMENMON_CACHE_DB_PATH", "/data/lumenmon_cache.sqlite3") %>
+    database: storage/production_cache.sqlite3
     migrations_paths: db/cache_migrate
   queue:
     <<: *default
-    database: <%= ENV.fetch("LUMENMON_QUEUE_DB_PATH", "/data/lumenmon_queue.sqlite3") %>
+    database: storage/production_queue.sqlite3
     migrations_paths: db/queue_migrate

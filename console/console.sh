@@ -51,7 +51,7 @@ echo "[console] Console Host: ${CONSOLE_HOST:-localhost}"
 echo "[console] MQTT Broker: lumenmon-console:8884 (TLS)"
 echo "[console] SMTP Receiver: Port ${SMTP_PORT:-25}"
 echo "[console] Web Interface: Port 8080 (HTTP)"
-echo "[console] Database: ${LUMENMON_DB_PATH:-/data/lumenmon.sqlite3}"
+echo "[console] Database: /app/storage/production.sqlite3"
 echo "[console] Access Web UI: http://localhost:8080"
 
 terminate() {

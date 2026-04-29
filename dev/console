@@ -109,6 +109,10 @@ fi
 if [ "$RESET" -eq 1 ]; then
     echo "[console] Resetting local console data..."
     rm -rf "$DATA_ROOT"
+    rm -f "$CONSOLE_ROOT"/storage/development.sqlite3 \
+          "$CONSOLE_ROOT"/storage/development.sqlite3-* \
+          "$CONSOLE_ROOT"/storage/test.sqlite3 \
+          "$CONSOLE_ROOT"/storage/test.sqlite3-*
 fi
 
 mkdir -p "$DATA_ROOT/mqtt"
@@ -122,7 +126,6 @@ export SMTP_PORT
 export RUBY_DEBUG_LAZY="${RUBY_DEBUG_LAZY:-true}"
 export RUBY_DEBUG_OPEN="${RUBY_DEBUG_OPEN:-true}"
 export LUMENMON_DATA_DIR="$DATA_ROOT"
-export LUMENMON_DB_PATH="$DATA_ROOT/lumenmon.sqlite3"
 
 kill_web_port
 

@@ -209,16 +209,27 @@ virtual_agent_loop() {
             -t "metrics/$user/$metric" -m "$payload" 2>>"$log" || true
     }
 
+    _mail() {
+        local count="$1" now="$2"
+        local payload
+        payload="{\"mail_from\":\"dev-mail@$user.local\",\"mail_to\":\"$user@localhost\",\"subject\":\"virtual mail $count\",\"body\":\"synthetic virtual mail $count at $now\"}"
+        mosquitto_pub -h "$host" -p "$port" -u "$user" -P "$pass" \
+            --cafile "$data/server.crt" --insecure \
+            -t "metrics/$user/mail_message" -m "$payload" 2>>"$log" || true
+    }
+
     _pub "generic_hostname"      "virtual-tick"     TEXT 60
     _pub "generic_agent_version" "v0.0-virtual"     TEXT 60
     _pub "generic_sys_os"        "synthetic linux"  TEXT 60
     _pub "generic_sys_kernel"    "0.0.0-virtual"    TEXT 60
 
-    local boot_ts now uptime cpu mem disk
+    local boot_ts now uptime cpu mem disk tick
     boot_ts=$(date +%s)
+    tick=0
     while :; do
         now=$(date +%s)
         uptime=$((now - boot_ts))
+        tick=$((tick + 1))
         # Pure-bash arithmetic — locale-safe (no awk/printf decimals)
         cpu="$((RANDOM % 60 + 20)).$((RANDOM % 10))"
         mem="$((RANDOM % 40 + 30)).$((RANDOM % 10))"
@@ -229,6 +240,10 @@ virtual_agent_loop() {
         _pub "generic_disk"       "$disk"    REAL    1 0 100 0 85
         _pub "generic_heartbeat"  "$now"     INTEGER 1
         _pub "generic_sys_uptime" "$uptime"  INTEGER 60
+
+        if [ $((tick % 5)) -eq 0 ]; then
+            _mail "$tick" "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+        fi
 
         sleep 1
     done
