@@ -30,7 +30,7 @@ console/app/assets/builds/*
 # Node
 node_modules/
 console/node_modules/
-tests/e2e/node_modules/
+dev/tests/node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log
@@ -44,7 +44,6 @@ console-legacy/data/**
 agent/data/**
 !agent/data/**/.gitkeep
 dev/data/
-sandboxer.conf
 docker-compose.override.yml
 
 # Python / misc
@@ -53,8 +52,6 @@ __pycache__/
 *.orig
 
 # Playwright artifacts
-tests/e2e/test-results/
-tests/e2e/playwright-report/
-tests/e2e/playwright/.cache/
 dev/tests/test-results/
 dev/tests/playwright-report/
+dev/tests/playwright/.cache/

@@ -260,9 +260,8 @@ Use `REAL`, `INTEGER`, or `TEXT`. Use `LC_ALL=C` when parsing command output. Pr
 ./dev/console
 ./dev/console --reset
 ./dev/auto
-./dev/add3
-./dev/check-collectors
 ./dev/quality
+./dev/update
 ```
 
 Rails/Tailwind work happens in `console/`. Release tags (`v*`) trigger the GitHub Actions container build.

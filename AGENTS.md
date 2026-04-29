@@ -13,14 +13,9 @@ Focus: build/lint/test commands and practical code conventions.
 ### Core dev commands (repo root)
 - `./dev/console` - live-edit console dev server (Rails, Mosquitto, MQTT ingest, Tailwind watch).
 - `./dev/console --reset` - clear local console data before starting.
-- `./dev/auto` - full local demo stack: starts `./dev/console --reset`, then `./dev/add3`.
-- `./dev/add3` - spawn extra test agents.
-- `./dev/check-collectors` - validate collector script contract assumptions.
-- `./dev/sensor-inventory` - list current sensor coverage/failures on target host.
-- `./dev/sandboxer-maintain --once` - run one local auto-maintenance pass.
-- `./dev/lumenmon-diagnose` - end-to-end runtime and health propagation checks.
+- `./dev/auto` - full local demo stack: starts `./dev/console --reset`, then three test agents.
+- `./dev/quality` - run local validation, including collector contract checks.
 - `./dev/update` - refresh dependencies and run the quality gate.
-- `./dev/release` - create release tag workflow.
 
 ### Frontend CSS (Tailwind v4)
 Run in `console/`:
@@ -39,10 +34,10 @@ No dedicated lint config found (no ruff/eslint/shellcheck config files).
 Current checks are:
 - `find . -name "*.sh" -type f -exec bash -n {} \;`
 - `docker build -t test-console:ci ./console`
-- Optional local guard: `./dev/check-collectors`
+- Optional local guard: `./dev/quality`
 
 ### Playwright E2E tests
-Run in `tests/e2e/`:
+Run in `dev/tests/`:
 - `npm install`
 - `npm test`
 - `npm run test:headed`
@@ -53,7 +48,7 @@ Optional target URL:
 - `LUMENMON_TEST_URL=http://localhost:8080 npm test`
 
 ### Running a single test (important)
-From `tests/e2e/`:
+From `dev/tests/`:
 - Single spec file: `npx playwright test lumenmon.spec.ts`
 - Single test title pattern: `npx playwright test -g "loads dashboard within 3 seconds"`
 - Single test in a file: `npx playwright test lumenmon.spec.ts -g "Page Load & Initial State"`
@@ -67,21 +62,6 @@ From `tests/e2e/`:
 - `lumenmon logs`
 - `lumenmon-agent`
 - `lumenmon-agent logs`
-
-## Remote Test Deployment
-Set host first:
-- `export LUMENMON_TEST_HOST="root@your-test-server.local"`
-- Dev environment may have access to a real server, but do not hardcode real hostnames in tracked files.
-- Store real host values only in gitignored env files (for example repo-root `.env`) or shell-local exports.
-- Agents should read `LUMENMON_TEST_HOST` from environment (or repo-root `.env` loaded by scripts) when running deploy helpers.
-Deploy commands:
-- `./dev/deploy-test web`
-- `./dev/deploy-test agent`
-- `./dev/deploy-test console`
-- `./dev/deploy-test all`
-- `./dev/deploy-test status`
-- `./dev/deploy-test check`
-Use the narrowest target matching changed files.
 
 ## Code Style Guidelines
 
@@ -121,7 +101,7 @@ Use the narrowest target matching changed files.
 - Prefer descriptive names for UI/data state.
 - Use semicolons consistently.
 - Preserve file-local formatting:
-  - `tests/e2e/*.ts`: 2-space indent, single quotes.
+  - `dev/tests/*.ts`: 2-space indent, single quotes.
   - Rails inline dashboard scripts: 4-space indent, single quotes.
 - Avoid formatter-only churn unless requested.
 
@@ -156,7 +136,7 @@ Result: none of these files currently exist in this repo.
 ## Recommended Agent Workflow
 - Read touched files first and mirror local conventions.
 - After edits, run the smallest command set that validates your change.
-- Prefer targeted deploy/test loops (`./dev/deploy-test ...`) during active development.
+- Prefer local validation with `./dev/quality` during active development.
 - Do not push commits unless explicitly asked.
 
 ## UI/API Contract Notes
@@ -201,15 +181,6 @@ Frontend detail widgets still render typed compatibility columns; do not remove 
 - Changing field names in Rails API responses without updating `console/app/views/dashboard/*.erb` can render `-` values while health still fails.
 - `console/core/status.sh` should prefer Rails health/API checks over raw SQLite timestamps.
 - Invite rows should open detail view; avoid frontend calls to non-existent invite retrieval endpoints.
-
-## Fast Direct Deploy Strategy
-- Keep host in gitignored env (`LUMENMON_TEST_HOST` in repo `.env` or shell export).
-- Iterate with narrow targets:
-  - `./dev/deploy-test agent` for agent/runtime script changes.
-  - `./dev/deploy-test web` for frontend/public asset changes.
-  - `./dev/deploy-test console` for backend/console app changes.
-- Verify with `./dev/deploy-test status` / `./dev/deploy-test check` plus `lumenmon` and `lumenmon-agent` checks.
-- After successful real-server validation, commit and promote via normal release flow.
 
 ## Release Notes Safety (Important)
 - Never pass GitHub release notes as a double-quoted inline string when content contains backticks.

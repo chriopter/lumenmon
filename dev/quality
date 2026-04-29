@@ -5,8 +5,75 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
+collector_errors=0
+collector_warnings=0
+
+is_runtime_collector() {
+    case "$(basename "$1")" in
+        _init.sh|TEMPLATE.sh)
+            return 1
+            ;;
+    esac
+    return 0
+}
+
+check_collector() {
+    local file="$1"
+    local dir expected_prefix metric
+
+    dir="$(basename "$(dirname "$file")")"
+    expected_prefix="${dir}_"
+
+    if ! bash -n "$file"; then
+        echo "ERROR: syntax check failed: $file"
+        collector_errors=$((collector_errors + 1))
+    fi
+
+    if ! grep -q 'LUMENMON_TEST_MODE' "$file"; then
+        echo "ERROR: missing test-mode support in $file"
+        collector_errors=$((collector_errors + 1))
+    fi
+
+    if ! grep -Fq 'source "$LUMENMON_HOME/core/mqtt/publish.sh"' "$file"; then
+        echo "ERROR: missing publish helper source in $file"
+        collector_errors=$((collector_errors + 1))
+    fi
+
+    if ! grep -q 'publish_metric' "$file" && [ "$file" != "agent/collectors/generic/mail.sh" ]; then
+        echo "ERROR: no publish_metric usage found in $file"
+        collector_errors=$((collector_errors + 1))
+    fi
+
+    while IFS= read -r metric; do
+        [ -z "$metric" ] && continue
+        [[ "$metric" == '$'* ]] && continue
+        if [ "$dir" = "optional" ]; then
+            if [[ "$metric" != optional_* ]] && [[ "$metric" != mullvad_* ]]; then
+                echo "WARN: optional collector metric '$metric' has unusual prefix in $file"
+                collector_warnings=$((collector_warnings + 1))
+            fi
+            continue
+        fi
+
+        if [[ "$metric" != "$expected_prefix"* ]]; then
+            echo "WARN: metric '$metric' does not match '${expected_prefix}*' in $file"
+            collector_warnings=$((collector_warnings + 1))
+        fi
+    done < <(grep -oE 'publish_metric\s+"[^"]+"' "$file" | sed -E 's/^publish_metric\s+"([^"]+)"$/\1/')
+}
+
 echo "==> Shell syntax"
 find . -name "*.sh" -type f -exec bash -n {} \;
+
+echo "==> Collector contracts"
+for file in agent/collectors/*/*.sh; do
+    is_runtime_collector "$file" || continue
+    check_collector "$file"
+done
+echo "Collector contract check complete: $collector_errors errors, $collector_warnings warnings"
+if [ "$collector_errors" -gt 0 ]; then
+    exit 1
+fi
 
 echo "==> Rails tests"
 (
