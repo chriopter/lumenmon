@@ -201,7 +201,7 @@
   .agent-name { display: flex; align-items: center; gap: 0.4rem; min-width: 0; }
   .agent-name strong { font-weight: 500; color: var(--foreground0); }
   .agent-name .issues-inline { color: var(--yellow); margin-left: 0.25rem; font-size: 0.7rem; }
-  .agent-name .mail-indicator { color: var(--accent2); margin-left: 0.3rem; font-size: 0.85rem; line-height: 1; }
+  .agent-name .mail-indicator { color: var(--accent2); margin-left: 0.3rem; display: inline-flex; align-items: center; }
 
   .status-dot {
     width: 0.5rem;

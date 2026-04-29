@@ -16,7 +16,12 @@
               <span class="status-dot <%= agent[:status] %>"></span>
               <strong><%= agent[:hostname] %></strong>
               <% if agent[:unread_mail].to_i > 0 %>
-                <span class="mail-indicator" title="<%= agent[:unread_mail] %> unread">✉</span>
+                <span class="mail-indicator" title="<%= agent[:unread_mail] %> unread">
+                  <svg width="13" height="10" viewBox="0 0 16 12" aria-hidden="true">
+                    <rect x="0.5" y="0.5" width="15" height="11" rx="1" fill="none" stroke="currentColor"></rect>
+                    <path d="M1 1l7 6 7-6" fill="none" stroke="currentColor"></path>
+                  </svg>
+                </span>
               <% end %>
             </div>
           </td>
