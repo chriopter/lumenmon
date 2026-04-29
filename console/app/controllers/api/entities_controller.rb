@@ -46,7 +46,8 @@ module Api
     end
 
     def mqtt_user?(agent_id)
-      passwd_file = Pathname("/data/mqtt/passwd")
+      data_dir = ENV.fetch("LUMENMON_DATA_DIR", "/data")
+      passwd_file = Pathname(data_dir).join("mqtt", "passwd")
       return false unless passwd_file.exist?
 
       passwd_file.each_line.any? { |line| line.start_with?("#{agent_id}:") }

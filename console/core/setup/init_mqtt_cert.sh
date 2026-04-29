@@ -3,7 +3,8 @@
 # Reuses an existing certificate when present in the persistent data volume.
 set -euo pipefail
 
-CERT_DIR="/data/mqtt"
+DATA_DIR="${LUMENMON_DATA_DIR:-/data}"
+CERT_DIR="$DATA_DIR/mqtt"
 FINGERPRINT_FILE="$CERT_DIR/fingerprint"
 CONSOLE_HOST="${CONSOLE_HOST:-localhost}"
 

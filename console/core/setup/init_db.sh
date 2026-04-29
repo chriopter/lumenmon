@@ -3,10 +3,13 @@
 # Keeps the data volume writable for the app and MQTT runtime.
 set -euo pipefail
 
-mkdir -p /data /data/mqtt
-chmod 775 /data
+DATA_DIR="${LUMENMON_DATA_DIR:-/data}"
+MQTT_DIR="$DATA_DIR/mqtt"
 
-DB_PATH="${LUMENMON_DB_PATH:-/data/lumenmon.sqlite3}"
+mkdir -p "$DATA_DIR" "$MQTT_DIR"
+chmod 775 "$DATA_DIR"
+
+DB_PATH="${LUMENMON_DB_PATH:-$DATA_DIR/lumenmon.sqlite3}"
 touch "$DB_PATH"
 chmod 664 "$DB_PATH"
 

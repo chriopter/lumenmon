@@ -1,0 +1,4 @@
+mqtt: mosquitto -c tmp/mosquitto.dev.conf
+ingest: bundle exec ruby script/mqtt_ingest.rb
+css: npm run build:css -- --watch
+web: bundle exec rails server -b 0.0.0.0 -p ${PORT:-3000}
