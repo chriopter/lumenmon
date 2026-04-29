@@ -1,4 +1,8 @@
 module ApplicationHelper
+  def metric_time(time)
+    time ? "#{time_ago_in_words(time)} ago" : "never"
+  end
+
   def metric_sample(agent, name)
     agent&.dig(:metrics, name)
   end

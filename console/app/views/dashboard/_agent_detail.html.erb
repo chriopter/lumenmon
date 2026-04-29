@@ -1,101 +1,13 @@
-<%
-  updates = update_widget(agent)
-  runtime = proxmox_runtime(agent)
-  storages = storage_pools(agent)
-  zfs = zfs_pools(agent)
-  zpools = zpool_health(agent)
-  temps = hardware_temps(agent)
-  smarts = smart_disks(agent)
-%>
-
 <section class="agent-detail <%= "hidden" if hidden %>" data-agent-detail="<%= agent[:id] %>">
-  <header class="detail-header">
-    <h2>
-      <span class="status-dot <%= agent[:status] %>"></span>
-      <%= agent[:hostname] %>
-    </h2>
-    <div class="detail-header-right">
-      <span class="detail-status"><%= agent[:id] %> · last seen <%= metric_time.call(agent[:last_seen]) %></span>
-      <span class="health-badge <%= agent[:status] %>"><%= agent[:status] %></span>
-    </div>
-  </header>
-
-  <section class="widget-grid" aria-label="metric widgets">
-    <%= render "widget_cpu", agent: agent %>
-    <%= render "widget_memory", agent: agent %>
-    <%= render "widget_disk", agent: agent %>
-    <%= render "widget_heartbeat", agent: agent %>
-
-    <%= render "widget_system", agent: agent %>
-
-    <% if updates %>
-      <%= render "widget_updates", updates: updates %>
-    <% end %>
-
-    <% if runtime %>
-      <%= render "widget_proxmox_runtime", runtime: runtime %>
-    <% end %>
-
-    <% if temps.any? %>
-      <%= render "widget_hardware_temps", temps: temps %>
-    <% end %>
-
-    <% if smarts.any? %>
-      <%= render "widget_smart", smarts: smarts %>
-    <% end %>
-
-    <% if storages.any? %>
-      <%= render "widget_proxmox_storage", storages: storages %>
-    <% end %>
-
-    <% if zfs.any? %>
-      <%= render "widget_proxmox_zfs", zfs: zfs %>
-    <% end %>
-
-    <% if zpools.any? %>
-      <%= render "widget_proxmox_zpool", zpools: zpools %>
-    <% end %>
-  </section>
+  <%= turbo_frame_tag "agent_#{agent[:id]}_metrics",
+                      refresh: "morph",
+                      data: {
+                        controller: "poll",
+                        poll_interval_value: 1000,
+                        poll_url_value: agent_metrics_path(agent[:id])
+                      } do %>
+    <%= render "agent_metrics", agent: agent %>
+  <% end %>
 
   <%= render "widget_messages", agent: agent %>
-
-  <section class="tui-box">
-    <h3>all metrics</h3>
-    <div class="metrics-table">
-      <div class="metrics-headline-row">
-        <div class="metric-cell">name</div>
-        <div class="metric-cell value">value</div>
-        <div class="metric-cell bounds">range</div>
-        <div class="metric-cell status">status</div>
-      </div>
-      <% agent[:samples].each do |sample| %>
-        <%
-          value = (Float(sample.typed_value) rescue nil)
-          status_class = if value && ((sample.min && value < sample.min) || (sample.max && value > sample.max))
-            "critical"
-          elsif value && ((sample.warn_min && value < sample.warn_min) || (sample.warn_max && value > sample.warn_max))
-            "warning"
-          else
-            ""
-          end
-          bounds = if sample.min || sample.max
-            "#{sample.min || "-"}..#{sample.max || "-"}"
-          else
-            "-"
-          end
-          status_label = case status_class
-                         when "critical" then "crit"
-                         when "warning"  then "warn"
-                         else "ok"
-                         end
-        %>
-        <div class="metrics-row <%= status_class %>">
-          <div class="metric-cell" title="<%= sample.metric_name %>"><%= sample.metric_name %></div>
-          <div class="metric-cell value"><strong><%= sample.typed_value %></strong></div>
-          <div class="metric-cell bounds"><%= bounds %></div>
-          <div class="metric-cell status <%= "ok-text" if status_class.empty? %><%= "warn-text" if status_class == "warning" %><%= "crit-text" if status_class == "critical" %>"><%= status_label %></div>
-        </div>
-      <% end %>
-    </div>
-  </section>
 </section>

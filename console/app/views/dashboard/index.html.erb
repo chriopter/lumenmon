@@ -1,5 +1,3 @@
-<% metric_time = ->(time) { time ? "#{time_ago_in_words(time)} ago" : "never" } %>
-
 <main class="legacy-layout">
   <div class="main-content">
     <aside class="left-column">
@@ -55,7 +53,7 @@
         <% if @agents.any? %>
           <div class="detail-panel">
             <% @agents.each_with_index do |agent, index| %>
-              <%= render "agent_detail", agent: agent, hidden: !index.zero?, metric_time: metric_time %>
+              <%= render "agent_detail", agent: agent, hidden: !index.zero? %>
             <% end %>
           </div>
         <% else %>
