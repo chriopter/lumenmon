@@ -147,7 +147,12 @@ Note: on virtualized guests, hardware collectors stay disabled by default. If GP
 
 ## Dev / Architecture / Operations
 
-The console is one Docker container with Rails 8, Caddy, Mosquitto, MQTT ingest, and SQLite. Persist `./data:/data`; the web UI listens on `8080`, and MQTT/TLS for agents listens on `8884`.
+Lumenmon is a push-only monitor: agents connect outbound over MQTT/TLS, the console stores latest state in SQLite, and Rails renders the UI on `8080`.
+
+<details>
+<summary>Console</summary>
+
+One Docker container runs Rails 8, Caddy, Mosquitto, MQTT ingest, and SQLite. Persist `./data:/data`; MQTT/TLS listens on `8884`.
 
 ```bash
 docker compose up -d
@@ -157,7 +162,12 @@ docker exec lumenmon-console /app/core/status.sh
 docker exec lumenmon-console /app/core/enrollment/invite_create.sh
 ```
 
-Bash collectors run on each host and publish metrics with `mosquitto_pub` over TLS. The installer uses `/opt/lumenmon/`, creates `lumenmon-agent.service`, and installs the `lumenmon-agent` CLI.
+</details>
+
+<details>
+<summary>Agent</summary>
+
+Bash collectors publish metrics with `mosquitto_pub` over TLS. The installer uses `/opt/lumenmon/`, creates `lumenmon-agent.service`, and installs the CLI.
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/chriopter/lumenmon/main/agent/install.sh | bash
@@ -167,11 +177,33 @@ lumenmon-agent logs
 lumenmon-agent debug
 ```
 
-Security model: agents connect outbound only, MQTT uses TLS and per-agent credentials, and invites create individual MQTT users. Do not expose Rails directly; put public HTTPS in front of `8080` with a reverse proxy.
+</details>
 
-Rails owns `/data/lumenmon.sqlite3`. Data flows from `agent collector -> Mosquitto :8884 -> Ruby MQTT ingest -> ActiveRecord -> metric_samples`; `metric_samples` stores the latest value per `agent_id` + `metric_name`, including `data_type`, interval, bounds, and `observed_at`. Observation history is retained separately for seven days.
+<details>
+<summary>Security</summary>
 
-The Rails UI reads latest metric state from SQLite and refreshes live. Status is based on stale intervals and metric bounds: `fail` = hard failure, `warn` = warning threshold, `stale` = no fresh update. Local system mail can be forwarded as `mail_message` metrics and is shown host-scoped in the UI.
+- Agents connect outbound only.
+- MQTT uses TLS and per-agent credentials.
+- Invites create individual MQTT users.
+- Do not expose Rails directly; put public HTTPS in front of `8080` with a reverse proxy.
+
+</details>
+
+<details>
+<summary>Data and UI</summary>
+
+Rails owns `/data/lumenmon.sqlite3`.
+
+```text
+agent collector -> Mosquitto :8884 -> Ruby MQTT ingest -> ActiveRecord -> metric_samples
+```
+
+`metric_samples` stores latest values by `agent_id` + `metric_name`; observation history is kept for seven days. Status uses stale intervals and bounds: `fail`, `warn`, `stale`. Mail forwarding uses `mail_message` metrics and is shown host-scoped.
+
+</details>
+
+<details>
+<summary>Custom collectors</summary>
 
 Custom collectors are Bash scripts in `agent/collectors/` and publish through:
 
@@ -181,7 +213,10 @@ publish_metric "name" "value" "TYPE" interval [min] [max] [warn_min] [warn_max]
 
 Use `REAL`, `INTEGER`, or `TEXT`. Use `LC_ALL=C` when parsing command output. Prefix metrics by collector family: `generic_`, `proxmox_`, `pbs_`, `hardware_`, or `optional_`.
 
-Local development:
+</details>
+
+<details>
+<summary>Local dev</summary>
 
 ```bash
 ./dev/console
@@ -192,6 +227,8 @@ Local development:
 ```
 
 Rails/Tailwind work happens in `console/`. Release tags (`v*`) trigger the GitHub Actions container build.
+
+</details>
 
 ---
 
