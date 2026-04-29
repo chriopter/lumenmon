@@ -132,6 +132,10 @@
       logList.prepend(p);
       while (logList.children.length > 50) logList.removeChild(logList.lastChild);
     }
+    function csrfHeaders() {
+      const token = document.querySelector('meta[name="csrf-token"]')?.content;
+      return token ? { 'X-CSRF-Token': token } : {};
+    }
 
     function selectedAgentId() {
       const selected = buttons.find((button) => button.classList.contains('selected'));
@@ -230,10 +234,9 @@
 
     async function deleteMessage(widget, messageId) {
       try {
-        const csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
         const res = await fetch(`/api/messages/${messageId}`, {
           method: 'DELETE',
-          headers: { 'X-CSRF-Token': csrf }
+          headers: csrfHeaders()
         });
         const data = await res.json();
         if (data.success) {
@@ -290,7 +293,10 @@
       openModal();
       body.innerHTML = '<p class="muted">creating invite...</p>';
       try {
-        const response = await fetch('/api/invites/create/full', { method: 'POST' });
+        const response = await fetch('/api/invites/create/full', {
+          method: 'POST',
+          headers: csrfHeaders()
+        });
         renderInvite(await response.json());
       } catch (error) {
         body.innerHTML = `<p class="error-text">${error.message}</p>`;
@@ -316,7 +322,10 @@
       if (!id) { log('no agent selected', 'error'); return; }
       if (!confirm(`reset metrics for ${id}?`)) return;
       try {
-        const res = await fetch(`/api/agents/${id}/reset`, { method: 'POST' });
+        const res = await fetch(`/api/agents/${id}/reset`, {
+          method: 'POST',
+          headers: csrfHeaders()
+        });
         const data = await res.json();
         if (data.success) {
           log(`metrics reset: ${id}`, 'success');
@@ -334,7 +343,10 @@
       if (!id) { log('no agent selected', 'error'); return; }
       if (!confirm(`delete agent ${id}?`)) return;
       try {
-        const res = await fetch(`/api/agents/${id}`, { method: 'DELETE' });
+        const res = await fetch(`/api/agents/${id}`, {
+          method: 'DELETE',
+          headers: csrfHeaders()
+        });
         const data = await res.json();
         if (data.success) {
           log(`agent deleted: ${id}`, 'success');
