@@ -1,0 +1,83 @@
+<% content_for(:title, "Database · Lumenmon Console") %>
+
+<main class="legacy-layout database-layout">
+  <div class="main-content database-main">
+    <aside class="database-sidebar tui-box">
+      <h3>tables</h3>
+      <% if @tables.any? %>
+        <div class="database-table-list">
+          <% @tables.each do |table| %>
+            <%= link_to database_path(table: table[:name]),
+                  class: "database-table-link #{"selected" if table[:name] == @selected_table}" do %>
+              <span class="database-table-name"><%= table[:name] %></span>
+              <span class="database-table-meta"><%= table[:rows] %> rows · <%= table[:columns] %> cols</span>
+            <% end %>
+          <% end %>
+        </div>
+      <% else %>
+        <p class="empty-state">no database tables found</p>
+      <% end %>
+    </aside>
+
+    <section class="database-content tui-box">
+      <h3>last 100</h3>
+      <% if @selected_table %>
+        <header class="database-header">
+          <div>
+            <h2><%= @selected_table %></h2>
+            <p class="muted"><%= @rows.count %> shown · newest first when an id/timestamp column exists</p>
+          </div>
+          <%= link_to "dashboard", root_path, class: "pill" %>
+        </header>
+
+        <% if @columns.any? %>
+          <div class="database-scroll">
+            <table class="database-data-table">
+              <thead>
+                <tr>
+                  <% @columns.each do |column| %>
+                    <th><%= column %></th>
+                  <% end %>
+                </tr>
+              </thead>
+              <tbody>
+                <% if @rows.any? %>
+                  <% @rows.each do |row| %>
+                    <tr>
+                      <% @columns.each do |column| %>
+                        <% value = database_cell_value(row[column]) %>
+                        <td title="<%= value %>" class="<%= "null-cell" if row[column].nil? %>">
+                          <%= truncate(value, length: 120) %>
+                        </td>
+                      <% end %>
+                    </tr>
+                  <% end %>
+                <% else %>
+                  <tr>
+                    <td colspan="<%= @columns.count %>" class="empty-state">table is empty</td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        <% else %>
+          <p class="empty-state">table has no columns</p>
+        <% end %>
+      <% else %>
+        <p class="empty-state">no table selected</p>
+      <% end %>
+    </section>
+  </div>
+
+  <footer class="shortcut-footer">
+    <div class="footer-left">
+      <%= link_to "dashboard", root_path, class: "kbd-clickable" %>
+      <span>·</span>
+      <span>read-only database overview</span>
+    </div>
+    <div class="footer-right">
+      <span class="status-compact online">database online</span>
+      <span class="status-compact">tables <%= @tables.count %></span>
+    </div>
+  </footer>
+</main>

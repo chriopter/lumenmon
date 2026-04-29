@@ -8,13 +8,31 @@ CONSOLE_ROOT="$APP_ROOT/console"
 DATA_ROOT="${LUMENMON_DEV_DATA_DIR:-$APP_ROOT/dev/data/local-console}"
 MQTT_PORT="${MQTT_PORT:-8884}"
 CONSOLE_HOST="${CONSOLE_HOST:-localhost}"
+LUMENMON_WEB_PORT="${LUMENMON_WEB_PORT:-8080}"
 DEV_PID=""
+
+export LUMENMON_WEB_PORT
 
 require_command() {
     local cmd="$1"
 
     if ! command -v "$cmd" >/dev/null 2>&1; then
         echo "Missing required command: $cmd" >&2
+        exit 1
+    fi
+}
+
+preflight() {
+    require_command bundle
+    require_command docker
+    require_command gem
+    require_command mosquitto
+    require_command mosquitto_passwd
+    require_command npm
+    require_command openssl
+
+    if ! docker info >/dev/null 2>&1; then
+        echo "Docker daemon is not reachable; check that Docker is running and your user can access it" >&2
         exit 1
     fi
 }
@@ -62,6 +80,12 @@ cleanup() {
         kill "$DEV_PID" 2>/dev/null || true
         wait "$DEV_PID" 2>/dev/null || true
     fi
+
+    docker stop \
+        lumenmon-dev-agent-1 \
+        lumenmon-dev-agent-2 \
+        lumenmon-dev-agent-3 \
+        2>/dev/null || true
 }
 
 create_invite() {
@@ -130,11 +154,7 @@ start_agents() {
 
 cd "$APP_ROOT"
 
-require_command docker
-if ! docker info >/dev/null 2>&1; then
-    echo "Docker daemon is not reachable; check that Docker is running and your user can access it" >&2
-    exit 1
-fi
+preflight
 
 trap cleanup EXIT INT TERM
 

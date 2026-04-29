@@ -7,7 +7,7 @@ APP_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 CONSOLE_ROOT="$APP_ROOT/console"
 DATA_ROOT="${LUMENMON_DEV_DATA_DIR:-$APP_ROOT/dev/data/local-console}"
 MOSQUITTO_CONFIG="$CONSOLE_ROOT/tmp/mosquitto.dev.conf"
-PORT="${PORT:-3000}"
+WEB_PORT="${LUMENMON_WEB_PORT:-${PORT:-3000}}"
 MQTT_PLAIN_PORT="${MQTT_PLAIN_PORT:-1883}"
 MQTT_PORT="${MQTT_PORT:-8884}"
 CONSOLE_HOST="${CONSOLE_HOST:-localhost}"
@@ -36,7 +36,7 @@ require_command() {
 kill_web_port() {
     if command -v lsof >/dev/null 2>&1; then
         local pids
-        pids="$(lsof -ti tcp:"$PORT" || true)"
+        pids="$(lsof -ti tcp:"$WEB_PORT" || true)"
         if [ -n "$pids" ]; then
             kill $pids || true
             sleep 1
@@ -114,9 +114,9 @@ mkdir -p "$DATA_ROOT/mqtt"
 touch "$DATA_ROOT/mqtt/passwd"
 
 export CONSOLE_HOST
+export LUMENMON_WEB_PORT="$WEB_PORT"
 export MQTT_PLAIN_PORT
 export MQTT_PORT
-export PORT
 export RUBY_DEBUG_LAZY="${RUBY_DEBUG_LAZY:-true}"
 export RUBY_DEBUG_OPEN="${RUBY_DEBUG_OPEN:-true}"
 export LUMENMON_DATA_DIR="$DATA_ROOT"
@@ -133,7 +133,7 @@ kill_web_port
 
 write_mosquitto_config
 
-echo "[console] Dashboard: http://localhost:$PORT"
+echo "[console] Dashboard: http://localhost:$WEB_PORT"
 echo "[console] Data:      $DATA_ROOT"
 
 cd "$CONSOLE_ROOT"

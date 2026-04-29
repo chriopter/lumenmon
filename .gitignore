@@ -4,6 +4,16 @@
 .reset
 .codex
 .codex/
+/.bash_profile
+/.bashrc
+/.gitconfig
+/.gitmodules
+/.idea/
+/.mcp.json
+/.profile
+/.ripgreprc
+/.vscode/
+/.zprofile
 
 # Ruby / Rails
 *.rbc
