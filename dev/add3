@@ -24,12 +24,12 @@ create_invite() {
     fi
 
     if [ ! -f "$DATA_ROOT/mqtt/fingerprint" ]; then
-        echo "Console not running. Start it first with bin/dev" >&2
+        echo "Console not running. Start it first with ./dev/console" >&2
         return 1
     fi
 
     if ! (echo > "/dev/tcp/127.0.0.1/$MQTT_PORT") >/dev/null 2>&1; then
-        echo "Local MQTT listener is not reachable. Start the console first with bin/dev" >&2
+        echo "Local MQTT listener is not reachable. Start the console first with ./dev/console" >&2
         return 1
     fi
 

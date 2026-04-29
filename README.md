@@ -257,12 +257,12 @@ Use `REAL`, `INTEGER`, or `TEXT`. Use `LC_ALL=C` when parsing command output. Pr
 <summary>Development</summary>
 
 ```bash
-bin/dev
-bin/dev --reset
+./dev/console
+./dev/console --reset
 ./dev/auto
 ./dev/add3
-bin/check-collectors
-bin/quality
+./dev/check-collectors
+./dev/quality
 ```
 
 Rails/Tailwind work happens in `console/`. Release tags (`v*`) trigger the GitHub Actions container build.

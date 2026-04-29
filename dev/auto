@@ -23,7 +23,7 @@ wait_for_file() {
     while [ "$attempts" -gt 0 ]; do
         [ -f "$path" ] && return 0
         if [ -n "$DEV_PID" ] && ! kill -0 "$DEV_PID" 2>/dev/null; then
-            echo "bin/dev exited before $label was ready" >&2
+            echo "dev/console exited before $label was ready" >&2
             wait "$DEV_PID" 2>/dev/null || true
             exit 1
         fi
@@ -43,7 +43,7 @@ wait_for_port() {
             return 0
         fi
         if [ -n "$DEV_PID" ] && ! kill -0 "$DEV_PID" 2>/dev/null; then
-            echo "bin/dev exited before $label was ready" >&2
+            echo "dev/console exited before $label was ready" >&2
             wait "$DEV_PID" 2>/dev/null || true
             exit 1
         fi
@@ -72,7 +72,7 @@ fi
 
 trap cleanup EXIT INT TERM
 
-./bin/dev --reset &
+./dev/console --reset &
 DEV_PID="$!"
 
 wait_for_file "$DATA_ROOT/mqtt/fingerprint" "local MQTT certificate"

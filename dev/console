@@ -1,0 +1,140 @@
+#!/bin/bash
+# Starts the live-edit Rails console development server.
+# Prepares local data, MQTT, Rails DB, and Foreman-managed dev processes.
+set -euo pipefail
+
+APP_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+CONSOLE_ROOT="$APP_ROOT/console"
+DATA_ROOT="${LUMENMON_DEV_DATA_DIR:-$APP_ROOT/dev/data/local-console}"
+MOSQUITTO_CONFIG="$CONSOLE_ROOT/tmp/mosquitto.dev.conf"
+PORT="${PORT:-3000}"
+MQTT_PLAIN_PORT="${MQTT_PLAIN_PORT:-1883}"
+MQTT_PORT="${MQTT_PORT:-8884}"
+CONSOLE_HOST="${CONSOLE_HOST:-localhost}"
+RESET=0
+
+usage() {
+    cat <<EOF
+Usage: dev/console [--reset] [foreman options]
+
+Starts the local Rails console without rebuilding Docker images.
+
+Options:
+  --reset    Delete local console data before starting.
+EOF
+}
+
+require_command() {
+    local cmd="$1"
+
+    if ! command -v "$cmd" >/dev/null 2>&1; then
+        echo "Missing required command: $cmd" >&2
+        exit 1
+    fi
+}
+
+kill_web_port() {
+    if command -v lsof >/dev/null 2>&1; then
+        local pids
+        pids="$(lsof -ti tcp:"$PORT" || true)"
+        if [ -n "$pids" ]; then
+            kill $pids || true
+            sleep 1
+        fi
+    fi
+}
+
+write_mosquitto_config() {
+    mkdir -p "$CONSOLE_ROOT/tmp"
+    cat > "$MOSQUITTO_CONFIG" <<EOF
+per_listener_settings true
+
+listener $MQTT_PLAIN_PORT 127.0.0.1
+allow_anonymous true
+persistence false
+
+listener $MQTT_PORT
+protocol mqtt
+cafile $DATA_ROOT/mqtt/server.crt
+certfile $DATA_ROOT/mqtt/server.crt
+keyfile $DATA_ROOT/mqtt/server.key
+tls_version tlsv1.2
+require_certificate false
+allow_anonymous false
+password_file $DATA_ROOT/mqtt/passwd
+acl_file $CONSOLE_ROOT/config/mqtt_acl
+
+max_connections 1000
+max_inflight_messages 100
+max_queued_messages 1000
+max_packet_size 65536
+
+log_dest stdout
+log_type error
+log_type warning
+log_timestamp true
+log_timestamp_format %Y-%m-%d %H:%M:%S
+EOF
+}
+
+FOREMAN_ARGS=()
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        --reset)
+            RESET=1
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            FOREMAN_ARGS+=("$1")
+            ;;
+    esac
+    shift
+done
+
+require_command bundle
+require_command gem
+require_command mosquitto
+require_command mosquitto_passwd
+require_command npm
+require_command openssl
+
+if ! gem list foreman -i --silent; then
+    gem install foreman
+fi
+
+if [ "$RESET" -eq 1 ]; then
+    echo "[console] Resetting local console data..."
+    rm -rf "$DATA_ROOT"
+fi
+
+mkdir -p "$DATA_ROOT/mqtt"
+touch "$DATA_ROOT/mqtt/passwd"
+
+export CONSOLE_HOST
+export MQTT_PLAIN_PORT
+export MQTT_PORT
+export PORT
+export RUBY_DEBUG_LAZY="${RUBY_DEBUG_LAZY:-true}"
+export RUBY_DEBUG_OPEN="${RUBY_DEBUG_OPEN:-true}"
+export LUMENMON_DATA_DIR="$DATA_ROOT"
+export LUMENMON_DB_PATH="$DATA_ROOT/lumenmon.sqlite3"
+
+kill_web_port
+
+(
+    cd "$CONSOLE_ROOT"
+    core/setup/init_db.sh
+    core/setup/init_mqtt_cert.sh
+    bundle exec rails db:prepare
+)
+
+write_mosquitto_config
+
+echo "[console] Dashboard: http://localhost:$PORT"
+echo "[console] Data:      $DATA_ROOT"
+
+cd "$CONSOLE_ROOT"
+exec foreman start -f Procfile.dev "${FOREMAN_ARGS[@]}"

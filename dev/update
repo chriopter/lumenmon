@@ -93,7 +93,7 @@ Dir.chdir(APP_ROOT) do
   sh("bundle", "exec", "rails", "db:prepare", chdir: console_root)
 
   puts "\n==> Running quality checks"
-  sh("bin/quality")
+  sh("dev/quality")
 
   print_summary(before_gems, installed_gems, before_packages, package_versions)
   puts "\nNext: git diff"
