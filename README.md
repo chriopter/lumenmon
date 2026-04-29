@@ -6,8 +6,7 @@
   ███████╗╚██████╔╝██║ ╚═╝ ██║███████╗██║ ╚████║██║ ╚═╝ ██║╚██████╔╝██║ ╚████║
   ╚══════╝ ╚═════╝ ╚═╝     ╚═╝╚══════╝╚═╝  ╚═══╝╚═╝     ╚═╝ ╚═════╝ ╚═╝  ╚═══╝
 ```
-
-> Lightweight system monitoring with MQTT transport. Pure push architecture — agents send metrics, the console never reaches into your systems. Run the console as a Docker container, add clients with one invite command, and get monitoring without dashboard config.
+Lightweight system monitoring with MQTT transport. Pure push architecture — agents send metrics, the console never reaches into your systems. Run the console as a Docker container, add clients with one invite command, and get monitoring without dashboard config.
 
 <img width="400" alt="image" src="https://github.com/user-attachments/assets/6e9a1e4c-59ca-4b34-bfa5-269ab3f99b37" />
 
