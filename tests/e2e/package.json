@@ -1,0 +1,18 @@
+{
+  "name": "lumenmon-tests",
+  "version": "1.0.0",
+  "description": "Playwright E2E tests for Lumenmon dashboard",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:ui": "playwright test --ui",
+    "test:debug": "playwright test --debug",
+    "report": "playwright show-report"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@playwright/test": "^1.58.1"
+  }
+}
