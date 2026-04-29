@@ -151,7 +151,7 @@ Lumenmon is a push-only monitor: agents connect outbound over MQTT/TLS, the cons
 <details>
 <summary>Console</summary>
 
-One Docker container runs Rails 8, Caddy, Mosquitto, MQTT ingest, and SQLite. Persist `./data:/data`; MQTT/TLS listens on `8884`.
+One Docker container runs Rails 8, Caddy, Mosquitto, MQTT ingest, SMTP receive, and SQLite. Persist `./data:/data`; MQTT/TLS listens on `8884`, SMTP on `25`.
 
 ```bash
 docker compose up -d
@@ -197,7 +197,9 @@ Rails owns `/data/lumenmon.sqlite3`.
 agent collector -> Mosquitto :8884 -> Ruby MQTT ingest -> ActiveRecord -> metric_samples
 ```
 
-`metric_samples` stores latest values by `agent_id` + `metric_name`; observation history is kept for seven days. Status uses stale intervals and bounds: `fail`, `warn`, `stale`. Mail forwarding uses `mail_message` metrics and is shown host-scoped.
+`metric_samples` stores latest values by `agent_id` + `metric_name`; observation history is kept for seven days. Status uses stale intervals and bounds: `fail`, `warn`, `stale`.
+
+Mail is stored in `messages` and shown host-scoped. It can arrive through agent local-spool forwarding (`mail_message` over MQTT) or direct SMTP delivery to `<agent_id>@<console-host>` for systems that cannot run an agent.
 
 </details>
 

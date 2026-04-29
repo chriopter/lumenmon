@@ -82,7 +82,7 @@ RUN chmod +x bin/docker-entrypoint console.sh core/setup/*.sh core/enrollment/*.
 
 VOLUME /data
 
-EXPOSE 8080 8884
+EXPOSE 8080 8884 25
 
 ENTRYPOINT ["/app/bin/docker-entrypoint"]
 CMD ["./console.sh"]

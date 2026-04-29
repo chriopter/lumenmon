@@ -31,6 +31,10 @@ echo "[console] Starting Ruby MQTT ingest..."
 bundle exec ruby /app/script/mqtt_ingest.rb 2>&1 | sed 's/^/[mqtt-ingest] /' &
 MQTT_INGEST_PID=$!
 
+echo "[console] Starting SMTP receiver..."
+bundle exec ruby /app/script/smtp_receiver.rb 2>&1 | sed 's/^/[smtp] /' &
+SMTP_PID=$!
+
 echo "[console] Starting Rails..."
 bundle exec rails server -b 127.0.0.1 -p 5000 2>&1 | sed 's/^/[rails] /' &
 RAILS_PID=$!
@@ -45,19 +49,20 @@ echo "[console] Lumenmon Rails Console Ready"
 echo "[console] ======================================"
 echo "[console] Console Host: ${CONSOLE_HOST:-localhost}"
 echo "[console] MQTT Broker: lumenmon-console:8884 (TLS)"
+echo "[console] SMTP Receiver: Port ${SMTP_PORT:-25}"
 echo "[console] Web Interface: Port 8080 (HTTP)"
 echo "[console] Database: ${LUMENMON_DB_PATH:-/data/lumenmon.sqlite3}"
 echo "[console] Access Web UI: http://localhost:8080"
 
 terminate() {
     echo "[console] Stopping services..."
-    kill "$CADDY_PID" "$RAILS_PID" "$MQTT_INGEST_PID" "$MOSQUITTO_PID" 2>/dev/null || true
-    wait "$CADDY_PID" "$RAILS_PID" "$MQTT_INGEST_PID" "$MOSQUITTO_PID" 2>/dev/null || true
+    kill "$CADDY_PID" "$RAILS_PID" "$SMTP_PID" "$MQTT_INGEST_PID" "$MOSQUITTO_PID" 2>/dev/null || true
+    wait "$CADDY_PID" "$RAILS_PID" "$SMTP_PID" "$MQTT_INGEST_PID" "$MOSQUITTO_PID" 2>/dev/null || true
 }
 
 trap terminate TERM INT
 
-wait -n "$CADDY_PID" "$RAILS_PID" "$MQTT_INGEST_PID" "$MOSQUITTO_PID"
+wait -n "$CADDY_PID" "$RAILS_PID" "$SMTP_PID" "$MQTT_INGEST_PID" "$MOSQUITTO_PID"
 STATUS=$?
 terminate
 exit "$STATUS"

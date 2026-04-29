@@ -238,6 +238,7 @@
     align-items: baseline;
     gap: 0.5rem;
     flex-wrap: wrap;
+    margin-bottom: 0.4rem;
   }
   .detail-header h2 {
     font-size: 0.95rem;

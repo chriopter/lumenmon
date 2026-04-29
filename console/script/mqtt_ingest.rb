@@ -19,6 +19,12 @@ client.get do |topic, payload|
   next unless metric_name&.match?(MetricSample::METRIC_NAME_PATTERN)
 
   data = JSON.parse(payload)
+  if metric_name == "mail_message"
+    Message.ingest_mqtt!(agent_id, data)
+    PendingInvite.delete(agent_id)
+    next
+  end
+
   observed_at = Time.current
   value = data.fetch("value").to_s
   data_type = data.fetch("type", "TEXT").to_s

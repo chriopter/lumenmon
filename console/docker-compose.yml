@@ -9,6 +9,7 @@ services:
     ports:
       - "8080:8080"
       - "8884:8884"
+      - "25:25"
     volumes:
       - ./data:/data
     environment:

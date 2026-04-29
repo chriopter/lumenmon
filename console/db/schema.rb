@@ -10,7 +10,22 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_29_000000) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_29_010000) do
+  create_table "messages", force: :cascade do |t|
+    t.string "agent_id", null: false
+    t.text "body"
+    t.datetime "created_at", null: false
+    t.string "mail_from", default: "unknown", null: false
+    t.string "mail_to", default: "", null: false
+    t.text "raw_content"
+    t.boolean "read", default: false, null: false
+    t.datetime "received_at", null: false
+    t.string "subject", default: "(no subject)", null: false
+    t.datetime "updated_at", null: false
+    t.index ["agent_id", "received_at"], name: "index_messages_on_agent_id_and_received_at"
+    t.index ["read"], name: "index_messages_on_read"
+  end
+
   create_table "metric_observations", force: :cascade do |t|
     t.string "agent_id", null: false
     t.datetime "created_at", null: false
@@ -24,7 +39,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_29_000000) do
     t.text "value"
     t.float "warn_max"
     t.float "warn_min"
-    t.index ["agent_id", "metric_name", "observed_at"], name: "index_metric_observations_on_metric_time"
+    t.index ["agent_id", "metric_name", "observed_at"], name: "idx_on_agent_id_metric_name_observed_at_03480a0f0e"
     t.index ["observed_at"], name: "index_metric_observations_on_observed_at"
   end
 

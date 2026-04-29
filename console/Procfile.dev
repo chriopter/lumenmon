@@ -1,4 +1,5 @@
 mqtt: mosquitto -c tmp/mosquitto.dev.conf
 ingest: bundle exec ruby script/mqtt_ingest.rb
+smtp: bundle exec ruby script/smtp_receiver.rb
 css: npm run build:css -- --watch=always
 web: bundle exec rails server -b 0.0.0.0 -p ${LUMENMON_WEB_PORT:-3000}
