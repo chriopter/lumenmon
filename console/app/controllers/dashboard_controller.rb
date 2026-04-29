@@ -12,6 +12,8 @@ class DashboardController < ApplicationController
   end
 
   def agent_metrics
+    return redirect_to(root_path(anchor: "agent=#{params[:agent_id]}")) unless turbo_frame_request?
+
     samples = MetricSample.where(agent_id: params[:agent_id]).order(:metric_name).to_a
     profile = AgentProfile.find_by(agent_id: params[:agent_id])
     return head :not_found if samples.empty? && profile.nil?
@@ -22,6 +24,8 @@ class DashboardController < ApplicationController
   end
 
   def hosts
+    return redirect_to(root_path) unless turbo_frame_request?
+
     render partial: "dashboard/hosts_frame", locals: { agents: load_agents }
   end
 
